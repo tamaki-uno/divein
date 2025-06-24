@@ -1,5 +1,6 @@
 // この関数がAPIリクエストを処理します
-function handleApiRequest(req, res) {
+// デフォルトのエクスポートとして定義されているため、他のファイルからインポート可能
+export default function handleApiRequest(req, res) {
     // ここでデータベース検索や計算などの処理を行う
     const responseData = {
         status: "success",
@@ -10,6 +11,3 @@ function handleApiRequest(req, res) {
     // 処理結果をJSON形式でクライアントに返す
     res.json(responseData);
 }
-
-// この関数を他のファイルから読み込めるようにエクスポートする
-module.exports = handleApiRequest;
