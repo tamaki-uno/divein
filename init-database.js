@@ -1,12 +1,15 @@
-// SQLiteの初期設定
-import sqlite3 from 'sqlite3'; // SQLite3のモジュールをインポート
-// import { open } from 'sqlite'; // SQLiteの非同期APIを使用するためのモジュール
-import fs from 'fs'; // ファイルシステムモジュールをインポート
-import path from 'path'; // パス操作のためのモジュール
+import sqlite3 from 'sqlite3';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// データベースの初期化関数
+// __dirnameをESMで取得（Windows対応）
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// データベース初期化関数
 export default function initDatabase() {
-    // データベースとの接続を開く
+    // データベース接続
     const db = new sqlite3.Database('divein.db', (err) => {
         if (err) {
             console.error('データベースの接続に失敗しました:', err.message);
@@ -14,38 +17,49 @@ export default function initDatabase() {
             console.log('データベースに接続しました。');
         }
     });
-    // データベーススキーマの読み込み
+
+    // スキーマファイルの読み込み
+    let schema;
     try {
-        // const databaseSchema = fs.readFileSync('database-schema.json', 'utf8'); // データベーススキーマのJSONファイルを読み込む
-        const databaseSchema = fs.readFileSync(path.join(__dirname, 'database-schema.json'), 'utf8'); // データベーススキーマのJSONファイルを読み込む
-        const schema = JSON.parse(databaseSchema); // JSONをオブジェクトに変換
+        const schemaPath = path.join(__dirname, 'database-schema.json');
+        const databaseSchema = fs.readFileSync(schemaPath, 'utf8');
+        schema = JSON.parse(databaseSchema);
+        
     } catch (error) {
         console.error('データベーススキーマの読み込みに失敗しました:', error.message);
+        try { db.close(); } catch {}
         return;
     }
-    // データベースのテーブルを作成
+
+    // テーブル作成
     db.serialize(() => {
-        for (const tableName in schema) {
-            const columns = Object.entries(schema[tableName]) // 各テーブルのカラムを定義
-                .map(([key, value]) => `${key} ${value}`) // キーと値を結合してカラム定義を作成
-                .join(', '); // カラム定義をカンマで結合
+        const tableNames = Object.keys(schema);
+        let processed = 0;
+        for (const tableName of tableNames) {
+            const columns = Object.entries(schema[tableName])
+                .map(([key, value]) => `${key} ${value}`)
+                .join(', ');
             db.run(`CREATE TABLE IF NOT EXISTS ${tableName} (${columns})`, (err) => {
                 if (err) {
                     console.error(`${tableName} テーブルの作成に失敗しました:`, err.message);
                 } else {
-                    console.log(`${tableName} テーブルを作成しました。`);
+                    console.log(`${tableName} テーブルを作成しました。${columns}`);
+                }
+                processed++;
+                // 全テーブル処理後にDBを閉じる
+                if (processed === tableNames.length) {
+                    db.close((err) => {
+                        if (err) {
+                            console.error('データベースの切断に失敗しました:', err.message);
+                        } else {
+                            console.log('データベースを切断しました。');
+                        }
+                    });
                 }
             });
         }
     });
-    // データベースの接続を閉じる
-    db.close((err) => {
-        if (err) {
-            console.error('データベースの切断に失敗しました:', err.message);
-        } else {
-            console.log('データベースを切断しました。');
-        }
-    });
-};
+}
 
-initDatabase(); // 初期化関数を呼び出してデータベースをセットアップ
+// 初期化関数を実行
+initDatabase();
