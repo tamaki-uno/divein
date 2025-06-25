@@ -1,0 +1,16 @@
+{
+    "user": {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "name": "TEXT NOT NULL",
+        "email": "TEXT",
+        "password": "TEXT NOT NULL",
+        "created_at": "DATETIME DEFAULT CURRENT_TIMESTAMP"
+    },
+    "records": {
+        "uuid": "TEXT PRIMARY KEY",
+        "user_id": "INTEGER NOT NULL",
+        "content": "TEXT NOT NULL",
+        "created_at": "DATETIME DEFAULT CURRENT_TIMESTAMP",
+        "FOREIGN_KEY": "FOREIGN KEY (user_id) REFERENCES user(id)"
+    }
+}
