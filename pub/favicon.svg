@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
   <!-- 下向きのグレーの正三角形 -->
-  <polygon points="150,220 70,100 230,100" fill="#888" />
+  <!-- closed.svgの内容をインライン化し、fill属性を追加 -->
+  <polygon points="250,150 77,50 77,250" fill="#888" />
 </svg>
