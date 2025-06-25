@@ -15,30 +15,24 @@ const port = 3000;
 // sqlの読み込み
 let sql;
 try {
-    const schemaPath = path.join(process.cwd(), 'database-schema.sql');
+    const schemaPath = path.join(process.cwd(), 'createtable.sql');
     sql = fs.readFileSync(schemaPath, 'utf8');
+    // データベースの初期化を実行
+    // initDatabase(db);
+    runSql(sql)
+        .then(() => {
+            console.log('データベースの初期化が完了しました。');
+        })
+        .catch((err) => {
+            console.error('データベースの初期化中にエラーが発生しました:', err.message);
+        });
 } catch (error) {
     console.error('SQLスキーマの読み込みに失敗しました:', error.message);
     process.exit(1);
 }
 
-// データベースの初期化
-const db = new sqlite3.Database('divein.db', (err) => {
-    if (err) {
-        console.error('データベースの接続に失敗しました:', err.message);
-    } else {
-        console.log('データベースに接続しました。');
-    }
-});
-// データベースの初期化を実行
-// initDatabase(db);
-runSql(db, sql)
-    .then(() => {
-        console.log('データベースの初期化が完了しました。');
-    })
-    .catch((err) => {
-        console.error('データベースの初期化中にエラーが発生しました:', err.message);
-    });
+
+
 
 // サーバーの起動
 app.listen(port, () => {
