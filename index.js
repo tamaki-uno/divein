@@ -14,23 +14,21 @@ const port = 3000;
 
 // データベース初期化関数
 async function initializeDatabase() {
-    if (!fs.existsSync('divein.db')) {
-        try {
-            const schemaPath = path.join(process.cwd(), 'sql/createtable.sql');
-            const sql = fs.readFileSync(schemaPath, 'utf8');
-            // セミコロンで分割し、順次実行
-            const statements = sql
-                .split(';')
-                .map(s => s.trim())
-                .filter(s => s.length > 0);
-            for (const stmt of statements) {
-                await run(stmt);
-            }
-            console.log('データベースの初期化が完了しました。');
-        } catch (error) {
-            console.error('データベースの初期化中にエラーが発生しました:', error.message);
-            process.exit(1);
+    try {
+        const schemaPath = path.join(process.cwd(), 'sql/createtable.sql');
+        const sql = fs.readFileSync(schemaPath, 'utf8');
+        // セミコロンで分割し、順次実行
+        const statements = sql
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+        for (const stmt of statements) {
+            await run(stmt);
         }
+        console.log('データベースの初期化が完了しました。');
+    } catch (error) {
+        console.error('データベースの初期化中にエラーが発生しました:', error.message);
+        process.exit(1);
     }
 }
 
