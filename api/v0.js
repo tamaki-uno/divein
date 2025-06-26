@@ -1,113 +1,95 @@
 import fs from 'fs';
-import { select, run } from './database.js'; // データベース操作用ユーティリティ関数をインポート
+import { select, run } from './database.js';
 
-// テンプレートファイルのパスを指定し、JSONとして読み込む
-const templatePath = './api/template.json';
-const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+// テンプレートJSONの読み込み
+const template = JSON.parse(fs.readFileSync('./api/template.json', 'utf8'));
+
+/** * APIリクエストのメインハンドラ
+ */
+export async function getHandler(req, res) {
+    if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });
+    // Content-Typeチェック
+    if (!req.is('application/json')) return res.status(400).json({ error: 'Content-Type must be application/json' });
+
+    let data = req.query;
+    // クエリパラメータがオブジェクトでなければエラー
+    if (!data || typeof data !== 'object') return res.status(400).json({ error: 'Query parameters must be a JSON object' });
+
+}
 
 /**
- * APIリクエストのメインハンドラ関数
- * POSTメソッドのみを受け付け、typeによって処理を分岐
+ * APIリクエストのメインハンドラ
+ * - POSTのみ許可
+ * - uuid未指定時はテンプレート返却
+ * - type='request'ならDBから取得
+ * - それ以外はDBと同期
  */
-export default async function handleApiRequest(req, res) {
-    // POST以外は405エラー
-    if (req.method !== 'POST') {
-        res.status(405).json({ error: 'Method Not Allowed' });
-        return;
-    }
-    // Content-Typeがapplication/jsonでない場合は400エラー
-    if (!req.is('application/json')) {
-        res.status(400).json({ error: 'Bad Request: Content-Type must be application/json' });
-        return;
-    }
-    let requestData;
-    try {
-        // リクエストボディを取得
-        requestData = req.body;
-    } catch (error) {
-        res.status(400).json({ error: 'Bad Request: Invalid JSON' });
-        return;
-    }
+export default async function postHandler(req, res) {
+    // POST以外は許可しない
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+    // Content-Typeチェック
+    if (!req.is('application/json')) return res.status(400).json({ error: 'Content-Type must be application/json' });
+
+    let data = req.body;
+    // ボディがオブジェクトでなければエラー
+    if (!data || typeof data !== 'object') return res.status(400).json({ error: 'Request body must be a JSON object' });
+
+    // uuid未指定ならテンプレート返却
+    if (!data.uuid) return res.status(200).json(template);
 
     try {
-        switch (requestData.type) {
-            // typeが'request'の場合はUUIDでレコード取得
-            case 'request': {
-                // UUIDが指定されていない場合は400エラー
-                if (!requestData.uuid) {
-                    res.status(400).json({ error: 'Bad Request: UUID is required' });
-                    return;
-                }
-                // データベースからレコード取得
-                const record = await getDatabaseRecord(requestData.uuid);
-                if (!record) {
-                    res.status(404).json({ error: 'Not Found: No record found with the given UUID' });
-                } else {
-                    res.status(200).json(record);
-                }
-                break;
-            }
-            // その他のtypeはデータ同期処理
-            default: {
-                const updatedData = await syncRecord(requestData);
-                res.status(200).json(updatedData);
-                break;
-            }
+        if (data.type === 'request') {
+            // typeが'request'ならDBから取得
+            const record = await getRecord(data.uuid);
+            if (!record) return res.status(404).json({ error: 'Not Found' });
+            return res.status(200).json(record);
+        } else {
+            // それ以外は同期
+            const synced = await syncRecord(data);
+            return res.status(200).json(synced);
         }
     } catch (err) {
-        // 予期しないエラーは500エラー
+        // 予期しないエラーは500
         console.error('API error:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
 }
 
 /**
- * データベースからUUIDを使ってレコードを取得する関数
- * @param {string} uuid - 取得したいレコードのUUID
- * @returns {object|null} レコードが存在すればそのデータ、なければnull
+ * UUIDでDBからレコード取得
+ * @param {string} uuid
+ * @returns {object|null}
  */
-async function getDatabaseRecord(uuid) {
-    const sql = 'SELECT * FROM records WHERE uuid = ?';
-    try {
-        const rows = await select(sql, [uuid]);
-        if (rows.length === 0) {
-            return null;
-        }
-        return rows[0];
-    } catch (err) {
-        console.error('Database error:', err);
-        throw err;
-    }
+async function getRecord(uuid) {
+    const rows = await select('SELECT * FROM records WHERE uuid = ?', [uuid]);
+    return rows[0] || null;
 }
 
 /**
- * データを同期し、必要に応じて新規作成または更新を行う関数
- * @param {object} data - 同期対象データ
- * @returns {object} 同期後のデータ
+ * レコードを新規作成または更新し、最新データを返す
+ * @param {object} data
+ * @returns {object}
  */
 async function syncRecord(data) {
-    if (!data.uuid) {
-        throw new Error('UUID is required for sync');
-    }
-    // 既存データ取得
-    const dbData = await getDatabaseRecord(data.uuid);
-    // データが存在しない場合は新規作成
+    const dbData = await getRecord(data.uuid);
+    const now = data.updatedAt ?? Date.now();
+
     if (!dbData) {
-        const sql = 'INSERT INTO records (uuid, data, updatedAt) VALUES (?, ?, ?)';
-        await run(sql, [data.uuid, JSON.stringify(data.data ?? {}), data.updatedAt ?? Date.now()]);
-        return { ...data };
+        // 新規作成
+        await run('INSERT INTO records (uuid, data, updatedAt) VALUES (?, ?, ?)', [data.uuid, JSON.stringify(data.data ?? {}), now]);
+        return { ...data, updatedAt: now };
     }
-    // updatedAtの比較（nullの場合は常に更新）
-    if (!dbData.updatedAt || (data.updatedAt && dbData.updatedAt < data.updatedAt)) {
-        const sql = 'UPDATE records SET data = ?, updatedAt = ? WHERE uuid = ?';
-        await run(sql, [JSON.stringify(data.data ?? {}), data.updatedAt ?? Date.now(), data.uuid]);
-        return { ...data };
-    } else {
-        // データベースのレコードが新しい場合は既存データを返す
-        return {
-            uuid: dbData.uuid,
-            data: dbData.data ? JSON.parse(dbData.data) : {},
-            updatedAt: dbData.updatedAt
-        };
+    // 更新条件: DBのupdatedAtが古い場合のみ
+    if (!dbData.updatedAt || (data.updatedAt && dbData.updatedAt > dbData.updatedAt)) {
+        await run('UPDATE records SET data = ?, updatedAt = ? WHERE uuid = ?', [JSON.stringify(data.data ?? {}), now, data.uuid]);
+        return { ...data, updatedAt: now };
     }
+    // それ以外はDBの内容を返す
+    return {
+        uuid: dbData.uuid,
+        data: dbData.data ? JSON.parse(dbData.data) : {},
+        updatedAt: dbData.updatedAt
+    };
 }
+
+async function getContent
