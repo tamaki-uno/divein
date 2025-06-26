@@ -1,0 +1,22 @@
+{
+    "name": "my-api",
+    "version": "0.0.0",
+    "base_url": "http://localhost:3000",
+    "api_endpoints": {
+        "signup": {
+            "method": "POST",
+            "path": "/api/v0/signup"
+        },
+        "login": {
+            "method": "POST",
+            "path": "/api/v0/login"
+        },
+        "sync": {
+            "method": "POST",
+            "path": "/api/v0/sync"
+        },
+        "content": {
+            "method": "GET",
+            "path": "/api/v0/content"
+        }
+}
