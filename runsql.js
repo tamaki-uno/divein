@@ -1,6 +1,12 @@
 // Description: SQLiteのSQLを実行する関数
 import sqlite3 from 'sqlite3';
+import fs from 'fs';
+import path from 'path';
 
+const sqlpath = process.argv[2]
+const sql = fs.readFileSync(sqlpath, 'utf8');
+
+// データベースのSQLを実行する関数
 export default function runSql(sql) {
     const db = new sqlite3.Database('divein.db', (err) => {
         if (err) {
@@ -22,3 +28,14 @@ export default function runSql(sql) {
         });
     });
 }
+
+runSql(sql)
+    .then((rows) => {
+        console.log('SQL実行結果:', rows);
+    })
+    .catch((err) => {
+        console.error('SQL実行中にエラーが発生しました:', err.message);
+    })
+    .finally(() => {
+    });
+    
