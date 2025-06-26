@@ -8,33 +8,36 @@ import path from 'path';
 // 自前のモジュールをインポート
 // import initDatabase from './init-database.js';
 import app from './server.js';
-import runSql from './runsql.js';
+import { run } from './database.js';
 
 const port = 3000;
 
-// sqlの読み込み
-let sql;
-try {
-    const schemaPath = path.join(process.cwd(), 'createtable.sql');
-    sql = fs.readFileSync(schemaPath, 'utf8');
-    // データベースの初期化を実行
-    // initDatabase(db);
-    runSql(sql)
-        .then(() => {
+// データベース初期化関数
+async function initializeDatabase() {
+    if (!fs.existsSync('divein.db')) {
+        try {
+            const schemaPath = path.join(process.cwd(), 'sql/createtable.sql');
+            const sql = fs.readFileSync(schemaPath, 'utf8');
+            // セミコロンで分割し、順次実行
+            const statements = sql
+                .split(';')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+            for (const stmt of statements) {
+                await run(stmt);
+            }
             console.log('データベースの初期化が完了しました。');
-        })
-        .catch((err) => {
-            console.error('データベースの初期化中にエラーが発生しました:', err.message);
-        });
-} catch (error) {
-    console.error('SQLスキーマの読み込みに失敗しました:', error.message);
-    process.exit(1);
+        } catch (error) {
+            console.error('データベースの初期化中にエラーが発生しました:', error.message);
+            process.exit(1);
+        }
+    }
 }
 
-
-
-
-// サーバーの起動
-app.listen(port, () => {
-    console.log(`サーバーがポート${port}で起動しました: http://localhost:${port}`);
-});
+// メイン処理
+(async () => {
+    await initializeDatabase();
+    app.listen(port, () => {
+        console.log(`サーバーがポート${port}で起動しました: http://localhost:${port}`);
+    });
+})();
