@@ -23,7 +23,8 @@ app.use(express.static(join(process.cwd(), 'pub'))); // カレントディレク
 // 2. APIエンドポイントの設定
 // /api パスへのGETリクエストが来た時に、読み込んだapiHandlerを実行する
 // app.get('/api', apiHandler);
-app.post('/api', apiHandler); // POSTリクエストも同じハンドラで処理
+// app.post('/api', apiHandler); // POSTリクエストも同じハンドラで処理
+app.post('/api/v0', apiHandler); // v0バージョンのAPIハンドラをPOSTリクエストに対応
 
 
 export default app; // appをデフォルトエクスポートとして設定
