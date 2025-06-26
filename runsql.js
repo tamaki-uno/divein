@@ -20,13 +20,13 @@ export default function runSql(sql) {
                 .split(';')
                 .map(s => s.trim())
                 .filter(s => s.length > 0);
-            let results = [];
+            let results = []; // 結果を格納する配列
             let idx = 0;
             // 再帰的に各SQL文を実行
             function next() {
                 if (idx >= statements.length) {
-                    db.close();
-                    resolve(results);
+                    db.close(); // 全てのSQL文の実行が完了したらDBを閉じる
+                    resolve(results); // 結果を返す
                     return;
                 }
                 const stmt = statements[idx];
