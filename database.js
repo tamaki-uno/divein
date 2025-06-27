@@ -5,21 +5,36 @@ import { open } from 'sqlite';
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
+import { create } from 'domain';
 
 // const DB_PATH = 'divein.db';
 const DB_PATH = process.env.DB_PATH || './database.sqlite'; // 環境変数からデータベースパスを取得、デフォルトは './database.sqlite'
 
-// let db;
+const templatePath = path.join(process.cwd(), 'api/v0/template.json');
+const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+const columns = {
+    uuid: "TEXT PRIMARY KEY",
+    type: "TEXT NOT NULL",
+    content: "TEXT",
+    children: "TEXT", // JSON文字列として格納
+    permissionsRead: "TEXT",  // JSON文字列として格納
+    permissionsWrite: "TEXT", // JSON文字列として格納
+    createdBy: "TEXT",
+    updatedBy: "TEXT",
+    createdAt: "TIMESTAMP",
+    updatedAt: "TIMESTAMP"
+};
+const indexes = [
+    'uuid',
+    'type',
+    // 'content', 部分一致はインデックスが効かないため、インデックスはあきらめ
+    'createdBy',
+    'updatedBy',
+    'createdAt',
+    'updatedAt'
+];
 
-// // データベース接続を非同期で初期化
-// export async function initDb() {
-//     db = await open({
-//         filename: './database.sqlite',
-//         driver: sqlite3.Database
-//     });
-//     console.log('データベース接続が初期化されました。');
-//     return db;
-// }
+
 
 // データベース接続を返す関数
 export function getDatabaseConnection() {
@@ -42,7 +57,19 @@ export async function createTable() {
     //     }
     //     console.log('データベースに接続しました。');
     // });
-    const sql = fs.readFileSync(path.join(process.cwd(), 'sql/createTable.sql'), 'utf8');
+    // const sql = fs.readFileSync(path.join(process.cwd(), 'sql/createTable.sql'), 'utf8');
+    const sqlColumns = Object.entries(columns).reduce((acc, [key, value]) => {
+        // 各カラムの定義を追加
+        acc[key] = value;
+        return acc;
+    }, {}); // カラム定義をオブジェクトとして作成
+    const sqlIndexes = indexes.map(index => `idx_records_${index} ON records (${index})`); // インデックスの定義
+    const sql = `
+        CREATE TABLE IF NOT EXISTS records (
+            ${Object.entries(columns).map(([key, value]) => `${key} ${value}`).join(',\n')}
+        );
+        CREATE INDEX IF NOT EXISTS idx_records_${indexes.join('_')} ON records (${indexes.join(', ')});
+    `; // SQLスクリプトを直接定義
     // セミコロンで分割し、順次実行
     const statements = sql
         .split(';')
@@ -100,68 +127,73 @@ export async function findByContent(keyword, limit = 100, sortBy = 'created_at',
     });
 }
 
+// レコードを挿入する関数
+export async function insertRecord(record) {
+    const db = getDatabaseConnection();
+    return new Promise((resolve, reject) => {
+        // const columns = Object.keys(record).join(', ');
+        // const sql = `
+        //     INSERT INTO records (${columns})
+        //     VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
+        // `;
+        const sql = `
+            INSERT INTO records (
+                uuid,
+                type,
+                content,
+                children,
+                permissionsRead,
+                permissionsWrite,
+                createdBy,
+                updatedBy,
+                createdAt,
+                updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
+        `;
+
+// テンプレートを挿入する関数
+export async function insertTemplate(template) {
+    const db = getDatabaseConnection();
+    return new Promise((resolve, reject) => {
+        const sql = `
+            INSERT INTO templates (
+                uuid,
+                type,
+                content,
+                children,
+                permissions_read,
+                permissions_write,
+                createdBy,
+                updatedBy,
+                createdAt,
+                updatedAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
+        `;
+        db.run(
+            sql,
+            [
+                template.uuid,
+                template.type,
+                template.content,
+                // children, permissions_read, permissions_writeはJSON文字列として保存
+                JSON.stringify(template.children ?? null),
+                JSON.stringify(template.permissions?.read ?? null),
+                JSON.stringify(template.permissions?.write ?? null),
+                template.createdBy ?? null,
+                template.updatedBy ?? null,
+                template.createdAt ?? null,
+                template.updatedAt ?? null
+            ],
+            function (err) {
+                db.close();
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({ id: this.lastID, changes: this.changes });
+                }
+            }
+        );
+    });
+}
 
 
-// // SQLをパラメータ付きで実行するユーティリティ関数（SELECT用）
-// export function select(sql, params = []) {
-//     const db = getDatabaseConnection();
-//     return new Promise((resolve, reject) => {
-//         db.all(sql, params, (err, rows) => {
-//             db.close();
-//             if (err) {
-//                 reject(err);
-//             } else {
-//                 resolve(rows);
-//             }
-//         });
-//     });
-// }
-
-// // SQLをパラメータ付きで実行するユーティリティ関数（INSERT/UPDATE/DELETE用）
-// export function run(sql, params = []) {
-//     const db = getDatabaseConnection();
-//     return new Promise((resolve, reject) => {
-//         db.run(sql, params, function (err) {
-//             db.close();
-//             if (err) {
-//                 reject(err);
-//             } else {
-//                 resolve({ changes: this.changes, lastID: this.lastID });
-//             }
-//         });
-//     });
-// }
-
-// // データベース初期化関数
-// export async function initializeDatabase() {
-//     try {
-//         const schemaPath = path.join(process.cwd(), 'sql/createtable.sql');
-//         const sql = fs.readFileSync(schemaPath, 'utf8');
-//         // セミコロンで分割し、順次実行
-//         const statements = sql
-//             .split(';')
-//             .map(s => s.trim())
-//             .filter(s => s.length > 0);
-//         for (const stmt of statements) {
-//             await run(stmt);
-//         }
-//         console.log('データベースの初期化が完了しました。');
-//     } catch (error) {
-//         console.error('データベースの初期化中にエラーが発生しました:', error.message);
-//         process.exit(1);
-//     }
-// }
-
-// // ユーザー名でユーザーを検索
-// export async function findUserByUsername(username) {
-//     return await db.get('SELECT * FROM users WHERE username = ?', [username]);
-// }
-
-// // 新規ユーザーを作成
-// export async function createUser(username, passwordHash) {
-//     const result = await db.run(
-//         'INSERT INTO users (username, password_hash) VALUES (?, ?)',
-//         [username, passwordHash]
-//     );
-//     return { id: result.lastID, username };
-// }
