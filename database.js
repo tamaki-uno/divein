@@ -32,24 +32,16 @@ export function getDatabaseConnection() {
     });
 }
 
-// データベース接続を閉じる関数
-export async function closeDatabaseConnection(db) {
-    return new Promise((resolve, reject) => {
-        db.close((err) => {
-            if (err) {
-                console.error('データベース切断エラー:', err.message);
-                reject(err);
-            } else {
-                console.log('データベース接続を切断しました。');
-                resolve();
-            }
-        });
-    });
-}
-
 // テーブルを作成する関数
 export async function createTable() {
     const db = getDatabaseConnection();
+    // const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
+    //     if (err) {
+    //         console.error('データベース接続エラー:', err.message);
+    //         throw err;
+    //     }
+    //     console.log('データベースに接続しました。');
+    // });
     const sql = fs.readFileSync(path.join(process.cwd(), 'sql/createTable.sql'), 'utf8');
     // セミコロンで分割し、順次実行
     const statements = sql
@@ -57,6 +49,9 @@ export async function createTable() {
         .map(s => s.trim())
         .filter(s => s.length > 0);
     for (const stmt of statements) {
+        // 各ステートメントを実行
+        console.log('実行中のSQL:', stmt); // デバッグ用に実行中のSQLを表示
+        // ステートメントを実行
         await new Promise((resolve, reject) => {
             db.run(stmt, (err) => {
                 if (err) {
@@ -68,14 +63,15 @@ export async function createTable() {
             });
         });
     }
+    console.log('テーブルの作成が完了しました。');
+    db.close();
 }
 
 // 完全一致でUUIDで探す関数
 export async function findByUuid(uuid) {
     const db = getDatabaseConnection();
-    const tableName = 'records';
     return new Promise((resolve, reject) => {
-        db.get('SELECT * FROM ?? WHERE uuid = ?', [tableName, uuid], (err, row) => {
+        db.get('SELECT * FROM records WHERE uuid = ?', [uuid], (err, row) => {
             db.close();
             if (err) {
                 reject(err);
@@ -87,11 +83,13 @@ export async function findByUuid(uuid) {
 }
 
 // コンテンツの内容の部分一致で探す関数
-export async function findByContent(keyword) {
+export async function findByContent(keyword, limit = 100, sortBy = 'created_at', sortOrder = 'DESC') {
     const db = getDatabaseConnection();
-    const tableName = 'records';
+    const sql = `SELECT * FROM records WHERE content LIKE ? ORDER BY ${sortBy} ${sortOrder} LIMIT ?`;
+    // contentカラムにインデックスがある場合、LIKE検索も高速化される（ただし前方一致が基本）
     return new Promise((resolve, reject) => {
-        db.all('SELECT * FROM ?? WHERE content LIKE ?', [tableName, `%${keyword}%`], (err, rows) => {
+        // db.all('SELECT * FROM records WHERE content LIKE ?', [`%${keyword}%`], (err, rows) => {
+        db.all(sql, [`%${keyword}%`, limit], (err, rows) => {
             db.close();
             if (err) {
                 reject(err);
@@ -101,6 +99,7 @@ export async function findByContent(keyword) {
         });
     });
 }
+
 
 
 // // SQLをパラメータ付きで実行するユーティリティ関数（SELECT用）
