@@ -21,8 +21,11 @@
     "sqlite3": "^5.1.7"
   },
   "imports": {
-    "#pub/*": "./pub/*",
-    "#api/*": "./api/*",
-    "#sql/*": "./sql/*"
+    "#api/v0/*": "./api/v0/*",
+    "#assets/*": "./assets/*",
+    "#public/*": "./public/*",
+    "#sql/*": "./sql/*",
+    "#database": "./database.js",
+    "#server": "./server.js"
   }
 }
