@@ -95,6 +95,48 @@ export async function findByContent(keyword, limit = 100, sortBy = 'createdAt', 
     });
 }
 
+export async function find(query, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
+    const db = getDatabaseConnection();
+    const sql = 'SELECT * FROM records WHERE 1=1'; // 基本のSQL文
+    const params = []; // パラメータ配列
+
+    // クエリパラメータに応じて条件を追加
+    if (query.uuid) {
+        sql += ' AND uuid = ?';
+        params.push(query.uuid);
+    }
+    if (query.type) {
+        sql += ' AND type = ?';
+        params.push(query.type);
+    }
+    if (query.content) {
+        sql += ' AND content LIKE ?';
+        params.push(`%${query.content}%`);
+    }
+    if (query.permissionsRead) {
+        sql += ' AND permissionsRead LIKE ?';
+        params.push(`%${query.permissionsRead}%`);
+    }
+    if (query.permissionsWrite) {
+        sql += ' AND permissionsWrite LIKE ?';
+        params.push(`%${query.permissionsWrite}%`);
+    }
+    // ソート条件とリミットを追加
+    sql += ` ORDER BY ${sortBy} ${sortOrder} LIMIT ?`;
+    params.push(limit);
+    
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            db.close();
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
 // 任意のJSONデータをカラム名・値として保存する関数
 export async function insertRecord(record) {
     const db = getDatabaseConnection();
