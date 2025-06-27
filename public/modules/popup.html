@@ -2,9 +2,9 @@
     <button type="button" class="close-popup-button">
         <img src="/icon/close-button.svg" alt="Close" class="close-popup-icon">
     </button>
-    <h2 class="popup-title">Let's Dive In!</h2>
     <!--  ログインフォーム -->
     <form class="login-form">
+        <h2>Dive back in!</h2>
         <label for="username">ユーザー名</label>
         <input type="text" id="username" name="username" required autocomplete="username" class="small-border-radius">
 
@@ -15,11 +15,12 @@
         <button type="submit" class="login-button small-border-radius">ログイン</button>
 
         <p class="register-link">アカウントをお持ちでないですか？<br>
-            <a href="/signup">登録はこちら</a>
+            <a href="/signup" >登録はこちら</a>
         </p>
     </form>
     <!--  登録フォーム -->
     <form class="signup-form" action="/signup" method="post">
+        <h2>Dive In!</h2>
         <label for="username">ユーザー名</label>
         <input type="text" id="username" name="username" required autocomplete="username" class="small-border-radius">
 
@@ -46,6 +47,7 @@
     </form>
     <!--  ログアウトフォーム -->
     <form class="logout-form" action="/logout" method="post">
+        <h2>ログアウト</h2>
         <button type="submit" class="logout-button small-border-radius">ログアウト</button>
     </form>
 </div>
