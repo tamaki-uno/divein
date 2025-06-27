@@ -21,9 +21,24 @@ class Line {
             console.error('HTML template not loaded yet.');
             return;
         }
-        this.html.querySelector('button.toggle-button').addEventListener('click', () => this.toggle());
-        this.html.querySelector('img.toggle-icon').addEventListener('click', (event) => {
-            event.stopPropagation(); // イベントのバブリングを防ぐ
+        // this.html.querySelector('button.toggle-button').addEventListener('click', () => this.toggle());
+        this.html.querySelector('img.toggle-icon').addEventListener('click', (event) => this.toggle(event));
+        this.html.querySelector('img.toggle-icon').addEventListener('contextmenu', (event) => {
+            event.preventDefault(); // 右クリックメニューを無効化
+            this.menu(event);
+        });
+        this.html.querySelector('div.content').addEventListener('click', (event) => this.edit(event));
+        this.html.querySelector('div.content').addEventListener('contextmenu', (event) => {
+            event.preventDefault(); // 右クリックメニューを無効化
+            this.menu(event);
+        });
+        this.html.querySelector('button.add-button').addEventListener('click', () => this.addChild());
+        this.html.querySelector('button.add-button').addEventListener('contextmenu', (event) => {
+            event.preventDefault(); // 右クリックメニューを無効化
+            this.menu(event);
+        });
+    }
+        
     openToggle() {
         const toggleButton = this.html.querySelector('.toggle-button');
         if (toggleButton) {
