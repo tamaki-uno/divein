@@ -1,17 +1,13 @@
 'use strict';
 
 import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
-import { create } from 'domain';
 
-// const DB_PATH = 'divein.db';
-const DB_PATH = process.env.DB_PATH || './database.sqlite'; // 環境変数からデータベースパスを取得、デフォルトは './database.sqlite'
+const DB_PATH = process.env.DB_PATH || './database.sqlite';
 
-const templatePath = path.join(process.cwd(), 'api/v0/template.json');
-const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+// テンプレート用のカラム定義
 const columns = {
     uuid: "TEXT PRIMARY KEY",
     type: "TEXT NOT NULL",
@@ -24,17 +20,15 @@ const columns = {
     createdAt: "TIMESTAMP",
     updatedAt: "TIMESTAMP"
 };
+
 const indexes = [
     'uuid',
     'type',
-    // 'content', 部分一致はインデックスが効かないため、インデックスはあきらめ
     'createdBy',
     'updatedBy',
     'createdAt',
     'updatedAt'
 ];
-
-
 
 // データベース接続を返す関数
 export function getDatabaseConnection() {
@@ -43,19 +37,20 @@ export function getDatabaseConnection() {
             console.error('データベース接続エラー:', err.message);
             throw err;
         }
-        console.log('データベースに接続しました。');
     });
 }
 
 // テーブルを作成する関数
 export async function createTable() {
     const db = getDatabaseConnection();
-    const statements = [`CREATE TABLE IF NOT EXISTS records (\n${Object.entries(columns).map(([key, value]) => `  ${key} ${value}`).join(',\n')}\n);`]; // テーブル作成のSQL文を生成
-    statements.push(...indexes.map(index => `CREATE INDEX IF NOT EXISTS idx_records_${index} ON records (${index});`)); // インデックス作成のSQL文を生成
+    const statements = [
+        `CREATE TABLE IF NOT EXISTS records (
+${Object.entries(columns).map(([key, value]) => `  ${key} ${value}`).join(',\n')}
+);`
+    ];
+    statements.push(...indexes.map(index => `CREATE INDEX IF NOT EXISTS idx_records_${index} ON records (${index});`));
     for (const stmt of statements) {
-        // 各ステートメントを実行
-        console.log('実行中のSQL:', stmt); // デバッグ用に実行中のSQLを表示
-        // ステートメントを実行
+        console.log('実行中のSQL:', stmt);
         await new Promise((resolve, reject) => {
             db.run(stmt, (err) => {
                 if (err) {
@@ -87,12 +82,10 @@ export async function findByUuid(uuid) {
 }
 
 // コンテンツの内容の部分一致で探す関数
-export async function findByContent(keyword, limit = 100, sortBy = 'created_at', sortOrder = 'DESC') {
+export async function findByContent(keyword, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
     const db = getDatabaseConnection();
     const sql = `SELECT * FROM records WHERE content LIKE ? ORDER BY ${sortBy} ${sortOrder} LIMIT ?`;
-    // contentカラムにインデックスがある場合、LIKE検索も高速化される（ただし前方一致が基本）
     return new Promise((resolve, reject) => {
-        // db.all('SELECT * FROM records WHERE content LIKE ?', [`%${keyword}%`], (err, rows) => {
         db.all(sql, [`%${keyword}%`, limit], (err, rows) => {
             db.close();
             if (err) {
@@ -104,25 +97,26 @@ export async function findByContent(keyword, limit = 100, sortBy = 'created_at',
     });
 }
 
-// レコードを挿入する関数
+// 任意のJSONデータをカラム名・値として保存する関数
 export async function insertRecord(record) {
     const db = getDatabaseConnection();
     return new Promise((resolve, reject) => {
-        const sql = `INSERT INTO records (${Object.keys(columns).join(', ')})
-            VALUES (${Object.keys(columns).map(key => `:${key}`).join(', ')})`; // プレースホルダを使用してSQLインジェクション対策
-        const placeholders = Object.keys(columns).reduce((acc, key) => {
+        // columnsのキー順で値を用意
+        const keys = Object.keys(columns);
+        const sql = `INSERT INTO records (${keys.join(', ')})
+            VALUES (${keys.map(key => `?`).join(', ')})`;
+        const values = keys.map(key => {
             if (key === 'children' || key === 'permissionsRead' || key === 'permissionsWrite') {
-                acc[key] = JSON.stringify(record[key] ?? null); // JSON文字列として保存
+                return record[key] !== undefined ? JSON.stringify(record[key]) : null;
             } else if (key === 'createdAt' || key === 'updatedAt') {
-                acc[key] = record[key] ? new Date(record[key]).toISOString() : new Date().toISOString(); // 日付はISO形式で保存
+                return record[key] ? new Date(record[key]).toISOString() : new Date().toISOString();
             } else {
-                acc[key] = record[key] ?? null; // レコードの値がない場合はnullを設定
+                return record[key] ?? null;
             }
-            return acc;
-        }, {});
+        });
         db.run(
             sql,
-            placeholders,
+            values,
             function (err) {
                 db.close();
                 if (err) {
@@ -174,10 +168,9 @@ export async function deleteRecord(uuid) {
 // テーブルを作成
 export async function initializeDatabase() {
     if (!fs.existsSync(DB_PATH)) {
-        // データベースファイルが存在しない場合は作成
         fs.writeFileSync(DB_PATH, '');
     }
-    await createTable(); // テーブルを作成
+    await createTable();
     console.log('データベースの初期化が完了しました。');
 }
 initializeDatabase();
