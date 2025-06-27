@@ -36,11 +36,14 @@ export default function switchForm() {
         // フォームの送信処理をここに追加
         console.log('Form submitted');
     });
-    form.querySelector('p a').addEventListener('click', (event) => {
+    // form.querySelector('p a').addEventListener('click', (event) => {
+    // 最後のp要素の中のリンクをクリックしたときの処理
+    popup.querySelector('p:last-of-type a').addEventListener('click', (event) => {
         event.preventDefault();
         // 再読込せず、ポップアップのフォームを切り替える
-        switchForm(event.target.getAttribute('href'));
+        // switchForm(event.target.getAttribute('href'));
         window.history.pushState({}, '', event.target.getAttribute('href')); // URLを更新
+        switchForm(); // ポップアップのフォームを再描画
 
     });
 }

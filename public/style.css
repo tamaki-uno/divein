@@ -70,8 +70,9 @@ div.popup {
     border: none;
     cursor: pointer;
 }
-.popup h2 {
-    margin-bottom: 20px;
+.popup h2.popup-title {
+    /* タイトルのスタイル */
+    margin: 20px 0;
     text-align: center;
     font-size: 24px;
     color: #333;
@@ -88,15 +89,16 @@ div.popup {
     flex-direction: column;
     /* align-items: center; */
     gap: 10px; /* Space between form elements */
-    padding: 20px 30px;
+    /* padding: 20px 30px; */
+    margin: 10px 30px;
 }
 .popup form label {
-    margin-bottom: 5px;
+    /* margin-bottom: 5px; */
     font-weight: bold;
 }
-.popup form input[type="text"],
-.popup form input[type="password"],
-.popup form input[type="email"] {
+.popup form input {
+    width: 100%; /* Full width */
+    height: inherit;
     padding: 10px;
     margin-bottom: 10px;
     border: 1px solid #ccc;
@@ -107,4 +109,11 @@ div.popup {
     color: white;
     border: none;
     cursor: pointer;
+}
+.popup form button:hover {
+    background-color: #155a8a; /* Darker shade on hover */
+}
+.popup form p {
+    margin: 10px 20px;
+    font-size: 14px;
 }
