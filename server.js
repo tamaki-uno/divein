@@ -1,39 +1,37 @@
 // サーバプログラム
 
 import express from 'express';
-import { join, dirname } from 'path';
+import { join } from 'path';
 
 // --- 初期設定 ---
 const app = express();
-const port = 3000;
+const port = process.env.PORT;
 
 // --- APIハンドラの読み込み ---
-import contentHandler from '#api/v0/content.js'; // コンテンツ取得用のハンドラを読み込み
-import loginHandler from '#api/v0/login.js'; // ユーザログイン用のハンドラを読み込み
-import signupHandler from '#api/v0/signup.js'; // ユーザ登録用のハンドラを読み込み
-import syncHandler from '#api/v0/sync.js'; // データ同期用のハンドラを読み込み
+import contentHandler from '#api/v0/content.js';
+import loginHandler from '#api/v0/login.js';
+import signupHandler from '#api/v0/signup.js';
+import syncHandler from '#api/v0/sync.js';
 
 // --- ミドルウェア設定 ---
-app.use(express.json()); // JSONリクエストボディのパースを有効
+app.use(express.json());
 
 // --- APIエンドポイントの設定 ---
-app.post('/api/v0/signup', signupHandler); // ユーザ登録用のPOSTエンドポイント
-app.post('/api/v0/login', loginHandler); // ユーザログイン用のPOSTエンドポイント
-app.post('/api/v0/sync', syncHandler); // データ同期用のPOSTエンドポイント
-app.get('/api/v0/content', contentHandler); // コンテンツ取得用のGETエンドポイント
+app.post('/api/v0/signup', signupHandler);
+app.post('/api/v0/login', loginHandler);
+app.post('/api/v0/sync', syncHandler);
+app.get('/api/v0/content', contentHandler);
 
 // --- 静的ファイルの配信設定 ---
-// public ディレクトリ配下の静的ファイルを配信
-app.use(express.static(join(process.cwd(), 'public')));
+const publicDir = join(process.cwd(), 'public');
+app.use(express.static(publicDir));
 
-// SPA対応: それ以外のリクエストは index.html を返す
-app.get('*', (req, res) => {
-    // ESMの場合は import.meta.url から __dirname を取得する必要あり
-    res.sendFile(join(process.cwd(), 'public/index.html'));
+// SPA対応: API以外のリクエストは index.html を返す
+app.get(/^\/(?!api\/v0\/).*/, (req, res) => {
+    res.sendFile(join(publicDir, 'index.html'));
 });
 
-
-export default app; // appをデフォルトエクスポートとして設定
+export default app;
 
 // --- サーバーの起動 ---
 app.listen(port, () => {
