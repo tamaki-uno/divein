@@ -29,7 +29,7 @@ app.use(express.static(join(process.cwd(), 'public')));
 // SPA対応: それ以外のリクエストは index.html を返す
 app.get('*', (req, res) => {
     // ESMの場合は import.meta.url から __dirname を取得する必要あり
-    res.sendFile(join(process.cwd(), 'public/html/index.html'));
+    res.sendFile(join(process.cwd(), 'public/index.html'));
 });
 
 
