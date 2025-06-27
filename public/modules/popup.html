@@ -8,11 +8,11 @@
         <h2><img src="/icon/closed.svg" alt="">Dive back in!</h2>
         
         <label for="username">ユーザー名</label>
-        <input type="text" id="username" name="username" required autocomplete="username" class="small-border-radius">
+        <input type="text" id="username" name="username" required autocomplete="username" class="small-border-radius" pattern="^[a-zA-Z0-9_]{4,16}$">
 
         <label for="password">パスワード</label>
         <input type="password" id="password" name="password" required autocomplete="current-password"
-            class="small-border-radius">
+            class="small-border-radius" pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$">
 
         <button type="submit" class="login-button small-border-radius">ログイン</button>
 
@@ -26,18 +26,18 @@
         <h2><img src="/icon/closed.svg" alt="">Dive In!</h2>
 
         <label for="username">ユーザー名</label>
-        <input type="text" id="username" name="username" required autocomplete="username" class="small-border-radius">
+        <input type="text" id="username" name="username" required autocomplete="username" class="small-border-radius" pattern="^[a-zA-Z0-9_]{4,16}$">
 
         <label for="email">メールアドレス</label>
         <input type="email" id="email" name="email" required autocomplete="email" class="small-border-radius">
 
         <label for="password">パスワード</label>
         <input type="password" id="password" name="password" required autocomplete="new-password"
-            class="small-border-radius">
+            class="small-border-radius" pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$">
 
         <label for="confirm-password">パスワード確認</label>
         <input type="password" id="confirm-password" name="confirm-password" required autocomplete="new-password"
-            class="small-border-radius">
+            class="small-border-radius" pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$">
 
         <p class="terms">
             登録をクリックすることで、<a href="/terms">利用規約</a>と<a href="/privacy">プライバシーポリシー</a>に同意したとみなされます。

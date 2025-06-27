@@ -24,6 +24,9 @@ export default function switchForm() {
     // });
     form.addEventListener('submit', (event) => {
         event.preventDefault(); // デフォルトのフォーム送信を防ぐ
+        if (!checkFormValidity(form)) return; // フォームの有効性をチェック
+        // フォームの有効性が確認できたら送信処理を呼び出す
+        console.log('Form is valid, submitting...');
         submitForm(form); // フォームの送信処理を呼び出す
     });
     // 最後の<p>要素のリンクにクリックイベントリスナーを追加　再読み込み無しでlogin/signupを切り替える
@@ -39,6 +42,25 @@ export default function switchForm() {
     }
 }
 
+function checkFormValidity(form) {
+    const inputs = form.querySelectorAll('input'); // フォーム内のすべてのinput要素を取得
+    let isValid = true; // フォームが有効かどうかのフラグ
+    inputs.forEach(input => {
+        if (!input.checkValidity()) { // 入力が無効な場合
+            isValid = false; // フォームは無効
+            input.classList.add('invalid'); // 無効な入力にクラスを追加
+            const p = document.createElement('p'); // エラーメッセージ用の<p>要素を作成
+            p.textContent = input.validationMessage; // 入力の検証メッセージ
+            p.classList.add('error-message'); // エラーメッセージにクラスを追加
+            input.parentNode.insertBefore(p, input.nextSibling); // 入力の後にエラーメッセージを挿入
+        } else if (input.classList.contains('invalid')) { // 入力が有効
+            input.parentNode.querySelector('.error-message').remove(); // エラーメッセージを削除
+            input.classList.remove('invalid'); // 無効な入力からクラスを削除
+        }
+    });
+    return isValid; // フォームの有効性を返す
+}
+
 function submitForm(form) {
     console.log('Submitting form:', form); // デバッグ用にフォームを表示
     form.querySelector('button[type="submit"]').disabled = true; // 送信ボタンを無効化
@@ -48,14 +70,8 @@ function submitForm(form) {
     console.log('JSON data:', jsonData); // デバッグ用にJSONデータを表示
     const action = form.getAttribute('action'); // フォームのアクションURLを取得
     console.log('Form action:', action); // デバッグ用にアクションURLを表示
-    // フォームデータをJSONに変換
-    // const jsonData = {};
-    // formData.forEach((value, key) => {
-    //     jsonData[key] = value;
     fetch(action, {
         method: 'POST',
-        // body: formData,
-        // body: JSON.stringify(Object.fromEntries(formData)), // フォームデータをJSONに変換
         body: jsonData, // フォームデータをJSONに変換
         headers: {
             'Accept': 'application/json',
@@ -64,8 +80,32 @@ function submitForm(form) {
     })
     .then(response => response.json())
     .then(data => {
+        if (!data.success) {
+            // エラー時の処理
+            console.error('Error:', data.message);
+            form.querySelector('button[type="submit"]').disabled = false; // 送信ボタンを再度有効化
+            const errorMessage = document.createElement('p'); // エラーメッセージ用の<p>要素を作成
+            errorMessage.textContent = data.message; // エラーメッセージを設定
+            errorMessage.classList.add('error-message'); // エラーメッセージにクラスを追加
+            form.appendChild(errorMessage); // フォームの最後にエラーメッセージを追加
+            return; // エラーが発生した場合は処理を終了
+        }
         console.log('Success:', data);
-        // 成功時の処理をここに追加
+        // 成功時の処理
+        if (path === '/login') {
+            // ログイン成功時の処理
+            console.log('Login successful:', data);
+            window.location.href = '/'; // ホームページにリダイレクト
+        } else if (path === '/signup') {
+            // サインアップ成功時の処理
+            console.log('Signup successful:', data);
+            window.location.href = '/login'; // ログインページにリダイレクト
+        } else if (path === '/logout') {
+            // ログアウト成功時の処理
+            console.log('Logout successful:', data);
+            window.location.href = '/'; // ホームページにリダイレクト
+        }
+        form.querySelector('button[type="submit"]').disabled = false; // 送信ボタンを再度有効化
     })
     .catch((error) => {
         console.error('Error:', error);
