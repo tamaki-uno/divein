@@ -50,31 +50,8 @@ export function getDatabaseConnection() {
 // テーブルを作成する関数
 export async function createTable() {
     const db = getDatabaseConnection();
-    // const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
-    //     if (err) {
-    //         console.error('データベース接続エラー:', err.message);
-    //         throw err;
-    //     }
-    //     console.log('データベースに接続しました。');
-    // });
-    // const sql = fs.readFileSync(path.join(process.cwd(), 'sql/createTable.sql'), 'utf8');
-    const sqlColumns = Object.entries(columns).reduce((acc, [key, value]) => {
-        // 各カラムの定義を追加
-        acc[key] = value;
-        return acc;
-    }, {}); // カラム定義をオブジェクトとして作成
-    const sqlIndexes = indexes.map(index => `idx_records_${index} ON records (${index})`); // インデックスの定義
-    const sql = `
-        CREATE TABLE IF NOT EXISTS records (
-            ${Object.entries(columns).map(([key, value]) => `${key} ${value}`).join(',\n')}
-        );
-        CREATE INDEX IF NOT EXISTS idx_records_${indexes.join('_')} ON records (${indexes.join(', ')});
-    `; // SQLスクリプトを直接定義
-    // セミコロンで分割し、順次実行
-    const statements = sql
-        .split(';')
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
+    const statements = [`CREATE TABLE IF NOT EXISTS records (\n${Object.entries(columns).map(([key, value]) => `  ${key} ${value}`).join(',\n')}\n);`]; // テーブル作成のSQL文を生成
+    statements.push(...indexes.map(index => `CREATE INDEX IF NOT EXISTS idx_records_${index} ON records (${index});`)); // インデックス作成のSQL文を生成
     for (const stmt of statements) {
         // 各ステートメントを実行
         console.log('実行中のSQL:', stmt); // デバッグ用に実行中のSQLを表示
@@ -131,62 +108,25 @@ export async function findByContent(keyword, limit = 100, sortBy = 'created_at',
 export async function insertRecord(record) {
     const db = getDatabaseConnection();
     return new Promise((resolve, reject) => {
-        // const columns = Object.keys(record).join(', ');
-        // const sql = `
-        //     INSERT INTO records (${columns})
-        //     VALUES (?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
-        // `;
-        const sql = `
-            INSERT INTO records (
-                uuid,
-                type,
-                content,
-                children,
-                permissionsRead,
-                permissionsWrite,
-                createdBy,
-                updatedBy,
-                createdAt,
-                updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
-        `;
-
-// テンプレートを挿入する関数
-export async function insertTemplate(template) {
-    const db = getDatabaseConnection();
-    return new Promise((resolve, reject) => {
-        const sql = `
-            INSERT INTO templates (
-                uuid,
-                type,
-                content,
-                children,
-                permissions_read,
-                permissions_write,
-                createdBy,
-                updatedBy,
-                createdAt,
-                updatedAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), COALESCE(?, CURRENT_TIMESTAMP))
-        `;
+        const sql = `INSERT INTO records (${Object.keys(columns).join(', ')})
+            VALUES (${Object.keys(columns).map(key => `:${key}`).join(', ')})`; // プレースホルダを使用してSQLインジェクション対策
+        const placeholders = Object.keys(columns).reduce((acc, key) => {
+            if (key === 'children' || key === 'permissionsRead' || key === 'permissionsWrite') {
+                acc[key] = JSON.stringify(record[key] ?? null); // JSON文字列として保存
+            } else if (key === 'createdAt' || key === 'updatedAt') {
+                acc[key] = record[key] ? new Date(record[key]).toISOString() : new Date().toISOString(); // 日付はISO形式で保存
+            } else {
+                acc[key] = record[key] ?? null; // レコードの値がない場合はnullを設定
+            }
+            return acc;
+        }, {});
         db.run(
             sql,
-            [
-                template.uuid,
-                template.type,
-                template.content,
-                // children, permissions_read, permissions_writeはJSON文字列として保存
-                JSON.stringify(template.children ?? null),
-                JSON.stringify(template.permissions?.read ?? null),
-                JSON.stringify(template.permissions?.write ?? null),
-                template.createdBy ?? null,
-                template.updatedBy ?? null,
-                template.createdAt ?? null,
-                template.updatedAt ?? null
-            ],
+            placeholders,
             function (err) {
                 db.close();
                 if (err) {
+                    console.error('レコード挿入エラー:', err.message);
                     reject(err);
                 } else {
                     resolve({ id: this.lastID, changes: this.changes });
@@ -196,4 +136,48 @@ export async function insertTemplate(template) {
     });
 }
 
+// レコードを更新する関数 uuidを指定して更新
+export async function updateRecord(uuid, updates) {
+    const db = getDatabaseConnection();
+    return new Promise((resolve, reject) => {
+        const setClause = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+        const sql = `UPDATE records SET ${setClause} WHERE uuid = ?`;
+        const values = [...Object.values(updates), uuid];
+        db.run(sql, values, function (err) {
+            db.close();
+            if (err) {
+                console.error('レコード更新エラー:', err.message);
+                reject(err);
+            } else {
+                resolve({ changes: this.changes });
+            }
+        });
+    });
+}
 
+// レコードを削除する関数 uuidを指定して削除
+export async function deleteRecord(uuid) {
+    const db = getDatabaseConnection();
+    return new Promise((resolve, reject) => {
+        db.run('DELETE FROM records WHERE uuid = ?', [uuid], function (err) {
+            db.close();
+            if (err) {
+                console.error('レコード削除エラー:', err.message);
+                reject(err);
+            } else {
+                resolve({ changes: this.changes });
+            }
+        });
+    });
+}
+
+// テーブルを作成
+export async function initializeDatabase() {
+    if (!fs.existsSync(DB_PATH)) {
+        // データベースファイルが存在しない場合は作成
+        fs.writeFileSync(DB_PATH, '');
+    }
+    await createTable(); // テーブルを作成
+    console.log('データベースの初期化が完了しました。');
+}
+initializeDatabase();
