@@ -5,22 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login divein</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="shortcut icon" href="#pub/icon/open.svg" type="image/svg+xml">
-    <!-- <link rel="icon" href="../icon/open.svg" type="image/svg+xml"> -->
+    <link rel="shortcut icon" href="/icon/open.svg" type="image/svg+xml">
+    <link rel="icon" href="/icon/open.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon/open.svg">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="Dive into your coding projects with ease.">
 </head>
 
 <body>
-    <form action="/login" method="post" id="login-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <h1>Login to divein</h1>
-        <div class="form-group">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <button type="submit">Login</button>
-    </form>
+    <header>
+        <h1 class="logo">
+            <a href="/"><img src="/icon/open.svg" alt="logo" id="logo">divein</a>
+        </h1>
+        <span class="usericon">
+            <a href="/login"><img src="/icon/closed.svg" alt="login icon"></a>
+        </span>
+    </header>
+
+
+
     <script src="script.js"></script>
 </body>
 

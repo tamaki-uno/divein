@@ -1,0 +1,32 @@
+<div class="popup">
+    <button type="button" class="close-popup-button">
+        <img src="/icon/close-button.svg" alt="Close" class="close-popup-icon">
+    </button>
+    <h2 class="popup-title">Let's Dive In!</h2>
+    <!--  ログインフォーム -->
+    <form class="login-form">
+        <label for="username">ユーザー名</label>
+        <input type="text" id="username" name="username" required autocomplete="username">
+
+        <label for="password">パスワード</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+
+        <button type="submit" class="login-button">ログイン</button>
+        <p class="register-link">アカウントをお持ちでないですか？ <a href="/signup">登録はこちら</a></p>
+    </form>
+    <!--  登録フォーム -->
+    <form class="signup-form" action="/signup" method="post">
+        <label for="username">ユーザー名</label>
+        <input type="text" id="username" name="username" required autocomplete="username">
+        
+        <label for="password">パスワード</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+        
+        <button type="submit" class="login-button">登録</button>
+        <p class="login-link">既にアカウントをお持ちですか？ <a href="/login">ログインはこちら</a></p>
+    </form>
+    <!--  ログアウトフォーム -->
+    <form class="logout-form" action="/logout" method="post">
+        <button type="submit" class="logout-button">ログアウト</button>
+    </form>
+</div>

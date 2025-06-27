@@ -1,0 +1,97 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Noto Sans JP", sans-serif;
+    background-color: #f0f0f0;
+}
+
+/* Header styles */
+header {
+    background-color: #1976d2;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+header a {
+    color: white;
+    text-decoration: none;
+}
+header h1 img {
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+}
+header span.usericon img {
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+    background-color: white;
+    border-radius: 50%;
+}
+
+/* Popup styles */
+div.popup {
+    /* ポップアップを中央に配置 */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000; /* Ensure popup is above other content */
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1);
+    width: 400px; /* Set a fixed width for the popup */
+    max-width: 90%; /* Ensure it doesn't exceed viewport width */
+    max-height: 80%; /* Limit height to prevent overflow */
+    padding: 20px;
+}
+.popup button.close-popup-button {
+    /* 右上に配置 */
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.popup h2 {
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 24px;
+    color: #333;
+}
+.popup button.close-popup-button img {
+    /* アイコンのサイズを調整 */
+    width: 24px;
+    height: 24px;
+}
+.popup form {
+    /* フォームのスタイル JavaScriptで表示・非表示を制御 */
+    display: none; /* Initially hidden */
+    /* flex-direction: column; */
+}
+.popup form label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.popup form input[type="text"],
+.popup form input[type="password"] {
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.popup form button {
+    padding: 10px;
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}

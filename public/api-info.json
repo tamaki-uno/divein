@@ -19,4 +19,5 @@
             "method": "GET",
             "path": "/api/v0/content"
         }
+    }
 }
