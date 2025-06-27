@@ -92,6 +92,19 @@ div.popup {
     /* padding: 20px 30px; */
     margin: 10px 30px;
 }
+.popup form h2 {
+    /* フォームのタイトル */
+    margin: 0 0 20px;
+    text-align: center;
+    font-size: 20px;
+    color: #333;
+}
+.popup form h2 img {
+    /* アイコンのサイズを調整 */
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+}
 .popup form label {
     /* margin-bottom: 5px; */
     font-weight: bold;

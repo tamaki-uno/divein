@@ -3,8 +3,10 @@
         <img src="/icon/close-button.svg" alt="Close" class="close-popup-icon">
     </button>
     <!--  ログインフォーム -->
-    <form class="login-form">
-        <h2>Dive back in!</h2>
+    <!-- <form class="login-form" action="/api/v0/login.js" method="post"> -->
+    <form class="login-form" action="/api/v0/login" method="post">
+        <h2><img src="/icon/closed.svg" alt="">Dive back in!</h2>
+        
         <label for="username">ユーザー名</label>
         <input type="text" id="username" name="username" required autocomplete="username" class="small-border-radius">
 
@@ -19,8 +21,10 @@
         </p>
     </form>
     <!--  登録フォーム -->
-    <form class="signup-form" action="/signup" method="post">
-        <h2>Dive In!</h2>
+    <!-- <form class="signup-form" action="/api/v0/signup.js" method="post"> -->
+    <form class="signup-form" action="/api/v0/signup" method="post">
+        <h2><img src="/icon/closed.svg" alt="">Dive In!</h2>
+
         <label for="username">ユーザー名</label>
         <input type="text" id="username" name="username" required autocomplete="username" class="small-border-radius">
 
