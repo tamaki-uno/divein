@@ -1,6 +1,6 @@
 // Description: SQLiteのSQLを実行する関数
 import fs from 'fs';
-import { select, run } from './database.js';
+import { select, run } from '../database.js';
 
 // コマンドライン引数からSQLファイルパスまたはSQL文を取得
 const argument = process.argv.slice(2);
