@@ -42,8 +42,8 @@ export default async function signupHandler(req, res) {
     userData.uuid = uuid;
     userData.type = 'user';
     userData.content = JSON.stringify({
-        username,
-        email,
+        username: username,
+        email: email,
         password_hash: passwordHash
     });
     userData.children = [];
