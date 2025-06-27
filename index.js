@@ -7,7 +7,7 @@ import path from 'path';
 
 // 自前のモジュールをインポート
 // import initDatabase from './init-database.js';
-import app from './server/server.js';
+import app from './server.js';
 import { run } from './database.js';
 
 const port = 3000;
