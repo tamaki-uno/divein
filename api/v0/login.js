@@ -1,7 +1,9 @@
 import bcrypt from 'bcrypt';
 import 'dotenv/config';
-import { findUserByUsername } from '../../database'; // ユーザー検索関数
-import { generateAccessToken } from '../../auth'; // JWT生成関数
+import cookie from 'cookie'; // クッキー操作用ライブラリ
+
+import { findUserByUsername } from '../../database.js'; // ユーザー検索関数
+import { generateAccessToken } from './auth.js'; // JWT生成関数
 
 
 
@@ -34,8 +36,14 @@ export default async function loginHandler(req, res) {
         }
 
         // JWTを生成して返す
-        const token = generateAccessToken(user); // ユーザー情報を元にアクセストークンを生成
-        res.json({ accessToken: token }); // アクセストークンをレスポンスとして返す
+        // const token = generateAccessToken(user); // ユーザー情報を元にアクセストークンを生成
+        // res.json({ accessToken: token }); // アクセストークンをレスポンスとして返す
+        res.setHeader('Set-Cookie', cookie.serialize('token', generateAccessToken(user), {
+            httpOnly: true, // JavaScriptからアクセスできないようにする
+            secure: process.env.NODE_ENV === 'development' ? false : true, // 本番環境ではSecure属性を有効にする
+            sameSite: 'Strict', // CSRF対策
+            maxAge: 60 * 60 // 1時間の有効期限
+        }));
 
     } catch (error) {
         console.error(error);

@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import 'dotenv/config';
-import { createUser, findUserByUsername } from '../../database'; // ユーザー操作関数
+import { createUser, findUserByUsername } from '../../database.js'; // ユーザー作成と検索関数
 /**
  * ユーザー登録処理
  * - POSTメソッドのみ許可
