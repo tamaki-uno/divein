@@ -62,6 +62,7 @@ export default async function loginHandler(req, res) {
     }));
     res.status(200).json({
         message: 'ログイン成功',
-        user: { uuid: user.uuid, username }
+        user: { uuid: user.uuid, username: JSON.parse(user.content).username },
+        success: true
     });
 }
