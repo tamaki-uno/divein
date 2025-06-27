@@ -27,5 +27,8 @@
     "#sql/*": "./sql/*",
     "#database": "./database.js",
     "#server": "./server.js"
+  },
+  "devDependencies": {
+    "@google/gemini-cli": "^0.1.5"
   }
 }
