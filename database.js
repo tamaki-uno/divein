@@ -97,9 +97,10 @@ export async function findByContent(keyword, limit = 100, sortBy = 'createdAt', 
 
 export async function find(query, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
     const db = getDatabaseConnection();
-    const sql = 'SELECT * FROM records WHERE 1=1'; // 基本のSQL文
+    // const sql = 'SELECT * FROM records WHERE 1=1'; // 基本のSQL文
+    // const params = []; // パラメータ配列
+    let sql = 'SELECT * FROM records WHERE 1=1'; // 基本のSQL文
     const params = []; // パラメータ配列
-
     // クエリパラメータに応じて条件を追加
     if (query.uuid) {
         sql += ' AND uuid = ?';
