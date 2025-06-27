@@ -5,6 +5,17 @@ html, body {
     background-color: #f0f0f0;
 }
 
+/* General styles */
+.accent-color {
+    color: #1976d2; /* Primary color */
+}
+.large-border-radius {
+    border-radius: 20px; /* Large border radius */
+}
+.small-border-radius {
+    border-radius: 10px; /* Small border radius */
+}
+
 /* Header styles */
 header {
     background-color: #1976d2;
@@ -44,7 +55,6 @@ div.popup {
     transform: translate(-50%, -50%);
     z-index: 1000; /* Ensure popup is above other content */
     background-color: white;
-    border-radius: 16px;
     box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1);
     width: 400px; /* Set a fixed width for the popup */
     max-width: 90%; /* Ensure it doesn't exceed viewport width */
@@ -73,25 +83,28 @@ div.popup {
 }
 .popup form {
     /* フォームのスタイル JavaScriptで表示・非表示を制御 */
-    display: none; /* Initially hidden */
-    /* flex-direction: column; */
+    /* display: none; Initially hidden */
+    display: flex; /* Use flexbox for layout */
+    flex-direction: column;
+    /* align-items: center; */
+    gap: 10px; /* Space between form elements */
+    padding: 20px 30px;
 }
 .popup form label {
     margin-bottom: 5px;
     font-weight: bold;
 }
 .popup form input[type="text"],
-.popup form input[type="password"] {
+.popup form input[type="password"],
+.popup form input[type="email"] {
     padding: 10px;
     margin-bottom: 10px;
     border: 1px solid #ccc;
-    border-radius: 4px;
 }
 .popup form button {
     padding: 10px;
     background-color: #1976d2;
     color: white;
     border: none;
-    border-radius: 4px;
     cursor: pointer;
 }
