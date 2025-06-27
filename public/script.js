@@ -12,9 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (path === '/login' || path === '/signup' || path === '/logout') {
         // ログイン、サインアップ、ログアウトのページではAPIベースパスを設定
         window.apiBasePath = API_BASE_PATH;
-        // html/popup.htmlを読み込む
-        // fetch('/html/popup.html')
-        // fetch('/components/popup.html')
         fetch('/modules/popup.html')
             .then(response => response.text())
             .then(popupHtml => {
@@ -30,4 +27,34 @@ document.addEventListener('DOMContentLoaded', () => {
         // 設定ページの初期化処理をここに追加
         console.log('Settings page loaded');
     }
+
+    const toggleButtons = document.querySelectorAll('.toggle-button');
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const target = document.querySelector(button.dataset.target);
+            if (target) {
+                target.classList.toggle('hidden');
+            }
+        });
+    });
+    toggleButtons.forEach(button => {
+        button.addEventListener('rightclick', (event) => {
+            event.preventDefault(); // 右クリックメニューを無効化
+            const target = document.querySelector(button.dataset.target);
+            if (target) {
+                target.classList.toggle('hidden');
+            }
+        });
+    });
+    const contents = document.querySelectorAll('.content');
+    contents.forEach(content => {
+        content.addEventListener('click', () => {
+            const conotent = content.querySelector('.content-text');
+            if (conotent) {
+                conotent.classList.toggle('hidden');
+            }
+        });
+    }
+
 });
+
