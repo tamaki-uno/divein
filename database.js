@@ -205,9 +205,9 @@ export async function deleteRecord(uuid) {
     });
 }
 
-// テーブルを作成
-createTable().then(() => {
-    console.log('データベースの初期化が完了しました。');
-}).catch(err => {
-    console.error('データベースの初期化中にエラーが発生しました:', err);
-});
+// // テーブルを作成
+// createTable().then(() => {
+//     console.log('データベースの初期化が完了しました。');
+// }).catch(err => {
+//     console.error('データベースの初期化中にエラーが発生しました:', err);
+// });
