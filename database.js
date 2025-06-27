@@ -1,8 +1,6 @@
 'use strict';
 
 import sqlite3 from 'sqlite3';
-import fs from 'fs';
-import path from 'path';
 import 'dotenv/config';
 
 const DB_PATH = process.env.DB_PATH || './database.sqlite';
@@ -45,8 +43,8 @@ export async function createTable() {
     const db = getDatabaseConnection();
     const statements = [
         `CREATE TABLE IF NOT EXISTS records (
-${Object.entries(columns).map(([key, value]) => `  ${key} ${value}`).join(',\n')}
-);`
+            ${Object.entries(columns).map(([key, value]) => `  ${key} ${value}`).join(',\n')}
+        );`
     ];
     statements.push(...indexes.map(index => `CREATE INDEX IF NOT EXISTS idx_records_${index} ON records (${index});`));
     for (const stmt of statements) {
@@ -166,11 +164,8 @@ export async function deleteRecord(uuid) {
 }
 
 // テーブルを作成
-export async function initializeDatabase() {
-    if (!fs.existsSync(DB_PATH)) {
-        fs.writeFileSync(DB_PATH, '');
-    }
-    await createTable();
+createTable().then(() => {
     console.log('データベースの初期化が完了しました。');
-}
-initializeDatabase();
+}).catch(err => {
+    console.error('データベースの初期化中にエラーが発生しました:', err);
+});
