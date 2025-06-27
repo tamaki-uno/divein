@@ -116,6 +116,9 @@ div.popup {
     margin-bottom: 10px;
     border: 1px solid #ccc;
 }
+.popup form input.invalid {
+    border-color: red; /* Invalid input border color */
+}
 .popup form button {
     padding: 10px;
     background-color: #1976d2;
@@ -129,4 +132,8 @@ div.popup {
 .popup form p {
     margin: 10px 20px;
     font-size: 14px;
+}
+.popup form p.error-message {
+    color: red; /* Error message color */
+    font-weight: bold;
 }
