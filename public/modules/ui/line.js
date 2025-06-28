@@ -17,10 +17,10 @@ export default class Line {
         this.level = level;
         // this.renderParent is undefined, remove or define as needed
         this.isOpen = false;
-        syncDB(uuid).then(record => {
+        this.ready = Promise.all([
+            syncDB(uuid).then(record => {
                 this.record = record;
-            })
-            .catch(error => {
+            }).catch(error => {
                 console.error('Error syncing with IndexedDB:', error);
                 getRecordFromIndexedDB(uuid)
                     .then(record => {
@@ -43,17 +43,17 @@ export default class Line {
                         console.error('Error getting record from IndexedDB:', error);
                         throw error;
                     });
-            })
+            }),
 
-        this.loadHtml()
-            .then(html => {
+            this.loadHtml().then(html => {
                 this.html = html.html;
                 this.menuHtml = html.menu;
                 this.init();
             })
             .catch(error => {
                 console.error('Error loading HTML:', error);
-            });
+            })
+        ]);
     }
     // recordのテンプレートをロード
     async loadTemplate() {
@@ -85,11 +85,12 @@ export default class Line {
             .catch(error => {
                 console.error('Failed to load menu HTML template:', error);
             });
-        this.html = lineHtml;
-        this.menuHtml = menuHtml;
+        // 修正: html, menuはElement型で保持
+        this.html = lineHtml && lineHtml.body.firstElementChild;
+        this.menuHtml = menuHtml && menuHtml.body.firstElementChild;
         return {
-            html: lineHtml,
-            menu: menuHtml
+            html: this.html,
+            menu: this.menuHtml
         };
     }
     // 初期化処理
@@ -157,6 +158,7 @@ export default class Line {
 
     }
     render(childrenHtml = '') {
+        // 修正: Node型を返す
         return this.html;
     }
     update() {

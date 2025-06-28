@@ -2,12 +2,14 @@ export default class Header {
     constructor() {
         this.user = null; // ユーザー情報を格納する変数
         this.header = null; // ヘッダー要素を格納する変数
+        console.log('[Header] constructor called');
         this.init();
     }
     async init() {
         // すでにheaderが存在する場合は追加しない
         if (document.querySelector('header')) {
             this.header = document.querySelector('header');
+            console.log('[Header] header already exists, skipping insert');
             this.updateHeader();
             return;
         }
@@ -15,6 +17,7 @@ export default class Header {
         const html = await res.text();
         document.body.insertAdjacentHTML('afterbegin', html);
         this.header = document.querySelector('header');
+        console.log('[Header] header inserted');
         this.updateHeader();
     }
     updateHeader(user) {
@@ -31,5 +34,6 @@ export default class Header {
             userIcon.src = "/icon/closed.svg";
             userIcon.alt = "login icon";
         }
+        console.log('[Header] updateHeader called. user:', this.user);
     }
 }
