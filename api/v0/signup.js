@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 
 // テンプレートJSONを同期的に読み込む
-const templatePath = path.join(process.cwd(), 'public', 'template.json');
+const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
 
 /**
  * ユーザー登録処理
@@ -34,10 +34,11 @@ export default async function signupHandler(req, res) {
     const now = new Date().toISOString();
     const uuid = crypto.randomUUID();
     const passwordHash = await bcrypt.hash(password, 10);
-
-    // テンプレートをディープコピー
-    // const userData = JSON.parse(JSON.stringify(template));
-    const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+    if (!passwordHash) {
+        return res.status(500).json({ message: 'パスワードのハッシュ化に失敗しました。' });
+    }
+    // テンプレートの内容をユーザーデータに設定
+    const template = JSON.parse(fs.readFileSync(recordTemplatePath, 'utf8'));
     const userData = { ...template };
     userData.uuid = uuid;
     userData.type = 'user';

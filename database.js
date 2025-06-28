@@ -64,37 +64,6 @@ export async function createTable() {
     db.close();
 }
 
-// // 完全一致でUUIDで探す関数
-// export async function findByUuid(uuid) {
-//     const db = getDatabaseConnection();
-//     return new Promise((resolve, reject) => {
-//         db.get('SELECT * FROM records WHERE uuid = ?', [uuid], (err, row) => {
-//             db.close();
-//             if (err) {
-//                 reject(err);
-//             } else {
-//                 resolve(row);
-//             }
-//         });
-//     });
-// }
-
-// // コンテンツの内容の部分一致で探す関数
-// export async function findByContent(keyword, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
-//     const db = getDatabaseConnection();
-//     const sql = `SELECT * FROM records WHERE content LIKE ? ORDER BY ${sortBy} ${sortOrder} LIMIT ?`;
-//     return new Promise((resolve, reject) => {
-//         db.all(sql, [`%${keyword}%`, limit], (err, rows) => {
-//             db.close();
-//             if (err) {
-//                 reject(err);
-//             } else {
-//                 resolve(rows);
-//             }
-//         });
-//     });
-// }
-
 export async function findRecords(query, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
     const db = getDatabaseConnection();
     // const sql = 'SELECT * FROM records WHERE 1=1'; // 基本のSQL文
@@ -170,27 +139,8 @@ export async function insertRecord(record) {
         );
     });
 }
-
-// // レコードを更新する関数 uuidを指定して更新
-// export async function updateRecord(uuid, updates) {
-//     const db = getDatabaseConnection();
-//     return new Promise((resolve, reject) => {
-//         const setClause = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-//         const sql = `UPDATE records SET ${setClause} WHERE uuid = ?`;
-//         const values = [...Object.values(updates), uuid];
-//         db.run(sql, values, function (err) {
-//             db.close();
-//             if (err) {
-//                 console.error('レコード更新エラー:', err.message);
-//                 reject(err);
-//             } else {
-//                 resolve({ changes: this.changes });
-//             }
-//         });
-//     });
-// }
-
-//
+ 
+// 
 export async function syncRecord(record) {
     // レコードを更新または挿入する関数
     // const existingRecord = await findByUuid(record.uuid);
@@ -221,17 +171,14 @@ export async function syncRecord(record) {
                 values.push(updates.uuid);
                 db.run(sql, values, function (err) {
                     db.close();
-            // if (record.updatedAt && new Date(record.updatedAt) > new Date(existingRecord.updatedAt)) {
-            //     // 更新日時が新しい場合のみ更新
-            //     const updates = {
-            //         ...record,
-            //         updatedAt: new Date().toISOString(),
-            //         updatedBy: record.updatedBy || existingRecord.updatedBy
-            //     };
-            //     return insertRecord(updates);
-            // } else {
-            //     return existingRecord;
-            // }
+                    if (err) {
+                        console.error('レコード更新エラー:', err.message);
+                        reject(err);
+                    } else {
+                        resolve({ changes: this.changes });
+                    }
+                });
+            });
         } else {
             // 更新権限がない場合はエラーを投げる
             throw new Error('更新権限がありません。');
@@ -243,21 +190,22 @@ export async function syncRecord(record) {
     
 }
 
-// レコードを削除する関数 uuidを指定して削除
-export async function deleteRecord(uuid) {
-    const db = getDatabaseConnection();
-    return new Promise((resolve, reject) => {
-        db.run('DELETE FROM records WHERE uuid = ?', [uuid], function (err) {
-            db.close();
-            if (err) {
-                console.error('レコード削除エラー:', err.message);
-                reject(err);
-            } else {
-                resolve({ changes: this.changes });
-            }
-        });
-    });
-}
+// 将来的な実装
+// // レコードを削除する関数 uuidを指定して削除
+// export async function deleteRecord(uuid) {
+//     const db = getDatabaseConnection();
+//     return new Promise((resolve, reject) => {
+//         db.run('DELETE FROM records WHERE uuid = ?', [uuid], function (err) {
+//             db.close();
+//             if (err) {
+//                 console.error('レコード削除エラー:', err.message);
+//                 reject(err);
+//             } else {
+//                 resolve({ changes: this.changes });
+//             }
+//         });
+//     });
+// }
 
 // // テーブルを作成
 // createTable().then(() => {

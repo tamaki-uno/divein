@@ -8,15 +8,24 @@ import 'dotenv/config';
 const app = express();
 const port = process.env.PORT;
 
+
+// --- データベースの初期化 ---
+import { createTable } from '#database';
+createTable().catch(err => {
+    console.error('データベースの初期化に失敗しました:', err);
+    process.exit(1);
+});
+
 // --- APIハンドラの読み込み ---
 import { assetHandler } from '#api/v0/asset.js';
 import loginHandler from '#api/v0/login.js';
 import signupHandler from '#api/v0/signup.js';
 import syncHandler from '#api/v0/sync.js';
-// 認証ミドルウェアの読み込み
+
+// --- 認証ミドルウェアの読み込み ---
 import { authenticateToken } from '#api/v0/auth.js';
 
-// --- ミドルウェア設定 ---
+// --- ミドルウェアの設定 ---
 app.use(express.json());
 
 // --- APIエンドポイントの設定 ---
