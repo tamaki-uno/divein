@@ -6,7 +6,7 @@ import 'dotenv/config';
 
 // --- 初期設定 ---
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 
 // --- データベースの初期化 ---
@@ -28,11 +28,19 @@ import { authenticateToken } from '#api/v0/auth.js';
 // --- ミドルウェアの設定 ---
 app.use(express.json());
 
+// JSONパースエラー時のハンドリング
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        return res.status(400).json({ message: 'リクエストボディが不正です。' });
+    }
+    next();
+});
+
 // --- APIエンドポイントの設定 ---
-app.post('/api/v0/asset', authenticateToken, assetHandler); // 認証ミドルウェアを追加
+app.post('/api/v0/asset', authenticateToken, assetHandler);
 app.post('/api/v0/login', loginHandler);
 app.post('/api/v0/signup', signupHandler);
-app.post('/api/v0/sync', authenticateToken, syncHandler); // 認証ミドルウェアを追加
+app.post('/api/v0/sync', authenticateToken, syncHandler);
 
 // --- 静的ファイルの配信設定 ---
 const publicDir = join(process.cwd(), 'public');

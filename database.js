@@ -64,12 +64,10 @@ export async function createTable() {
     db.close();
 }
 
-export async function findRecords(query, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
+export async function findRecords(query, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC', options = {}) {
     const db = getDatabaseConnection();
-    // const sql = 'SELECT * FROM records WHERE 1=1'; // 基本のSQL文
-    // const params = []; // パラメータ配列
-    let sql = 'SELECT * FROM records WHERE 1=1'; // 基本のSQL文
-    const params = []; // パラメータ配列
+    let sql = 'SELECT * FROM records WHERE 1=1';
+    const params = [];
     // クエリパラメータに応じて条件を追加
     if (query.uuid) {
         sql += ' AND uuid = ?';
@@ -80,8 +78,13 @@ export async function findRecords(query, limit = 100, sortBy = 'createdAt', sort
         params.push(query.type);
     }
     if (query.content) {
-        sql += ' AND content LIKE ?';
-        params.push(`%${query.content}%`);
+        if (options.exact) {
+            sql += ' AND content = ?';
+            params.push(query.content);
+        } else {
+            sql += ' AND content LIKE ?';
+            params.push(`%${query.content}%`);
+        }
     }
     if (query.permissionsRead) {
         sql += ' AND permissionsRead LIKE ?';
@@ -94,7 +97,7 @@ export async function findRecords(query, limit = 100, sortBy = 'createdAt', sort
     // ソート条件とリミットを追加
     sql += ` ORDER BY ${sortBy} ${sortOrder} LIMIT ?`;
     params.push(limit);
-    
+
     return new Promise((resolve, reject) => {
         db.all(sql, params, (err, rows) => {
             db.close();
@@ -143,12 +146,21 @@ export async function insertRecord(record) {
 // 
 export async function syncRecord(record) {
     // レコードを更新または挿入する関数
-    // const existingRecord = await findByUuid(record.uuid);
-    const existingRecords = await findRecord({ uuid: record.uuid });
+    const existingRecords = await findRecords({ uuid: record.uuid });
     if (existingRecords && existingRecords.length > 0) {
         const existingRecord = JSON.parse(JSON.stringify(existingRecords[0]));
-        // // 既存のレコードがある場合は更新
-        if (record.updatedBy in existingRecord.permissionsWrite) {
+        // permissionsWriteが配列であることを保証
+        let permissionsWrite = [];
+        try {
+            permissionsWrite = typeof existingRecord.permissionsWrite === 'string'
+                ? JSON.parse(existingRecord.permissionsWrite)
+                : Array.isArray(existingRecord.permissionsWrite)
+                    ? existingRecord.permissionsWrite
+                    : [];
+        } catch {
+            permissionsWrite = [];
+        }
+        if (permissionsWrite.includes(record.updatedBy)) {
             const db = getDatabaseConnection();
             const updates = {
                 ...existingRecord,
@@ -187,7 +199,6 @@ export async function syncRecord(record) {
         // 既存のレコードがない場合は新規挿入
         return insertRecord(record);
     }
-    
 }
 
 // 将来的な実装

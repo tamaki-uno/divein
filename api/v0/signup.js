@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import 'dotenv/config';
-import crypto from 'crypto'; // UUID生成用
-import { findRecords, insertRecord } from '#database'; // データベース操作関数
+import crypto from 'crypto';
+import { findRecords, insertRecord } from '#database';
 import fs from 'fs';
 import path from 'path';
 
@@ -14,20 +14,32 @@ const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
  * - ユーザー名とパスワードをチェック
  * - 成功時は新規ユーザー情報を返す
  */
-
 export default async function signupHandler(req, res) {
     const { username, email, password } = req.body;
     if (!username || !email || !password) {
         return res.status(400).json({ message: 'ユーザー名、メールアドレス、パスワードは必須です。' });
     }
 
-    // 既存ユーザーのチェック
-    const existingUser = await findRecords({
+    // 既存ユーザーのチェック（厳密一致）
+    const users = await findRecords({
         type: 'user',
-        content: username // 部分一致検索のため、content LIKE でチェック
+        content: username
     });
-    if (existingUser && existingUser.length > 0) {
-        return res.status(409).json({ message: 'そのユーザー名は既に使用されています。' });
+    const exists = users.some(u => {
+        try {
+            const content = JSON.parse(u.content);
+            return content.username === username || content.email === email;
+        } catch {
+            return false;
+        }
+    });
+    if (exists) {
+        return res.status(409).json({ message: 'そのユーザー名またはメールアドレスは既に使用されています。' });
+    }
+
+    // テンプレートファイル存在チェック
+    if (!fs.existsSync(recordTemplatePath)) {
+        return res.status(500).json({ message: 'テンプレートファイルが見つかりません。' });
     }
 
     // ユーザーデータ作成
@@ -37,7 +49,6 @@ export default async function signupHandler(req, res) {
     if (!passwordHash) {
         return res.status(500).json({ message: 'パスワードのハッシュ化に失敗しました。' });
     }
-    // テンプレートの内容をユーザーデータに設定
     const template = JSON.parse(fs.readFileSync(recordTemplatePath, 'utf8'));
     const userData = { ...template };
     userData.uuid = uuid;

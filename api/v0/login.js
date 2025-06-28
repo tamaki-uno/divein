@@ -25,25 +25,28 @@ export default async function loginHandler(req, res) {
         content: username // 部分一致検索
     });
 
-    // 厳密一致でユーザーを特定
-    const user = users.find(u => {
+    // 厳密一致でユーザーを特定し、パース済みcontentも取得
+    let user, userContent;
+    for (const u of users) {
         try {
             const content = JSON.parse(u.content);
-            return content.username === username;
+            if (content.username === username) {
+                user = u;
+                userContent = content;
+                break;
+            }
         } catch {
-            return false;
+            continue;
         }
-    });
+    }
 
-    if (!user) {
+    if (!user || !userContent) {
         return res.status(401).json({ message: 'ユーザー名またはパスワードが正しくありません。' });
     }
 
     // パスワードハッシュを取得
-    let passwordHash;
-    try {
-        passwordHash = JSON.parse(user.content).password_hash;
-    } catch {
+    const passwordHash = userContent.password_hash;
+    if (!passwordHash) {
         return res.status(500).json({ message: 'ユーザーデータが不正です。' });
     }
 
@@ -53,17 +56,23 @@ export default async function loginHandler(req, res) {
         return res.status(401).json({ message: 'ユーザー名またはパスワードが正しくありません。' });
     }
 
-    // JWTを生成して返す
-    const token = generateAccessToken(user);
+    // JWTを生成して返す（uuid, usernameのみ渡す）
+    const token = generateAccessToken({
+        id: user.uuid,
+        username: userContent.username,
+        // email: userContent.email, // 必要なら
+    });
+
     res.setHeader('Set-Cookie', cookie.serialize('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'Strict',
         maxAge: 60 * 60 // 1時間
     }));
+
     res.status(200).json({
         message: 'ログイン成功',
-        user: { uuid: user.uuid, username: JSON.parse(user.content).username },
+        user: { uuid: user.uuid, username: userContent.username },
         success: true
     });
 }

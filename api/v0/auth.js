@@ -2,9 +2,13 @@ import jwt from 'jsonwebtoken';
 
 // アクセストークンを生成
 export function generateAccessToken(user) {
+    if (!process.env.JWT_SECRET || !process.env.JWT_ACCESS_TOKEN_EXPIRATION) {
+        throw new Error('JWT環境変数が未設定です');
+    }
     const payload = {
         id: user.id,
         username: user.username,
+        // email: user.email, // 必要なら追加
     };
     return jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION
@@ -14,17 +18,22 @@ export function generateAccessToken(user) {
 // リクエストヘッダーのトークンを検証するミドルウェア
 export function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // "Bearer TOKEN"
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: '認証トークンが必要です' });
+    }
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ message: '認証トークンが必要です' });
+    }
 
-    if (token == null) {
-        return res.sendStatus(401); // トークンが存在しない
+    if (!process.env.JWT_SECRET) {
+        return res.status(500).json({ message: 'JWT_SECRETが未設定です' });
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, userPayload) => {
         if (err) {
-            return res.sendStatus(403); // トークンが無効または期限切れ
+            return res.status(403).json({ message: 'トークンが無効または期限切れです' });
         }
-        // 検証成功後、リクエストオブジェクトにユーザー情報を格納
         req.user = userPayload;
         next();
     });
