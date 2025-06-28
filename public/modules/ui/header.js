@@ -13,7 +13,7 @@ export default class Header {
             this.updateHeader();
             return;
         }
-        const res = await fetch('/modules/header.html');
+        const res = await fetch('/modules/ui/header.html'); // パスを修正
         const html = await res.text();
         document.body.insertAdjacentHTML('afterbegin', html);
         this.header = document.querySelector('header');
