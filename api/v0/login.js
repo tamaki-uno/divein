@@ -88,13 +88,13 @@ export default async function loginHandler(req, res) {
         
     // });
 
-    const payload = JSON.stringify({
+    const payload = {
         ...userRecord,
         content: {
             ...userRecord.content,
             password_hash: undefined // パスワードハッシュは含めない
         }
-    });
+    };
     const token = generateAccessToken(payload);
 
     res.setHeader('Set-Cookie', cookie.serialize('token', token, {
@@ -106,7 +106,8 @@ export default async function loginHandler(req, res) {
 
     res.status(200).json({
         message: 'ログイン成功',
-        user: { uuid: user.uuid, username: userContent.username },
-        success: true
+        // user: { uuid: user.uuid, username: userContent.username },
+        success: true,
+        payload: payload // ペイロードを返す
     });
 }

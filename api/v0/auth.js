@@ -13,6 +13,7 @@ export function generateAccessToken(payload) {
     // };
     return jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION
+        // expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION || '1h', // デフォルトは1時間
     });
 }
 
