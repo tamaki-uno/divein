@@ -119,13 +119,15 @@ export default class Popup {
         delete dataObj['confirm-password'];
         const jsonData = JSON.stringify(dataObj);
         const action = this.form.getAttribute('action');
+        console.log('Submitting form to:', action, 'with data:', dataObj);
         fetch(action, {
             method: 'POST',
             body: jsonData,
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
-            }
+            },
+            credentials: 'include' // 追加: セッション維持のため
         })
         .then(async response => {
             let data;
@@ -134,19 +136,29 @@ export default class Popup {
             } catch {
                 throw new Error('サーバーから不正なレスポンスが返されました');
             }
+            console.log('Form submit response:', response.status, data);
             if (!response.ok || data.success === false) {
                 throw new Error(data.message || 'エラーが発生しました');
             }
             return data;
         })
         .then(data => {
-            if (window.location.pathname === '/login') {
-                window.location.href = '/';
-            } else if (window.location.pathname === '/signup') {
-                window.location.href = '/login';
-            } else if (window.location.pathname === '/logout') {
-                window.location.href = '/';
-            }
+            console.log('Form submit success, checking login state...');
+            // ログイン直後に認証チェック
+            fetch('/api/v0/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            })
+            .then(async response => {
+                if (response.status === 200) {
+                    console.log('Login state confirmed, redirecting to /');
+                    window.location.href = '/';
+                } else {
+                    console.warn('Login state not confirmed, redirecting to /login');
+                    window.location.href = '/login';
+                }
+            });
         })
         .catch((error) => {
             console.error('Error:', error);
