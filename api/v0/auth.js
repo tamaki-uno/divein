@@ -1,15 +1,16 @@
 import jwt from 'jsonwebtoken';
 
 // アクセストークンを生成
-export function generateAccessToken(user) {
+// export function generateAccessToken(user) {
+export function generateAccessToken(payload) {
     if (!process.env.JWT_SECRET || !process.env.JWT_ACCESS_TOKEN_EXPIRATION) {
         throw new Error('JWT環境変数が未設定です');
     }
-    const payload = {
-        uuid: user.id,
-        username: user.username,
-        // email: user.email, // 必要なら追加
-    };
+    // const payload = {
+    //     uuid: user.id,
+    //     username: user.username,
+    //     // email: user.email, // 必要なら追加
+    // };
     return jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION
     });
@@ -35,11 +36,13 @@ export function authenticateToken(req, res, next) {
         return res.status(500).json({ message: 'JWT_SECRETが未設定です' });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, userPayload) => {
+    // jwt.verify(token, process.env.JWT_SECRET, (err, userPayload) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, payload) => {
         if (err) {
             return res.status(403).json({ message: 'トークンが無効または期限切れです' });
         }
-        req.user = userPayload;
+        // req.user = userPayload;
+        req.payload = payload; // ペイロードをreqに保存
         next();
     });
 }

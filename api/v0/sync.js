@@ -11,17 +11,23 @@ export default async function syncHandler(req, res) {
         return res.status(400).json({ message: 'Invalid request body' });
     }
 
-    const user = req.user;
-    if (!user || !user.uuid) {
+    // const user = req.user;
+    // if (!user || !user.uuid) {
+    //     return res.status(401).json({ message: 'Unauthorized' });
+    // }
+    const payload = req.payload; // 認証ミドルウェアで設定されたペイロードを使用
+    if (!payload || !payload.uuid) {
         return res.status(401).json({ message: 'Unauthorized' });
     }
+
 
     const record = req.body;
     if (!record || typeof record.uuid !== 'string' || !record.uuid) {
         return res.status(400).json({ message: 'Invalid record data' });
     }
 
-    record.updatedBy = user.uuid;
+    // record.updatedBy = user.uuid;
+    record.updatedBy = payload.uuid; // ペイロードから更新者UUIDを取得
     record.updatedAt = new Date().toISOString();
 
     try {

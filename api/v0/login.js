@@ -20,32 +20,56 @@ export default async function loginHandler(req, res) {
     }
 
     // ユーザーを検索
-    const users = await findRecords({
+    // const users = await findRecords({
+    //     type: 'user',
+    //     content: username // 部分一致検索
+    // });
+    const userRecords = await findRecords({
         type: 'user',
         content: username // 部分一致検索
     });
 
-    // 厳密一致でユーザーを特定し、パース済みcontentも取得
-    let user, userContent;
-    for (const u of users) {
+    // // 厳密一致でユーザーを特定し、パース済みcontentも取得
+    // let user, userContent;
+    // for (const u of users) {
+    //     try {
+    //         const content = JSON.parse(u.content);
+    //         if (content.username === username) {
+    //             user = u;
+    //             userContent = content;
+    //             break;
+    //         }
+    //     } catch {
+    //         continue;
+    //     }
+    // }
+    const userRecordData = userRecords.find(recordData => {
         try {
-            const content = JSON.parse(u.content);
-            if (content.username === username) {
-                user = u;
-                userContent = content;
-                break;
-            }
+            const content = JSON.parse(recordData.content);
+            return content.username === username;
         } catch {
-            continue;
+            return false;
         }
-    }
+    });
 
-    if (!user || !userContent) {
+    // if (!user || !userContent) {
+    //     return res.status(401).json({ message: 'ユーザー名またはパスワードが正しくありません。' });
+    // }
+    if (!userRecordData) {
         return res.status(401).json({ message: 'ユーザー名またはパスワードが正しくありません。' });
+    }
+    // const userRecord = userRecordData.forEach( (column)
+        
+    // });
+    // パースが必要なものをパース
+    const userRecord = {
+        ...userRecordData,
+        content: JSON.parse(userRecordData.content) // contentをパース
     }
 
     // パスワードハッシュを取得
-    const passwordHash = userContent.password_hash;
+    // const passwordHash = userContent.password_hash;
+    const passwordHash = userRecord.content.password_hash;
     if (!passwordHash) {
         return res.status(500).json({ message: 'ユーザーデータが不正です。' });
     }
@@ -57,11 +81,21 @@ export default async function loginHandler(req, res) {
     }
 
     // JWTを生成して返す（uuid, usernameのみ渡す）
-    const token = generateAccessToken({
-        id: user.uuid,
-        username: userContent.username,
+    // const token = generateAccessToken({
+        // id: user.uuid,
+        // username: userContent.username,
         // email: userContent.email, // 必要なら
+        
+    // });
+
+    const payload = JSON.stringify({
+        ...userRecord,
+        content: {
+            ...userRecord.content,
+            password_hash: undefined // パスワードハッシュは含めない
+        }
     });
+    const token = generateAccessToken(payload);
 
     res.setHeader('Set-Cookie', cookie.serialize('token', token, {
         httpOnly: true,
