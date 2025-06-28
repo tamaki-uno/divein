@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { getRecordFromIndexedDB, syncDB } from './database';
+import { saveRecordToIndexedDB,getRecordFromIndexedDB, syncDB } from './database';
 import { get } from 'http';
 
 
@@ -20,12 +20,28 @@ class Line {
             })
             .catch(error => {
                 console.error('Error syncing with IndexedDB:', error);
-                this.loadTemplate().then(template => {
-                    this.record = template; // Use the loaded template if sync fails
-                }).catch(error => {
-                    console.error('Error loading template:', error);
-                });
-            });
+                getRecordFromIndexedDB(uuid)
+                    .then(record => {
+                        this.record = record;
+                        if (!this.record) {
+                            console.error(`Record with UUID ${uuid} not found in IndexedDB`);
+                            return this.loadTemplate().then(template => {
+                                this.record = template; // Use the loaded template if record not found
+                                saveRecordToIndexedDB(this.record)
+                                    .then(() => {
+                                        console.log('Record saved to IndexedDB:', this.record);
+                                    })
+                                    .catch(error => {
+                                        console.error('Error saving record to IndexedDB:', error);
+                                    });
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error getting record from IndexedDB:', error);
+                        throw error;
+                    });
+            })
 
         this.loadHtml()
             .then(html => {
@@ -36,29 +52,6 @@ class Line {
             .catch(error => {
                 console.error('Error loading HTML:', error);
             });
-
-        // getRecordFromIndexedDB(uuid).then(record => {
-        //     syncDB(uuid).then(record => {
-        //         this.record = record;
-        //     }).catch(error => {
-        //         console.error('Error syncing with IndexedDB:', error);
-        //     });
-        // }).catch(error => {
-        //     console.error('Error getting record from IndexedDB:', error);
-        // });
-
-        // this.loadTemplate().then(template => {
-        //     this.record = getRecordFromIndexedDB(uuid);
-        //     this.record = syncDB(uuid);
-        //     if (!this.record) {
-        //         console.error(`Record with UUID ${uuid} not found in IndexedDB.`);
-        //         return;
-        //     }
-        // }).catch(error => {
-        //     console.error('Error loading template:', error);
-        // });
-
-
     }
     // 
     async loadTemplate() {
