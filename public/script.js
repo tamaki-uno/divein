@@ -2,33 +2,34 @@
 
 console.log('script.js loaded');
 
-import switchForm from './modules/popup.js';
+// import switchForm from './modules/popup.js';
+import Popup from './modules/popup.js';
 import Line from './modules/line.js';
 
 const API_BASE_PATH = '/api/v0';
 
 document.addEventListener('DOMContentLoaded', () => {
-    const path = window.location.pathname;
-    // ログイン・サインアップ・ログアウトページの場合
-    if (['/login', '/signup', '/logout'].includes(path)) {
-        window.apiBasePath = API_BASE_PATH;
-        fetch('/modules/popup.html')
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to load popup HTML');
-                return response.text();
-            })
-            .then(popupHtml => {
-                document.body.insertAdjacentHTML('beforeend', popupHtml);
-                switchForm();
-            })
-            .catch(error => {
-                console.error('Error loading popup HTML:', error);
-            });
-    } else if (path === '/settings') {
-        window.apiBasePath = API_BASE_PATH;
-        // 設定ページの初期化処理
-        console.log('Settings page loaded');
-    }
+    // const path = window.location.pathname;
+    // // ログイン・サインアップ・ログアウトページの場合
+    // if (['/login', '/signup', '/logout'].includes(path)) {
+    //     window.apiBasePath = API_BASE_PATH;
+    //     fetch('/modules/popup.html')
+    //         .then(response => {
+    //             if (!response.ok) throw new Error('Failed to load popup HTML');
+    //             return response.text();
+    //         })
+    //         .then(popupHtml => {
+    //             document.body.insertAdjacentHTML('beforeend', popupHtml);
+    //             switchForm();
+    //         })
+    //         .catch(error => {
+    //             console.error('Error loading popup HTML:', error);
+    //         });
+    // } else if (path === '/settings') {
+    //     window.apiBasePath = API_BASE_PATH;
+    //     // 設定ページの初期化処理
+    //     console.log('Settings page loaded');
+    // }
 
     // ログイン状態チェック
     fetch(`${API_BASE_PATH}/check`, {
@@ -70,6 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error:', error);
         window.location.href = '/login';
     });
+
+    if (['/login', '/signup', '/logout'].includes(window.location.pathname)) {
+        const popup = new Popup();
+    }
+
+
 
     // --- UIのトグル機能例（コメントアウト） ---
     // const toggleButtons = document.querySelectorAll('.toggle-button');
