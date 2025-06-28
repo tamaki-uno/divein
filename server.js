@@ -9,19 +9,21 @@ const app = express();
 const port = process.env.PORT;
 
 // --- APIハンドラの読み込み ---
-import contentHandler from '#api/v0/content.js';
+import { assetHandler } from '#api/v0/asset.js';
 import loginHandler from '#api/v0/login.js';
 import signupHandler from '#api/v0/signup.js';
 import syncHandler from '#api/v0/sync.js';
+// 認証ミドルウェアの読み込み
+import { authenticateToken } from '#api/v0/auth.js';
 
 // --- ミドルウェア設定 ---
 app.use(express.json());
 
 // --- APIエンドポイントの設定 ---
-app.get('/api/v0/content', contentHandler);
+app.post('/api/v0/asset', authenticateToken, assetHandler); // 認証ミドルウェアを追加
 app.post('/api/v0/login', loginHandler);
 app.post('/api/v0/signup', signupHandler);
-app.post('/api/v0/sync', syncHandler);
+app.post('/api/v0/sync', authenticateToken, syncHandler); // 認証ミドルウェアを追加
 
 // --- 静的ファイルの配信設定 ---
 const publicDir = join(process.cwd(), 'public');
