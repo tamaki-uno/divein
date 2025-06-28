@@ -3,9 +3,9 @@
  * - ヘッダー、ポップアップ、メイン領域の初期化関数を提供
  */
 
-import Header from './header.js';
-import Popup from './popup.js';
-import Line from './line.js';
+import Header from './ui/header.js';
+import Popup from './ui/popup.js';
+import Line from './ui/line.js';
 
 /**
  * ヘッダーの初期化
