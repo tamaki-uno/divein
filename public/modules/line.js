@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-import { syncWithAPI, syncWithIndexedDB } from './database';
+import { getRecordFromIndexedDB, syncDB } from './database';
+import { get } from 'http';
 
 
 const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
@@ -9,24 +10,62 @@ const lineHtmlPath = path.join(process.cwd(), 'public', 'modules', 'line.html');
 const menuHtmlPath = path.join(process.cwd(), 'public', 'modules', 'menu.html');
 
 class Line {
-    constructor(uuid, level=0) {
+    constructor(uuid, level = 0) {
+        this.uuid = uuid;
         this.level = level;
-        this.renderParent = renderParent;
+        // this.renderParent is undefined, remove or define as needed
         this.isOpen = false;
-        fetch(recordTemplatePath)
-            .then(response => response.json())
-            .then(template => {
-                this.record = { ...template, ...this.record }; // テンプレートとマージ
-                this.loadHtml();
+        syncDB(uuid).then(record => {
+                this.record = record;
             })
             .catch(error => {
-                console.error('Failed to load record template:', error);
+                console.error('Error syncing with IndexedDB:', error);
+                this.loadTemplate().then(template => {
+                    this.record = template; // Use the loaded template if sync fails
+                }).catch(error => {
+                    console.error('Error loading template:', error);
+                });
             });
+
+        this.loadHtml()
+            .then(html => {
+                this.html = html.html;
+                this.menuHtml = html.menu;
+                this.init();
+            })
+            .catch(error => {
+                console.error('Error loading HTML:', error);
+            });
+
+        // getRecordFromIndexedDB(uuid).then(record => {
+        //     syncDB(uuid).then(record => {
+        //         this.record = record;
+        //     }).catch(error => {
+        //         console.error('Error syncing with IndexedDB:', error);
+        //     });
+        // }).catch(error => {
+        //     console.error('Error getting record from IndexedDB:', error);
+        // });
+
+        // this.loadTemplate().then(template => {
+        //     this.record = getRecordFromIndexedDB(uuid);
+        //     this.record = syncDB(uuid);
+        //     if (!this.record) {
+        //         console.error(`Record with UUID ${uuid} not found in IndexedDB.`);
+        //         return;
+        //     }
+        // }).catch(error => {
+        //     console.error('Error loading template:', error);
+        // });
+
+
     }
+    // 
     async loadTemplate() {
         try {
             const response = await fetch(recordTemplatePath);
-            const template = await response.json();
+            // const template = await response.json();
+            this.record = await response.json();
             return template;
         } catch (error) {
             console.error('Failed to load record template:', error);
@@ -35,23 +74,23 @@ class Line {
     }
     async loadHtml() {
         const lineHtml = await fetch(lineHtmlPath)
-                .then(response => {
-            // .then(response => response.text())
-            // .then(html => {
+            .then(response => {
                 const html = response.text();
-                return new DOMParser().parseFromString(html, 'text/html').body.firstChild;
+                return new DOMParser().parseFromString(html, 'text/html');
             })
             .catch(error => {
                 console.error('Failed to load HTML template:', error);
             });
         const menuHtml = await fetch(menuHtmlPath)
-            .then(response => response.text())
-            .then(html => {
-                return new DOMParser().parseFromString(html, 'text/html').body.firstChild;
+            .then(response => {
+                const html = response.text();
+                return new DOMParser().parseFromString(html, 'text/html');
             })
             .catch(error => {
                 console.error('Failed to load menu HTML template:', error);
             });
+        this.html = lineHtml;
+        this.menuHtml = menuHtml;
         return {
             html: lineHtml,
             menu: menuHtml

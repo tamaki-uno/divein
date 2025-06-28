@@ -55,10 +55,49 @@ export async function syncWithIndexedDB(record) {
     }
 }
 
-// APIとIndexedDB両方と同期
-export default async function syncDB(record) {
-    // まずAPIと同期し、成功したらIndexedDBにも保存
-    const apiRecord = await syncWithAPI(record);
-    await syncWithIndexedDB(apiRecord);
-    return apiRecord;
+// // APIとIndexedDB両方と同期
+// export default async function syncDB(record) {
+//     // まずAPIと同期し、成功したらIndexedDBにも保存
+//     const apiRecord = await syncWithAPI(record);
+//     await syncWithIndexedDB(apiRecord);
+//     return apiRecord;
+// }
+
+// データベースの同期を行う関数
+export async function syncDB(uuid) {
+    try {
+        // IndexedDBからレコードを取得
+        const record = await getRecordFromIndexedDB(uuid);
+        if (!record) {
+            throw new Error(`Record with UUID ${uuid} not found in IndexedDB`);
+        }
+
+        // APIと同期
+        const syncedRecord = await syncWithAPI(record);
+
+        // IndexedDBに保存
+        await syncWithIndexedDB(syncedRecord);
+
+        return syncedRecord;
+    } catch (error) {
+        console.error('Database sync error:', error);
+        throw error;
+    }
+}
+
+// 全てのレコードを同期する関数
+export async function syncDBAll() {
+    try {
+        const db = await initIndexedDB();
+        const records = await db.getAll('records');
+        records.forEach(record => {
+            // 各レコードをAPIとIndexedDBに同期
+            syncWithAPI(record)
+                .then(syncedRecord => syncWithIndexedDB(syncedRecord))
+                .catch(error => console.error('Error syncing record:', error));
+        });
+        console.log('All records synced successfully');
+    } catch (error) {
+        console.error('Error syncing all records:', error);
+    }
 }
