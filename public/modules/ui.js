@@ -7,17 +7,23 @@ import Header from './ui/header.js';
 import Popup from './ui/popup.js';
 import Line from './ui/line.js';
 
+// ヘッダーインスタンス（シングルトン）
+let headerInstance = null;
 /**
- * ヘッダーの初期化
+ * ヘッダーの初期化（シングルトン）
  * @returns {Header} Headerインスタンス
  */
 export function initHeader() {
-    return new Header();
+    if (!headerInstance) {
+        headerInstance = new Header();
+    }
+    return headerInstance;
 }
 
+// ポップアップインスタンス（シングルトン）
 let popupInstance = null;
 /**
- * ポップアップの初期化
+ * ポップアップの初期化（シングルトン）
  * @returns {Popup} Popupインスタンス
  */
 export function initPopup() {
@@ -52,6 +58,3 @@ export function initMain(userData) {
         console.error('ユーザーデータまたはUUIDが無効です:', userData);
     }
 }
-
-// 他モジュール用エクスポート
-export { Header, Popup, Line };

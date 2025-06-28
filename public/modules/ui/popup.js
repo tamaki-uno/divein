@@ -12,8 +12,9 @@ export default class Popup {
     // 初期化処理
     init() {
         // すでに.popupが存在する場合は再生成しない
-        if (document.querySelector('.popup')) {
-            this.popup = document.querySelector('.popup');
+        const existingPopup = document.querySelector('.popup');
+        if (existingPopup) {
+            this.popup = existingPopup;
             this.showFormForCurrentPath();
             return;
         }
@@ -38,6 +39,7 @@ export default class Popup {
 
     // 閉じるボタンのイベント設定
     setupCloseButton() {
+        if (!this.popup) return;
         const closeBtn = this.popup.querySelector('.close-popup-button');
         if (closeBtn) {
             closeBtn.onclick = () => {
@@ -49,9 +51,10 @@ export default class Popup {
 
     // 現在のパスに応じてフォームを表示
     showFormForCurrentPath() {
+        if (!this.popup) return;
         const path = window.location.pathname;
         if (!['/login', '/signup', '/logout'].includes(path)) {
-            if (this.popup) this.popup.style.display = 'none';
+            this.popup.style.display = 'none';
             return;
         }
         this.popup.style.display = 'flex';
@@ -64,6 +67,7 @@ export default class Popup {
 
     // フォームのイベント設定
     setupFormEvents() {
+        if (!this.form) return;
         // submitイベント
         this.form.onsubmit = (event) => {
             event.preventDefault();
@@ -87,6 +91,7 @@ export default class Popup {
 
     // バリデーション
     validateForm() {
+        if (!this.form) return false;
         this.form.querySelectorAll('.error-message').forEach(el => el.remove());
         this.form.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
         const submitBtn = this.form.querySelector('button[type="submit"]');
@@ -119,6 +124,7 @@ export default class Popup {
 
     // フォーム送信
     submitForm() {
+        if (!this.form) return;
         const submitBtn = this.form.querySelector('button[type="submit"]');
         if (submitBtn) submitBtn.disabled = true;
         const dataObj = Object.fromEntries(new FormData(this.form).entries());
@@ -133,7 +139,7 @@ export default class Popup {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            credentials: 'include' // 追加: セッション維持のため
+            credentials: 'include' // セッション維持
         })
         .then(async response => {
             let data;
@@ -148,8 +154,7 @@ export default class Popup {
             }
             return data;
         })
-        .then(data => {
-            console.log('Form submit success, checking login state...');
+        .then(() => {
             // ログイン直後に認証チェック
             fetch('/api/v0/check', {
                 method: 'POST',
@@ -158,10 +163,8 @@ export default class Popup {
             })
             .then(async response => {
                 if (response.status === 200) {
-                    console.log('Login state confirmed, redirecting to /');
                     window.location.href = '/';
                 } else {
-                    console.warn('Login state not confirmed, redirecting to /login');
                     window.location.href = '/login';
                 }
             });
