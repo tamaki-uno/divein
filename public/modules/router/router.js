@@ -16,11 +16,13 @@ const LOGIN_PATH = '/login';
  * @param {string} path - 遷移先パス
  */
 export function route(path) {
+    console.log(`[router] route called. path: ${path}`); // ルーティング開始ログ
     // ヘッダー初期化
     initHeader();
 
     // 認証不要ページの場合はポップアップのみ初期化
     if (PUBLIC_PATHS.includes(path)) {
+        console.log(`[router] Public path detected: ${path}`); // 認証不要ページログ
         initPopup();
         return;
     }
@@ -28,21 +30,27 @@ export function route(path) {
     // 認証チェック
     checkAuth()
         .then(userData => {
+            console.log('[router] Auth check result:', userData); // 認証チェック結果ログ
             if (userData && userData.success && userData.loggedIn) {
                 if (window.location.pathname !== '/') {
+                    // 認証済みでメインページ以外にいる場合はホームへリダイレクト
+                    console.info('User authenticated, redirecting to home');
                     window.location.href = '/';
                     return;
                 }
                 window.user = userData.user;
                 // 認証済みならメインUI初期化
+                console.log('[router] User authenticated. Initializing main UI.');
                 initMain(userData);
             } else {
                 // 未認証ならログインページへリダイレクト
+                console.warn('[router] User not authenticated, redirecting to login');
                 window.location.href = LOGIN_PATH;
             }
         })
-        .catch(() => {
+        .catch((err) => {
             // エラー時もログインページへリダイレクト
+            console.error('[router] Authentication check failed, redirecting to login', err);
             window.location.href = LOGIN_PATH;
         });
 }
