@@ -1,30 +1,61 @@
 import fs from 'fs';
 import path from 'path';
 
-const templatePath = path.join(process.cwd(), 'public', 'template.json');
-const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
-const htmlPath = path.join(process.cwd(), 'public', 'modules', 'line.html');
+import { syncWithAPI, syncWithIndexedDB } from './database';
+
+
+const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
+const lineHtmlPath = path.join(process.cwd(), 'public', 'modules', 'line.html');
+const menuHtmlPath = path.join(process.cwd(), 'public', 'modules', 'menu.html');
 
 class Line {
-    constructor(record = template, level = 0, renderParent = null) {
-        this.record = { ...record };
-        if (!record.uuid) {
-            this.record.uuid = crypto.randomUUID(); // UUIDを生成
-            this.record.createdAt = new Date().toISOString();
-            this.record.updatedAt = new Date().toISOString();
-            this.record.createdBy = window.user?.uuid || 'anonymous'; // 作成者のUUIDを設定
-            this.record.updatedBy = window.user?.uuid || 'anonymous'; // 更新者のUUID
-        }
+    constructor(uuid, level=0) {
         this.level = level;
         this.renderParent = renderParent;
         this.isOpen = false;
-        fetch(htmlPath)
+        fetch(recordTemplatePath)
+            .then(response => response.json())
+            .then(template => {
+                this.record = { ...template, ...this.record }; // テンプレートとマージ
+                this.loadHtml();
+            })
+            .catch(error => {
+                console.error('Failed to load record template:', error);
+            });
+    }
+    async loadTemplate() {
+        try {
+            const response = await fetch(recordTemplatePath);
+            const template = await response.json();
+            return template;
+        } catch (error) {
+            console.error('Failed to load record template:', error);
+            throw error;
+        }
+    }
+    async loadHtml() {
+        const lineHtml = await fetch(lineHtmlPath)
+                .then(response => {
+            // .then(response => response.text())
+            // .then(html => {
+                const html = response.text();
+                return new DOMParser().parseFromString(html, 'text/html').body.firstChild;
+            })
+            .catch(error => {
+                console.error('Failed to load HTML template:', error);
+            });
+        const menuHtml = await fetch(menuHtmlPath)
             .then(response => response.text())
             .then(html => {
-                this.html = html;
-                this.init();
+                return new DOMParser().parseFromString(html, 'text/html').body.firstChild;
             })
-            .catch(error => console.error('Error loading line template:', error));
+            .catch(error => {
+                console.error('Failed to load menu HTML template:', error);
+            });
+        return {
+            html: lineHtml,
+            menu: menuHtml
+        };
     }
     init() {
         if (!this.html) {
