@@ -1,7 +1,5 @@
 'use strict';
 
-console.log('popup.js loaded');
-
 export default class Popup {
     constructor() {
         this.popup = null;
@@ -18,20 +16,21 @@ export default class Popup {
             this.showFormForCurrentPath();
             return;
         }
-        fetch('/modules/popup.html')
+        fetch('/modules/ui/popup.html')
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load popup HTML');
                 return response.text();
             })
             .then(html => {
-                document.body.insertAdjacentHTML('beforeend', html);
+                document.body.insertAdjacentHTML('beforeend', html.trim());
                 this.popup = document.querySelector('.popup');
-                if (!this.popup) return;
+                if (!this.popup) {
+                    return;
+                }
                 this.setupCloseButton();
                 this.showFormForCurrentPath();
             })
             .catch(error => {
-                console.error('Error loading popup HTML:', error);
                 const popup = document.querySelector('.popup');
                 if (popup) popup.remove();
             });
@@ -131,7 +130,6 @@ export default class Popup {
         delete dataObj['confirm-password'];
         const jsonData = JSON.stringify(dataObj);
         const action = this.form.getAttribute('action');
-        console.log('Submitting form to:', action, 'with data:', dataObj);
         fetch(action, {
             method: 'POST',
             body: jsonData,
@@ -148,7 +146,6 @@ export default class Popup {
             } catch {
                 throw new Error('サーバーから不正なレスポンスが返されました');
             }
-            console.log('Form submit response:', response.status, data);
             if (!response.ok || data.success === false) {
                 throw new Error(data.message || 'エラーが発生しました');
             }
@@ -170,7 +167,6 @@ export default class Popup {
             });
         })
         .catch((error) => {
-            console.error('Error:', error);
             if (submitBtn) submitBtn.disabled = false;
             const errorMessage = document.createElement('p');
             errorMessage.textContent = error.message || 'エラーが発生しました。';
