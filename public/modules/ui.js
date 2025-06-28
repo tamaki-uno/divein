@@ -43,18 +43,24 @@ export function initPopup() {
  */
 export function initMain(userData) {
     const main = document.querySelector('main');
-    if (main && userData && userData.user && userData.user.uuid) {
-        main.innerHTML = ''; // 追加: 既存の内容をクリア
-        const line = new Line(userData.user.uuid);
-        // Lineインスタンスがreadyプロパティを持つ場合は非同期描画
-        if (line.ready && typeof line.ready.then === 'function') {
-            line.ready.then(() => {
-                main.appendChild(line.render());
-            });
-        } else {
+    // ユーザーデータが不正ならログイン画面へ遷移
+    if (!(main && userData && userData.user && userData.user.uuid)) {
+        console.warn('Invalid user data, redirecting to login');
+        console.log('main:', main);
+        console.log('userData:', userData);
+        console.log('userData.user:', userData.user);
+        console.log('userData.user.uuid:', userData.user.uuid);
+        window.location.href = '/login';
+        return;
+    }
+    main.innerHTML = '';
+    const line = new Line(userData.user.uuid);
+    // Lineインスタンスがreadyプロパティを持つ場合は非同期描画
+    if (line.ready && typeof line.ready.then === 'function') {
+        line.ready.then(() => {
             main.appendChild(line.render());
-        }
+        });
     } else {
-        console.error('ユーザーデータまたはUUIDが無効です:', userData);
+        main.appendChild(line.render());
     }
 }
