@@ -4,25 +4,25 @@ import { findRecords } from '#database';
 export default async function checkHandler(req, res) {
     // POSTメソッド以外は許可しない
     if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Method Not Allowed' });
+        return res.status(405).json({ message: '許可されていないメソッドです。' });
     }
     try {
-        // 認証済みユーザー情報を取得
+        // ユーザー情報取得
         const user = req.user;
         if (!user) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(401).json({ message: '認証されていません。' });
         }
 
-        // ユーザーのレコードをDBから取得
+        // ユーザーレコード取得
         const records = await findRecords({ type: 'user', uuid: user.uuid });
         if (!records?.length) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'ユーザーが見つかりません。' });
         }
 
-        // レコードのcontentフィールドを確認
+        // contentフィールド確認
         const record = records[0];
         if (!record.content) {
-            return res.status(404).json({ message: 'Record content not found' });
+            return res.status(404).json({ message: 'レコード内容が見つかりません。' });
         }
 
         // contentをJSONとしてパース
@@ -30,11 +30,11 @@ export default async function checkHandler(req, res) {
         try {
             parsedContent = JSON.parse(record.content);
         } catch (parseError) {
-            console.error('Failed to parse record content:', parseError);
-            return res.status(500).json({ message: 'Invalid record content format' });
+            console.error('レコード内容のパースに失敗:', parseError);
+            return res.status(500).json({ message: 'レコード内容の形式が不正です。' });
         }
 
-        // 正常時のレスポンス
+        // 正常レスポンス
         return res.status(200).json({
             success: true,
             loggedIn: true,
@@ -42,8 +42,8 @@ export default async function checkHandler(req, res) {
             record: parsedContent
         });
     } catch (error) {
-        // 予期しないエラー時のレスポンス
-        console.error('Error in checkHandler:', error);
-        return res.status(500).json({ message: 'Internal Server Error' });
+        // 予期しないエラー
+        console.error('checkHandlerでエラー:', error);
+        return res.status(500).json({ message: 'サーバー内部でエラーが発生しました。' });
     }
 }

@@ -11,15 +11,16 @@ export default function switchForm() {
         console.error('Invalid path for popup:', path);
         return;
     }
-    // ポップアップのHTMLを読み込む
+    // ポップアップのHTML要素を取得
     const popup = document.querySelector('.popup');
     if (!popup) return;
     popup.style.display = 'flex';
+    // 閉じるボタンのイベント設定
     popup.querySelector('.close-popup-button').onclick = () => {
         popup.style.display = 'none';
         window.history.pushState({}, '', '/'); // ポップアップを閉じたらホームに戻る
     };
-    // フォームの切り替え
+    // すべてのフォームを非表示にし、該当フォームのみ表示
     popup.querySelectorAll('form').forEach(form => form.style.display = 'none');
     const form = popup.querySelector(`form.${path.slice(1)}-form`);
     if (!form) return;
@@ -28,7 +29,8 @@ export default function switchForm() {
     // 既存のsubmitイベントリスナーを解除してから追加
     form.onsubmit = (event) => {
         event.preventDefault();
-        // if (!checkFormValidity(form)) return;
+        // バリデーションチェック
+        if (!checkFormValidity(form, path)) return;
         console.log('Form is valid, submitting...');
         submitForm(form, path);
     };
@@ -50,11 +52,13 @@ export default function switchForm() {
 
 // フォームのバリデーションチェック
 function checkFormValidity(form, path) {
-    form.querySelectorAll('.error-message').forEach(el => el.remove()); // 既存のエラーメッセージをクリア
-    form.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid')); // 既存の無効スタイルをクリア
-    form.querySelector('button[type="submit"]').disabled = false; // ボタンを有効化
+    // 既存のエラーメッセージと無効スタイルをクリア
+    form.querySelectorAll('.error-message').forEach(el => el.remove());
+    form.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+    form.querySelector('button[type="submit"]').disabled = false;
     const inputs = form.querySelectorAll('input');
     let isValid = true;
+    // 各input要素のバリデーション
     inputs.forEach(input => {
         if (!input.checkValidity()) {
             isValid = false;
@@ -65,8 +69,7 @@ function checkFormValidity(form, path) {
             input.parentNode.insertBefore(p, input.nextSibling);
         }
     });
-    // パスワード確認チェック（サインアップ時のみ）
-    // if (path === '/signup') {
+    // サインアップ時のパスワード確認チェック
     const password = form.querySelector('input[name="password"]');
     const confirm = form.querySelector('input[name="confirm-password"]');
     if (password && confirm && password.value !== confirm.value) {
@@ -77,14 +80,14 @@ function checkFormValidity(form, path) {
         p.classList.add('error-message');
         confirm.parentNode.insertBefore(p, confirm.nextSibling);
     }
-    // }
-    form.querySelector('button[type="submit"]').disabled = !isValid; // ボタンの有効/無効を設定
+    form.querySelector('button[type="submit"]').disabled = !isValid;
     return isValid;
 }
 
 // フォームの送信処理
 function submitForm(form, path) {
-    if (!form.checkValidity(form, path)) {
+    // バリデーション関数の呼び出し修正
+    if (!checkFormValidity(form, path)) {
         console.error('Form is invalid, cannot submit.');
         return;
     }
@@ -118,6 +121,7 @@ function submitForm(form, path) {
     })
     .then(data => {
         console.log('Success:', data);
+        // ページ遷移処理
         if (path === '/login') {
             window.location.href = '/';
         } else if (path === '/signup') {
