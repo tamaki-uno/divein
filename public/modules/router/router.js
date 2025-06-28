@@ -3,11 +3,11 @@
  * - ページパスに応じてUI初期化や認証チェックを行う
  */
 
-import { checkAuth } from './auth.js';
-import { initHeader, initPopup, initMain } from './ui.js';
+import { checkAuth } from '../auth/auth.js';
+import { initHeader, initPopup, initMain } from '../ui.js';
 
 // 認証不要ページのパス一覧
-const PUBLIC_PATHS = ['/login', '/signup'];
+const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
 // 未認証時のリダイレクト先
 const LOGIN_PATH = '/login';
 
@@ -29,6 +29,11 @@ export function route(path) {
     checkAuth()
         .then(userData => {
             if (userData && userData.success && userData.loggedIn) {
+                if (window.location.pathname !== '/') {
+                    window.location.href = '/';
+                    return;
+                }
+                window.user = userData.user;
                 // 認証済みならメインUI初期化
                 initMain(userData);
             } else {
