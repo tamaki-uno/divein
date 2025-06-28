@@ -13,9 +13,9 @@ const columns = {
     children: "TEXT", // JSON文字列として格納
     permissionsRead: "TEXT",  // JSON文字列として格納
     permissionsWrite: "TEXT", // JSON文字列として格納
-    createdBy: "TEXT",
+    createdBy: "TEXT", // 作成者のUUID　変更不可
     updatedBy: "TEXT",
-    createdAt: "TIMESTAMP",
+    createdAt: "TIMESTAMP", // 変更不可
     updatedAt: "TIMESTAMP"
 };
 
@@ -64,38 +64,38 @@ export async function createTable() {
     db.close();
 }
 
-// 完全一致でUUIDで探す関数
-export async function findByUuid(uuid) {
-    const db = getDatabaseConnection();
-    return new Promise((resolve, reject) => {
-        db.get('SELECT * FROM records WHERE uuid = ?', [uuid], (err, row) => {
-            db.close();
-            if (err) {
-                reject(err);
-            } else {
-                resolve(row);
-            }
-        });
-    });
-}
+// // 完全一致でUUIDで探す関数
+// export async function findByUuid(uuid) {
+//     const db = getDatabaseConnection();
+//     return new Promise((resolve, reject) => {
+//         db.get('SELECT * FROM records WHERE uuid = ?', [uuid], (err, row) => {
+//             db.close();
+//             if (err) {
+//                 reject(err);
+//             } else {
+//                 resolve(row);
+//             }
+//         });
+//     });
+// }
 
-// コンテンツの内容の部分一致で探す関数
-export async function findByContent(keyword, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
-    const db = getDatabaseConnection();
-    const sql = `SELECT * FROM records WHERE content LIKE ? ORDER BY ${sortBy} ${sortOrder} LIMIT ?`;
-    return new Promise((resolve, reject) => {
-        db.all(sql, [`%${keyword}%`, limit], (err, rows) => {
-            db.close();
-            if (err) {
-                reject(err);
-            } else {
-                resolve(rows);
-            }
-        });
-    });
-}
+// // コンテンツの内容の部分一致で探す関数
+// export async function findByContent(keyword, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
+//     const db = getDatabaseConnection();
+//     const sql = `SELECT * FROM records WHERE content LIKE ? ORDER BY ${sortBy} ${sortOrder} LIMIT ?`;
+//     return new Promise((resolve, reject) => {
+//         db.all(sql, [`%${keyword}%`, limit], (err, rows) => {
+//             db.close();
+//             if (err) {
+//                 reject(err);
+//             } else {
+//                 resolve(rows);
+//             }
+//         });
+//     });
+// }
 
-export async function find(query, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
+export async function findRecords(query, limit = 100, sortBy = 'createdAt', sortOrder = 'DESC') {
     const db = getDatabaseConnection();
     // const sql = 'SELECT * FROM records WHERE 1=1'; // 基本のSQL文
     // const params = []; // パラメータ配列
@@ -171,23 +171,76 @@ export async function insertRecord(record) {
     });
 }
 
-// レコードを更新する関数 uuidを指定して更新
-export async function updateRecord(uuid, updates) {
-    const db = getDatabaseConnection();
-    return new Promise((resolve, reject) => {
-        const setClause = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-        const sql = `UPDATE records SET ${setClause} WHERE uuid = ?`;
-        const values = [...Object.values(updates), uuid];
-        db.run(sql, values, function (err) {
-            db.close();
-            if (err) {
-                console.error('レコード更新エラー:', err.message);
-                reject(err);
-            } else {
-                resolve({ changes: this.changes });
-            }
-        });
-    });
+// // レコードを更新する関数 uuidを指定して更新
+// export async function updateRecord(uuid, updates) {
+//     const db = getDatabaseConnection();
+//     return new Promise((resolve, reject) => {
+//         const setClause = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+//         const sql = `UPDATE records SET ${setClause} WHERE uuid = ?`;
+//         const values = [...Object.values(updates), uuid];
+//         db.run(sql, values, function (err) {
+//             db.close();
+//             if (err) {
+//                 console.error('レコード更新エラー:', err.message);
+//                 reject(err);
+//             } else {
+//                 resolve({ changes: this.changes });
+//             }
+//         });
+//     });
+// }
+
+//
+export async function syncRecord(record) {
+    // レコードを更新または挿入する関数
+    // const existingRecord = await findByUuid(record.uuid);
+    const existingRecords = await findRecord({ uuid: record.uuid });
+    if (existingRecords && existingRecords.length > 0) {
+        const existingRecord = JSON.parse(JSON.stringify(existingRecords[0]));
+        // // 既存のレコードがある場合は更新
+        if (record.updatedBy in existingRecord.permissionsWrite) {
+            const db = getDatabaseConnection();
+            const updates = {
+                ...existingRecord,
+                ...record,
+                updatedAt: new Date().toISOString(),
+                updatedBy: record.updatedBy || existingRecord.updatedBy
+            };
+            return new Promise((resolve, reject) => {
+                const keys = Object.keys(updates);
+                const setClause = keys.map(key => `${key} = ?`).join(', ');
+                const sql = `UPDATE records SET ${setClause} WHERE uuid = ?`;
+                const values = keys.map(key => {
+                    if (key === 'children' || key === 'permissionsRead' || key === 'permissionsWrite') {
+                        return updates[key] !== undefined ? JSON.stringify(updates[key]) : null;
+                    } else if (key === 'createdAt' || key === 'updatedAt') {
+                        return updates[key] ? new Date(updates[key]).toISOString() : new Date().toISOString();
+                    }
+                    return updates[key] ?? null;
+                });
+                values.push(updates.uuid);
+                db.run(sql, values, function (err) {
+                    db.close();
+            // if (record.updatedAt && new Date(record.updatedAt) > new Date(existingRecord.updatedAt)) {
+            //     // 更新日時が新しい場合のみ更新
+            //     const updates = {
+            //         ...record,
+            //         updatedAt: new Date().toISOString(),
+            //         updatedBy: record.updatedBy || existingRecord.updatedBy
+            //     };
+            //     return insertRecord(updates);
+            // } else {
+            //     return existingRecord;
+            // }
+        } else {
+            // 更新権限がない場合はエラーを投げる
+            throw new Error('更新権限がありません。');
+        }
+    } else {
+        // 既存のレコードがない場合は新規挿入
+        return insertRecord(record);
+    }
+    
 }
 
 // レコードを削除する関数 uuidを指定して削除

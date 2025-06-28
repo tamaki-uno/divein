@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import 'dotenv/config';
 import crypto from 'crypto'; // UUID生成用
-import { find, insertRecord } from '#database'; // データベース操作関数
+import { findRecords, insertRecord } from '#database'; // データベース操作関数
 import fs from 'fs';
 import path from 'path';
 
@@ -22,7 +22,7 @@ export default async function signupHandler(req, res) {
     }
 
     // 既存ユーザーのチェック
-    const existingUser = await find({
+    const existingUser = await findRecords({
         type: 'user',
         content: username // 部分一致検索のため、content LIKE でチェック
     });

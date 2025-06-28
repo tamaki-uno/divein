@@ -2,8 +2,9 @@ import bcrypt from 'bcrypt';
 import 'dotenv/config';
 import cookie from 'cookie'; // クッキー操作用ライブラリ
 
-import { find } from '#database'; // データベース操作関数
-import { generateAccessToken } from '#api/v0/auth.js'; // JWT生成関数
+import { findRecords } from '#database'; // データベース操作関数
+// import { generateAccessToken } from '#api/v0/auth.js'; // JWT生成関数
+import { generateAccessToken } from '../auth.js'; // JWT生成関数
 
 
 /**
@@ -19,7 +20,7 @@ export default async function loginHandler(req, res) {
     }
 
     // ユーザーを検索
-    const users = await find({
+    const users = await findRecords({
         type: 'user',
         content: username // 部分一致検索
     });
