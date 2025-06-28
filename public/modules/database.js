@@ -1,4 +1,4 @@
-import { openDB } from 'idb';
+// import { openDB } from 'idb';
 
 // IndexedDBの初期化
 export async function initIndexedDB() {

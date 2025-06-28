@@ -3,8 +3,8 @@
 console.log('script.js loaded');
 
 // import switchForm from './modules/popup.js';
-import Popup from './modules/popup.js';
-import Line from './modules/line.js';
+import Popup from '/modules/popup.js';
+import Line from '/modules/line.js';
 
 const API_BASE_PATH = '/api/v0';
 
@@ -70,11 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(error => {
         console.error('Error:', error);
         window.location.href = '/login';
+        
     });
 
-    if (['/login', '/signup', '/logout'].includes(window.location.pathname)) {
-        const popup = new Popup();
-    }
+    // if (['/login', '/signup', '/logout'].includes(window.location.pathname)) {
+    //     const popup = new Popup();
+    // }
 
 
 

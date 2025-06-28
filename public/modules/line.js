@@ -1,15 +1,16 @@
-import fs from 'fs';
-import path from 'path';
-
-import { saveRecordToIndexedDB,getRecordFromIndexedDB, syncDB } from './database';
-import { get } from 'http';
+// import { saveRecordToIndexedDB,getRecordFromIndexedDB, syncDB } from './database';
+import { saveRecordToIndexedDB, getRecordFromIndexedDB, syncDB } from '/modules/database.js';
 
 
-const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
-const lineHtmlPath = path.join(process.cwd(), 'public', 'modules', 'line.html');
-const menuHtmlPath = path.join(process.cwd(), 'public', 'modules', 'menu.html');
+// const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
+// const lineHtmlPath = path.join(process.cwd(), 'public', 'modules', 'line.html');
+// const menuHtmlPath = path.join(process.cwd(), 'public', 'modules', 'menu.html');
+const recordTemplatePath = '/record.json';
+const lineHtmlPath = '/modules/line.html';
+const menuHtmlPath = '/modules/menu.html';
 
-class Line {
+
+export default class Line {
     // コンストラクタ
     constructor(uuid, level = 0) {
         this.uuid = uuid;
@@ -190,20 +191,20 @@ class Line {
 
 
 
-export function clickIcon(event) {
-    const icon = event.target;
-    if (icon.tagName !== 'IMG') return; // クリックされたのが画像でない場合は無視
+// export function clickIcon(event) {
+//     const icon = event.target;
+//     if (icon.tagName !== 'IMG') return; // クリックされたのが画像でない場合は無視
 
-    // アイコンの親要素を取得
-    const line = icon.closest('.line');
-    if (!line) return; // 親要素が見つからない場合は無視
+//     // アイコンの親要素を取得
+//     const line = icon.closest('.line');
+//     if (!line) return; // 親要素が見つからない場合は無視
 
-    // トグルボタンのアイコンを切り替え
-    const toggleButton = line.querySelector('.toggle-button');
-    if (toggleButton) {
-        const isOpen = toggleButton.classList.toggle('open');
-        icon.src = isOpen ? '/icon/opened.svg' : '/icon/closed.svg';
-    }
-}
+//     // トグルボタンのアイコンを切り替え
+//     const toggleButton = line.querySelector('.toggle-button');
+//     if (toggleButton) {
+//         const isOpen = toggleButton.classList.toggle('open');
+//         icon.src = isOpen ? '/icon/opened.svg' : '/icon/closed.svg';
+//     }
+// }
 
-expor
+// expor
