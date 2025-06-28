@@ -66,7 +66,7 @@ export default async function loginHandler(req, res) {
     res.setHeader('Set-Cookie', cookie.serialize('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        sameSite: 'Lax', // ← StrictからLaxに変更
         maxAge: 60 * 60 // 1時間
     }));
 

@@ -1,4 +1,5 @@
 // import { openDB } from 'idb';
+import { openDB } from 'https://cdn.jsdelivr.net/npm/idb@7/build/esm/index.js';
 
 // IndexedDBの初期化
 export async function initIndexedDB() {

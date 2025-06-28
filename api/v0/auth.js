@@ -17,11 +17,16 @@ export function generateAccessToken(user) {
 
 // リクエストヘッダーのトークンを検証するミドルウェア
 export function authenticateToken(req, res, next) {
+    // Authorizationヘッダー優先、なければクッキーから
+    let token;
     const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ message: '認証トークンが必要です' });
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+    } else if (req.headers.cookie) {
+        // クッキーからtokenを抽出
+        const match = req.headers.cookie.match(/(?:^|;\s*)token=([^;]+)/);
+        if (match) token = match[1];
     }
-    const token = authHeader.split(' ')[1];
     if (!token) {
         return res.status(401).json({ message: '認証トークンが必要です' });
     }
