@@ -1,0 +1,12 @@
+{
+    "uuid": null,
+    "type": "request",
+    "content": null,
+    "children": [null],
+    "permissionRead": ["*"],
+    "permissionWrite": ["*"],
+    "createdBy": null,
+    "updatedBy": null,
+    "createdAt": null,
+    "updatedAt": null
+}
