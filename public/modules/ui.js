@@ -31,7 +31,7 @@ export function initPopup() {
  */
 export function initMain(userData) {
     const main = document.querySelector('main');
-    if (main && userData && userData.user) {
+    if (main && userData && userData.user && userData.user.uuid) {
         const line = new Line(userData.user.uuid);
         // Lineインスタンスがreadyプロパティを持つ場合は非同期描画
         if (line.ready && typeof line.ready.then === 'function') {
@@ -41,6 +41,8 @@ export function initMain(userData) {
         } else {
             main.appendChild(line.render());
         }
+    } else {
+        console.error('ユーザーデータまたはUUIDが無効です:', userData);
     }
 }
 

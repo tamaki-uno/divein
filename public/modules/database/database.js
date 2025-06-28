@@ -40,6 +40,9 @@ export async function saveRecordToIndexedDB(record) {
 // IndexedDBからレコードを取得
 // @param {string} uuid - レコードのUUID
 export async function getRecordFromIndexedDB(uuid) {
+    if (!uuid) {
+        throw new Error('getRecordFromIndexedDB: uuidが未指定です');
+    }
     const db = await initIndexedDB();
     return new Promise((resolve, reject) => {
         const tx = db.transaction('records', 'readonly');
