@@ -1,0 +1,195 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Noto Sans JP", sans-serif;
+    background-color: #f0f0f0;
+}
+
+/* General styles */
+.accent-color {
+    color: #1976d2; /* Primary color */
+}
+.large-border-radius {
+    border-radius: 20px; /* Large border radius */
+}
+.small-border-radius {
+    border-radius: 10px; /* Small border radius */
+}
+
+/* Header styles */
+header {
+    background-color: #1976d2;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+header a {
+    color: white;
+    text-decoration: none;
+}
+header h1 img {
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+}
+header span.usericon img {
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+    background-color: white;
+    border-radius: 50%;
+}
+
+/* Popup styles */
+div.popup {
+    /* ポップアップを中央に配置 */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000; /* Ensure popup is above other content */
+    background-color: white;
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1);
+    width: 400px; /* Set a fixed width for the popup */
+    max-width: 90%; /* Ensure it doesn't exceed viewport width */
+    max-height: 80%; /* Limit height to prevent overflow */
+    padding: 20px;
+}
+.popup button.close-popup-button {
+    /* 右上に配置 */
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.popup h2.popup-title {
+    /* タイトルのスタイル */
+    margin: 20px 0;
+    text-align: center;
+    font-size: 24px;
+    color: #333;
+}
+.popup button.close-popup-button img {
+    /* アイコンのサイズを調整 */
+    width: 24px;
+    height: 24px;
+}
+.popup form {
+    /* フォームのスタイル JavaScriptで表示・非表示を制御 */
+    /* display: none; Initially hidden */
+    display: flex; /* Use flexbox for layout */
+    flex-direction: column;
+    /* align-items: center; */
+    gap: 10px; /* Space between form elements */
+    /* padding: 20px 30px; */
+    margin: 10px 30px;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+}
+.popup form h2 {
+    /* フォームのタイトル */
+    margin: 0 0 20px;
+    text-align: center;
+    font-size: 20px;
+    color: #333;
+}
+.popup form h2 img {
+    /* アイコンのサイズを調整 */
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+}
+.popup form label {
+    /* margin-bottom: 5px; */
+    font-weight: bold;
+}
+.popup form input {
+    width: 100%; /* Full width */
+    height: inherit;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+}
+.popup form input.invalid {
+    border-color: red; /* Invalid input border color */
+}
+.popup form button {
+    padding: 10px;
+    background-color: #1976d2;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+.popup form button:hover {
+    background-color: #155a8a; /* Darker shade on hover */
+}
+.popup form p {
+    margin: 10px 20px;
+    font-size: 14px;
+}
+.popup form p.error-message {
+    color: red; /* Error message color */
+    font-weight: bold;
+}
+
+/* main  */
+main {
+    padding: 20px;
+    background-color: #fff;
+}
+main div.container {
+    margin-left: 40px;
+    border: 1px solid #ddd;
+}
+main div.line {
+    background-color: #eee;
+    padding: 8px;
+}
+main div button {
+    display: inline-block;
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+main div img {
+    /* width: 32px;
+    height: 32px; */
+    /* width: 1rem; */
+    height: 2em;
+    vertical-align: middle;
+}
+main div.content {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+main .level0 {
+    font-size: 32px;
+}
+main .level1 {
+    font-size: 24px;
+}
+main .level2 {
+    font-size: 20px;
+}
+main .level3 {
+    font-size: 16px;
+}
+main .level4 {
+    font-size: 14px;
+}
+main .level5 {
+    font-size: 12px;
+}
+main .level6 {
+    font-size: 10px;
+}
