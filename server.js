@@ -11,10 +11,10 @@ const port = process.env.PORT || 3000;
 
 // --- データベースの初期化 ---
 import { createTable } from '#database';
-createTable().catch(err => {
-    console.error('データベースの初期化に失敗しました:', err);
-    process.exit(1);
-});
+// createTable().catch(err => {
+//     console.error('データベースの初期化に失敗しました:', err);
+//     process.exit(1);
+// });
 
 // --- APIハンドラの読み込み ---
 import { assetHandler } from '#api/v0/asset.js';
@@ -25,6 +25,7 @@ import syncHandler from '#api/v0/sync.js';
 
 // --- 認証ミドルウェアの読み込み ---
 import { authenticateToken } from '#api/v0/auth.js';
+import { create } from 'domain';
 
 // --- ミドルウェアの設定 ---
 app.use(express.json());
@@ -56,6 +57,13 @@ app.get(/^\/(?!api\/v0\/).*/, (req, res) => {
 export default app;
 
 // --- サーバーの起動 ---
-app.listen(port, () => {
-    console.log(`サーバーがポート${port}で起動しました: http://localhost:${port}`);
+createTable().then(() => {
+    // データベースの初期化が成功したらサーバーを起動
+    app.listen(port, () => {
+        console.log(`サーバーがポート${port}で起動しました: http://localhost:${port}`);
+    });
+}).catch(err => {
+    console.error('データベースの初期化に失敗しました:', err);
+    process.exit(1);
 });
+export { app }; // モジュールとしてエクスポート
