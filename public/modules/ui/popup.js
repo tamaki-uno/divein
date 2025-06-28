@@ -11,6 +11,12 @@ export default class Popup {
 
     // 初期化処理
     init() {
+        // すでに.popupが存在する場合は再生成しない
+        if (document.querySelector('.popup')) {
+            this.popup = document.querySelector('.popup');
+            this.showFormForCurrentPath();
+            return;
+        }
         fetch('/modules/popup.html')
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load popup HTML');

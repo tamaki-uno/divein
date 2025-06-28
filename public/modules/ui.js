@@ -15,12 +15,18 @@ export function initHeader() {
     return new Header();
 }
 
+let popupInstance = null;
 /**
  * ポップアップの初期化
  * @returns {Popup} Popupインスタンス
  */
 export function initPopup() {
-    return new Popup();
+    if (!popupInstance) {
+        popupInstance = new Popup();
+    } else {
+        popupInstance.showFormForCurrentPath();
+    }
+    return popupInstance;
 }
 
 /**
@@ -32,6 +38,7 @@ export function initPopup() {
 export function initMain(userData) {
     const main = document.querySelector('main');
     if (main && userData && userData.user && userData.user.uuid) {
+        main.innerHTML = ''; // 追加: 既存の内容をクリア
         const line = new Line(userData.user.uuid);
         // Lineインスタンスがreadyプロパティを持つ場合は非同期描画
         if (line.ready && typeof line.ready.then === 'function') {
