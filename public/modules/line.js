@@ -10,6 +10,7 @@ const lineHtmlPath = path.join(process.cwd(), 'public', 'modules', 'line.html');
 const menuHtmlPath = path.join(process.cwd(), 'public', 'modules', 'menu.html');
 
 class Line {
+    // コンストラクタ
     constructor(uuid, level = 0) {
         this.uuid = uuid;
         this.level = level;
@@ -53,7 +54,7 @@ class Line {
                 console.error('Error loading HTML:', error);
             });
     }
-    // 
+    // recordのテンプレートをロード
     async loadTemplate() {
         try {
             const response = await fetch(recordTemplatePath);
@@ -65,6 +66,7 @@ class Line {
             throw error;
         }
     }
+    // HTMLテンプレートをロード
     async loadHtml() {
         const lineHtml = await fetch(lineHtmlPath)
             .then(response => {
@@ -89,6 +91,7 @@ class Line {
             menu: menuHtml
         };
     }
+    // 初期化処理
     init() {
         if (!this.html) {
             console.error('HTML template not loaded yet.');
@@ -111,6 +114,7 @@ class Line {
             this.menu(event);
         });
     }
+    // トグルボタンのクリックイベント
     toggle(event) {
         console.log('Toggle icon clicked');
         const icon = event.target;
@@ -118,11 +122,13 @@ class Line {
         icon.src = this.isOpen ? '/icon/opened.svg' : '/icon/closed.svg';
         this.html.querySelector('.children').classList.toggle('hidden', !this.isOpen);
     }
+    // 右クリックメニューの表示
     menu(event) {
         // 右クリックメニューの表示処理をここに実装
         console.log('Right-click menu triggered at', event.clientX, event.clientY);
         // 例: カスタムメニューを表示するなど
     }
+    // コンテンツの編集イベント
     edit(event) {
         // コンテンツの編集処理をここに実装
         console.log('Content clicked for editing');
@@ -138,6 +144,7 @@ class Line {
         contentDiv.replaceWith(textarea);
         textarea.focus();
     }
+    // 子要素追加ボタンのクリックイベント
     addChild() {
         // 子要素追加処理をここに実装
         console.log('Add child button clicked');
