@@ -18,6 +18,7 @@ createTable().catch(err => {
 
 // --- APIハンドラの読み込み ---
 import { assetHandler } from '#api/v0/asset.js';
+import checkHandler from '#api/v0/check.js';
 import loginHandler from '#api/v0/login.js';
 import signupHandler from '#api/v0/signup.js';
 import syncHandler from '#api/v0/sync.js';
@@ -38,6 +39,7 @@ app.use((err, req, res, next) => {
 
 // --- APIエンドポイントの設定 ---
 app.post('/api/v0/asset', authenticateToken, assetHandler);
+app.post('/api/v0/check', authenticateToken, checkHandler);
 app.post('/api/v0/login', loginHandler);
 app.post('/api/v0/signup', signupHandler);
 app.post('/api/v0/sync', authenticateToken, syncHandler);
