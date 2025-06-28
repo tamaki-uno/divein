@@ -4,7 +4,7 @@ import cookie from 'cookie'; // クッキー操作用ライブラリ
 
 import { findRecords } from '#database'; // データベース操作関数
 // import { generateAccessToken } from '#api/v0/auth.js'; // JWT生成関数
-import { generateAccessToken } from '../auth.js'; // JWT生成関数
+import { generateAccessToken } from './auth.js'; // JWT生成関数のパスを修正
 
 
 /**
