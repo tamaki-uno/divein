@@ -6,7 +6,7 @@ export function generateAccessToken(user) {
         throw new Error('JWT環境変数が未設定です');
     }
     const payload = {
-        id: user.id,
+        uuid: user.id,
         username: user.username,
         // email: user.email, // 必要なら追加
     };
