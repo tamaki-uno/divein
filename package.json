@@ -29,6 +29,7 @@
     "#server": "./server.js"
   },
   "devDependencies": {
-    "@google/gemini-cli": "^0.1.5"
+    "@google/gemini-cli": "^0.1.5",
+    "morgan": "^1.10.0"
   }
 }

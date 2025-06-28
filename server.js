@@ -3,11 +3,14 @@
 import express from 'express';
 import { join } from 'path';
 import 'dotenv/config';
+import morgan from 'morgan';
 
 // --- 初期設定 ---
 const app = express();
 const port = process.env.PORT || 3000;
 
+// --- アクセスログの出力 ---
+app.use(morgan('combined'));
 
 // --- データベースの初期化 ---
 import { createTable } from '#database';
@@ -49,10 +52,11 @@ app.post('/api/v0/sync', authenticateToken, syncHandler);
 const publicDir = join(process.cwd(), 'public');
 app.use(express.static(publicDir));
 
-// SPA対応: API以外のリクエストは index.html を返す
+// // SPA対応: API以外のリクエストは index.html を返す
 app.get(/^\/(?!api\/v0\/).*/, (req, res) => {
     res.sendFile(join(publicDir, 'index.html'));
 });
+
 
 export default app;
 
