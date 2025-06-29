@@ -10,7 +10,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // --- アクセスログの出力 ---
-app.use(morgan('combined'));
+// app.use(morgan('combined'));
 
 // --- データベースの初期化 ---
 import { createTable } from '#database';
@@ -38,11 +38,12 @@ app.use((err, req, res, next) => {
     next();
 });
 
-// --- 静的ファイルの配信設定 ---
-const publicDir = join(process.cwd(), 'public');
-app.use(express.static(publicDir));
-
-console.log(`静的ファイルの配信ディレクトリ: ${publicDir}`);
+// // --- 静的ファイルの配信設定 ---
+// const publicDir = join(process.cwd(), 'public');
+// console.log(`静的ファイルの配信ディレクトリ: ${publicDir}`);
+// // 静的ファイルの配信
+// // express.staticを使用して、publicディレクトリ内のファイルを配信
+// app.use(express.static(publicDir));
 
 // --- APIエンドポイントの設定 ---
 app.post('/api/v0/asset', authenticateToken, assetHandler);
@@ -54,19 +55,34 @@ app.post('/api/v0/sync', authenticateToken, syncHandler);
 console.log('APIエンドポイントの設定完了');
 
 // // --- 静的ファイルの配信設定 ---
+const publicDir = join(process.cwd(), 'public');
+console.log(`静的ファイルの配信ディレクトリ: ${publicDir}`);
+const allowedExtensions = ['.js', '.css', '.json', 'svg'];
 
-// それ以外のリクエストはindex.htmlを返す（SPA対応）
-const indexFile = join(publicDir, 'index.html');
-console.log(`SPA対応: それ以外のリクエストは ${indexFile} を返します`);
+// 
 app.get(/(.*)/, (req, res) => {
-    res.sendFile(indexFile, (err) => {
-        if (err) {
-            console.error('静的ファイルの配信中にエラーが発生:', err);
-            res.status(err.status).end();
-        } else {
-            console.log(`静的ファイルを配信: ${req.path}`);
-        }
-    });
+    if (allowedExtensions.some(ext => req.path.endsWith(ext))) {
+        // 静的ファイルの配信
+        res.sendFile(join(publicDir, req.path), (err) => {
+            if (err) {
+                console.error(`リクエストされたパス: ${req.path} - エラー: ${err.message}`);
+                res.status(err.status).end();
+            } else {
+                console.log(`リクエストされたパス: ${req.path} - ファイルを返しました`);
+            }
+        });
+    } else {
+        // その他のリクエストはindex.htmlを返す
+        res.sendFile(join(publicDir, 'index.html'), (err) => {
+            if (err) {
+                console.error('index.htmlの配信中にエラーが発生:', err);
+                console.error(`リクエストされたパス: ${req.path} - エラー: ${err.message}`);
+                res.status(err.status).end();
+            } else {
+                console.log(`リクエストされたパス: ${req.path} - index.htmlを返しました`);
+            }
+        });
+    }
 });
 
 
