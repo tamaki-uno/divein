@@ -48,6 +48,7 @@ export default class Popup {
 
     // 現在のパスに応じてフォームを表示
     showFormForCurrentPath() {
+        console.log('Showing form for current path');
         const path = window.location.pathname;
         this.popup.querySelectorAll('form').forEach(f => f.style.display = 'none');
         this.form = this.popup.querySelector(`form.${path.slice(1)}-form`);
@@ -63,6 +64,7 @@ export default class Popup {
 
     // バリデーション
     validateForm() {
+        console.log('Validating form:', this.form);
         if (!this.form) return false;
         this.form.querySelectorAll('.error-message').forEach(el => el.remove());
         this.form.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
@@ -96,6 +98,7 @@ export default class Popup {
 
     // フォーム送信
     submitForm(event) {
+        console.log('Submitting form:', this.form);
         event?.preventDefault(); // デフォルトの送信を防ぐ
         this.form.querySelector('button[type="submit"]').disabled = true; // 送信ボタンを無効化
         this.validateForm(); // バリデーションを実行
@@ -116,10 +119,12 @@ export default class Popup {
             if (!response.status === 200) {
                 throw new Error(`HTTPエラー: ${response.status}`);
             }
+            console.log('Form submitted successfully:', response);
             return response.json();
         })
         .then((json) => {
-            window.user = json.user;
+            console.log('User data received:', json.user);
+            sessionStorage.setItem('user', JSON.stringify(json.user)); // ユーザーデータをセッションストレージに保存
             saveRecordToIndexedDB(json.user);
             route('/', { reload: true, replace: false });
         })

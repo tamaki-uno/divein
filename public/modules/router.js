@@ -5,7 +5,6 @@
 
 console.log('[router] module loaded'); // モジュール読み込みログ
 
-import checkAuth from './auth/auth.js';
 import { initHeader, initPopup, initMain } from './ui.js';
 
 // 認証不要ページのパス一覧
@@ -36,34 +35,21 @@ export default async function route(path, options = {reload: false, overwrite: f
     // ヘッダー初期化
     initHeader();
 
-    // 認証不要ページの場合はポップアップのみ初期化
-    if (PUBLIC_PATHS.includes(path)) {
+    if (sessionStorage.getItem('user')) {
+        const user = JSON.parse(sessionStorage.getItem('user')); // セッションストレージからユーザーデータを取得
+        // ユーザーが認証済みの場合はメインUIを初期化
+        console.log(`[router] User authenticated, initializing main UI for path: ${path}`); // 認証済みユーザーログ
+        initMain(user.uuid); // ユーザーUUIDを使ってメインUIを初期化
+        return;
+    } else if (PUBLIC_PATHS.includes(path)) {
+        // 認証不要ページの場合はポップアップのみ初期化
         console.log(`[router] Public path detected: ${path}`); // 認証不要ページログ
         initPopup();
         return;
+    } else {
+        // 認証が必要なページでユーザーが未認証の場合はログインページへリダイレクト
+        console.warn(`[router] User not authenticated, redirecting to login for path: ${path}`);
+        route('/login', {reload: false, overwrite: true}); // ログインページへリダイレクト
+        return;
     }
-
-    // 認証チェック
-    checkAuth()
-        .then(uuid => {
-            if (!uuid) {
-                // 認証失敗時はログインページへリダイレクト
-                console.warn('[router] User not authenticated, redirecting to login');
-                route('/login', {reload: false, overwrite: true}); // ログインページへリダイレクト
-                return;
-            }
-            window.user = { uuid }; // ユーザーデータをグローバルに設定
-            if (path !== '/') {
-                // 認証済みでメインページ以外にいる場合はホームへリダイレクト
-                console.info('User authenticated, redirecting to home');
-                route('/'); // ホームへリダイレクト
-                return;
-            }
-            initMain(uuid); // メインUIを初期化
-        })
-        .catch((err) => {
-            // エラー時もログインページへリダイレクト
-            console.error('[router] Authentication check failed, redirecting to login', err);
-            route('/login', {reload: false, overwrite: true}); // ログインページへリダイレクト
-        });
 }

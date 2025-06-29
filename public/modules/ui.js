@@ -12,14 +12,12 @@ import route from '/modules/router.js';
 import Popup from './ui/popup.js';
 import Line from './ui/line.js';
 
-// // ヘッダーインスタンス（シングルトン）
-// let headerInstance = null;
-// /**
-//  * ヘッダーの初期化（シングルトン）
-//  * @returns {Header} Headerインスタンス
-//  */
 
-// 
+/** * ヘッダーの初期化
+ * - ユーザーのログイン状態に応じてアイコンを切り替え
+ * - アイコンクリックでログイン/設定ページへ遷移
+ * * @returns {void}
+ */
 export function initHeader() {
     const header = document.querySelector('header');
     const userIcon = header.querySelector('.user-icon');
