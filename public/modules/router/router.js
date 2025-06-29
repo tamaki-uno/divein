@@ -29,37 +29,22 @@ export function route(path) {
 
     // 認証チェック
     checkAuth()
-        // .then(userData => {
-        .then(userRecord => {
-            window.user = userRecord;
-            // window.location.href = '/'; // 認証チェック後はホームへリダイレクト
+        .then(uuid => {
+            if (!uuid) {
+                // 認証失敗時はログインページへリダイレクト
+                console.warn('[router] User not authenticated, redirecting to login');
+                window.location.href = LOGIN_PATH;
+                return;
+            }
+            window.user = { uuid }; // ユーザーデータをグローバルに設定
             if (window.location.pathname !== '/') {
                 // 認証済みでメインページ以外にいる場合はホームへリダイレクト
                 console.info('User authenticated, redirecting to home');
                 // window.location.href = '/';
                 window.history.pushState({}, '', '/');
                 // window.location.reload(); // ページリロードしてメインUIを更新
-                // return;
             }
-            initMain(userRecord);
-            // console.log('[router] Auth check result:', userData); // 認証チェック結果ログ
-            // if (userData && userData.success && userData.loggedIn) {
-            // if (payload && payload.success && payload.loggedIn) {
-            //     if (window.location.pathname !== '/') {
-            //         // 認証済みでメインページ以外にいる場合はホームへリダイレクト
-            //         console.info('User authenticated, redirecting to home');
-            //         window.location.href = '/';
-            //         return;
-            //     }
-            //     window.user = userData.user;
-            //     // 認証済みならメインUI初期化
-            //     console.log('[router] User authenticated. Initializing main UI.');
-            //     initMain(userData);
-            // } else {
-            //     // 未認証ならログインページへリダイレクト
-            //     console.warn('[router] User not authenticated, redirecting to login');
-            //     window.location.href = LOGIN_PATH;
-            // }
+            initMain(uuid); // メインUIを初期化
         })
         .catch((err) => {
             // エラー時もログインページへリダイレクト

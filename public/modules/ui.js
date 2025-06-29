@@ -41,15 +41,10 @@ export function initPopup() {
  * - Lineの非同期初期化に対応
  * @param {Object} userData - 認証済みユーザーデータ
  */
-export function initMain(userRecord) {
+export function initMain(uuid) {
     const main = document.querySelector('main');
-    // ユーザーデータが不正ならログイン画面へ遷移
-    if (!(main && userRecord && userRecord.uuid && userRecord.content)) {
-        console.warn('Invalid user data, redirecting to login');
-        window.location.href = '/login';
-        return;
-    }
     main.innerHTML = '';
+    main.innerText = `loading... \n uuid: ${uuid}\n`; 
     // const line = new Line(userData.user.uuid);
     // // Lineインスタンスがreadyプロパティを持つ場合は非同期描画
     // if (line.ready && typeof line.ready.then === 'function') {
