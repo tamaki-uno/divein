@@ -14,10 +14,6 @@ app.use(morgan('combined'));
 
 // --- データベースの初期化 ---
 import { createTable } from '#database';
-// createTable().catch(err => {
-//     console.error('データベースの初期化に失敗しました:', err);
-//     process.exit(1);
-// });
 
 // --- APIハンドラの読み込み ---
 import { assetHandler } from '#api/v0/asset.js';
@@ -28,7 +24,6 @@ import syncHandler from '#api/v0/sync.js';
 
 // --- 認証ミドルウェアの読み込み ---
 import { authenticateToken } from '#api/v0/auth.js';
-import { create } from 'domain';
 
 // --- ミドルウェアの設定 ---
 app.use(express.json());
@@ -43,8 +38,7 @@ app.use((err, req, res, next) => {
 
 // --- APIエンドポイントの設定 ---
 app.post('/api/v0/asset', authenticateToken, assetHandler);
-// app.post('/api/v0/check', authenticateToken, checkHandler);
-app.get('/api/v0/check', authenticateToken, checkHandler); // GETメソッドに変更
+app.get('/api/v0/check', authenticateToken, checkHandler);
 app.post('/api/v0/login', loginHandler);
 app.post('/api/v0/signup', signupHandler);
 app.post('/api/v0/sync', authenticateToken, syncHandler);
@@ -58,17 +52,23 @@ app.get(/^\/(?!api\/v0\/).*/, (req, res) => {
     res.sendFile(join(publicDir, 'index.html'));
 });
 
-
-export default app;
-
 // --- サーバーの起動 ---
-createTable().then(() => {
-    // データベースの初期化が成功したらサーバーを起動
-    app.listen(port, () => {
-        console.log(`サーバーがポート${port}で起動しました: http://localhost:${port}`);
-    });
-}).catch(err => {
-    console.error('データベースの初期化に失敗しました:', err);
-    process.exit(1);
+await createTable();
+app.listen(port, () => {
+    console.log(`サーバーがポート${port}で起動しました: http://localhost:${port}`);
 });
-export { app }; // モジュールとしてエクスポート
+
+// エラーハンドリング
+process.on('uncaughtException', (err) => {
+    console.error('未処理の例外:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('未処理の拒否:', reason);
+});
+process.on('SIGINT', () => {
+    console.log('サーバーをシャットダウンします...');
+    process.exit(0);
+});
+
+// --- モジュールのエクスポート ---
+export default app;

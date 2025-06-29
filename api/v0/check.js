@@ -1,5 +1,3 @@
-import { findRecords } from '#database';
-
 // ユーザー認証状態を確認し、ユーザーレコードを返すAPIハンドラ
 export default async function checkHandler(req, res) {
     // GETメソッドのみ許可
@@ -8,13 +6,9 @@ export default async function checkHandler(req, res) {
     }
     try {
         const payload = req.payload; // 認証ミドルウェアで設定されたペイロードを使用
-        if (!payload || !payload.uuid) {
-            return res.status(401).json({ message: '認証されていません。' });
-        }
         // 正常レスポンス
         return res.status(200).json({
             success: true,
-            // loggedIn: true,
             payload: payload
         });
     } catch (error) {
