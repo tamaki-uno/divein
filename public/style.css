@@ -38,11 +38,17 @@ header h1 img {
     height: 32px;
     vertical-align: middle;
 }
-header span.user-icon img {
+header span.user-icon-container {
     width: 32px;
     height: 32px;
     vertical-align: middle;
     background-color: white;
+    border-radius: 50%;
+}
+header span.user-icon-container img {
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
     border-radius: 50%;
 }
 

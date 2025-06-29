@@ -31,9 +31,8 @@ export default async function route(path, options = {reload: false, overwrite: f
             window.history.pushState({}, '', path);
         }
     }
-
-    // ヘッダー初期化
-    initHeader();
+    
+    initHeader(); // ヘッダーを初期化
 
     if (sessionStorage.getItem('user')) {
         const user = JSON.parse(sessionStorage.getItem('user')); // セッションストレージからユーザーデータを取得

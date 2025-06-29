@@ -19,23 +19,20 @@ import Line from './ui/line.js';
  * * @returns {void}
  */
 export function initHeader() {
-    const header = document.querySelector('header');
-    const userIcon = header.querySelector('.user-icon');
-    if (window.user) {
-        // ユーザーがログインしている場合
-        userIcon.src = `/icon/open.svg`;
-        userIcon.addEventListener('click', (e) => {
-            e.preventDefault();
-            route('/settings');
-        });
-    } else {
-        // ユーザーが未ログインの場合
-        userIcon.src = '/icon/closed.svg';
-        userIcon.addEventListener('click', (e) => {
-            e.preventDefault();
-            route('/login');
-        });
-    }
+    console.log('[ui] Initializing header'); // ヘッダー初期化ログ
+    const user = sessionStorage.getItem('user'); // セッションストレージからユーザーデータを取得
+    const header = document.querySelector('header'); // ヘッダー要素を取得
+    // clickイベントリスナーを設定
+    header.querySelector('.user-icon-container').addEventListener('click', (e) => {
+        e.preventDefault(); // デフォルトのリンク動作を防ぐ
+        console.log('[ui] User icon clicked'); // ユーザーアイコンクリックログ
+        if (user) {
+            route('/settings'); // 設定ページへ遷移
+        } else {
+            route('/login'); // ログインページへ遷移
+        }
+    });
+    header.querySelector('.user-icon').src = user ? '/icon/open.svg' : '/icon/closed.svg'; // アイコンの切り替え
 }
 
 // ポップアップインスタンス（シングルトン）
@@ -45,6 +42,7 @@ let popupInstance = null;
  * @returns {Popup} Popupインスタンス
  */
 export function initPopup() {
+    console.log('[ui] Initializing popup'); // ポップアップ初期化ログ
     if (!popupInstance) {
         popupInstance = new Popup();
     } else {
@@ -60,6 +58,7 @@ export function initPopup() {
  * @param {Object} userData - 認証済みユーザーデータ
  */
 export function initMain(uuid) {
+    console.log(`[ui] Initializing main area for UUID: ${uuid}`); // メイン領域初期化ログ
     const main = document.querySelector('main');
     main.innerHTML = '';
     main.innerText = `loading... \n uuid: ${uuid}\n`; 
