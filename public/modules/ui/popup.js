@@ -1,5 +1,7 @@
 'use strict';
 
+import checkAuth from "/modules/auth/auth.js";
+
 export default class Popup {
     constructor() {
         this.popup = null;
@@ -152,19 +154,21 @@ export default class Popup {
             return data;
         })
         .then(() => {
-            // ログイン直後に認証チェック
-            fetch('/api/v0/check', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include'
-            })
-            .then(async response => {
-                if (response.status === 200) {
-                    window.location.href = '/';
-                } else {
-                    window.location.href = '/login';
-                }
-            });
+            // // ログイン直後に認証チェック
+            // fetch('/api/v0/check', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     credentials: 'include'
+            // })
+            // .then(async response => {
+            //     if (response.status === 200) {
+            //         window.location.href = '/';
+            //     } else {
+            //         window.location.href = '/login';
+            //     }
+            // });
+            // ログイン成功後はホームにリダイレクト
+            window.location.href = '/';
         })
         .catch((error) => {
             if (submitBtn) submitBtn.disabled = false;

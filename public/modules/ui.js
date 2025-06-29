@@ -41,26 +41,22 @@ export function initPopup() {
  * - Lineの非同期初期化に対応
  * @param {Object} userData - 認証済みユーザーデータ
  */
-export function initMain(userData) {
+export function initMain(userRecord) {
     const main = document.querySelector('main');
     // ユーザーデータが不正ならログイン画面へ遷移
-    if (!(main && userData && userData.user && userData.user.uuid)) {
+    if (!(main && userRecord && userRecord.uuid && userRecord.content)) {
         console.warn('Invalid user data, redirecting to login');
-        console.log('main:', main);
-        console.log('userData:', userData);
-        console.log('userData.user:', userData.user);
-        console.log('userData.user.uuid:', userData.user.uuid);
         window.location.href = '/login';
         return;
     }
     main.innerHTML = '';
-    const line = new Line(userData.user.uuid);
-    // Lineインスタンスがreadyプロパティを持つ場合は非同期描画
-    if (line.ready && typeof line.ready.then === 'function') {
-        line.ready.then(() => {
-            main.appendChild(line.render());
-        });
-    } else {
-        main.appendChild(line.render());
-    }
+    // const line = new Line(userData.user.uuid);
+    // // Lineインスタンスがreadyプロパティを持つ場合は非同期描画
+    // if (line.ready && typeof line.ready.then === 'function') {
+    //     line.ready.then(() => {
+    //         main.appendChild(line.render());
+    //     });
+    // } else {
+    //     main.appendChild(line.render());
+    // }
 }
