@@ -43,7 +43,8 @@ app.use((err, req, res, next) => {
 
 // --- APIエンドポイントの設定 ---
 app.post('/api/v0/asset', authenticateToken, assetHandler);
-app.post('/api/v0/check', authenticateToken, checkHandler);
+// app.post('/api/v0/check', authenticateToken, checkHandler);
+app.get('/api/v0/check', authenticateToken, checkHandler); // GETメソッドに変更
 app.post('/api/v0/login', loginHandler);
 app.post('/api/v0/signup', signupHandler);
 app.post('/api/v0/sync', authenticateToken, syncHandler);
