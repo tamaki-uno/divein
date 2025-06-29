@@ -17,7 +17,6 @@ import { createTable } from '#database';
 
 // --- APIハンドラの読み込み ---
 import { assetHandler } from '#api/v0/asset.js';
-import checkHandler from '#api/v0/check.js';
 import loginHandler from '#api/v0/login.js';
 import signupHandler from '#api/v0/signup.js';
 import syncHandler from '#api/v0/sync.js';
@@ -47,7 +46,6 @@ app.use((err, req, res, next) => {
 
 // --- APIエンドポイントの設定 ---
 app.post('/api/v0/asset', authenticateToken, assetHandler);
-app.get('/api/v0/check', authenticateToken, checkHandler);
 app.post('/api/v0/login', loginHandler);
 app.post('/api/v0/signup', signupHandler);
 app.post('/api/v0/sync', authenticateToken, syncHandler);
@@ -57,7 +55,7 @@ console.log('APIエンドポイントの設定完了');
 // // --- 静的ファイルの配信設定 ---
 const publicDir = join(process.cwd(), 'public');
 console.log(`静的ファイルの配信ディレクトリ: ${publicDir}`);
-const allowedExtensions = ['.js', '.css', '.json', 'svg'];
+const allowedExtensions = ['.html','.js', '.css', '.json', 'svg'];
 
 // 
 app.get(/(.*)/, (req, res) => {
