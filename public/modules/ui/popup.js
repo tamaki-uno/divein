@@ -3,28 +3,46 @@
 import route from '/modules/router.js'; // ルーティング用モジュール
 import { saveRecordToIndexedDB } from '../database.js';
 
+/**
+ * ポップアップを初期化する
+ * - ポップアップHTMLを取得して挿入
+ * - ポップアップ要素が存在しない場合は新規作成
+ * - 閉じるボタンのイベントリスナーを設定
+ * * @returns {Promise<HTMLElement|null>} - 初期化されたポップアップ要素、またはnull
+ * @async
+ */
 async function initPopup() {
     console.log('[ui] Initializing popup'); // ポップアップ初期化ログ
-    // const popup = document.querySelector('.popup'); // すでに存在する.popupを取得
-    // if (!document.querySelector('.popup')) { // ポップアップが存在しない場合
-    try {
-        const response = await fetch('/modules/ui/popup.html') // 存在しない場合はHTMLを取得
-            ;
-        if (!response.ok) throw new Error('Failed to load popup HTML');
-        const html = await response.text();
-        document.body.insertAdjacentHTML('beforeend', html.trim());
-        const popup = document.querySelector('.popup');
-        popup.querySelector('.close-popup-button').addEventListener('click', (e) => closePopup(e)); // 閉じるボタンのイベントリスナーを設定
-        return popup;
-    } catch (error) {
-        console.error('Error loading popup HTML:', error);
-        const existingPopup = document.querySelector('.popup');
-        if (existingPopup) existingPopup.remove();
-    }
-    // return;
-    // }
+    return fetch('/modules/ui/html/popup.html') // ポップアップHTMLを取得
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to load popup HTML');
+            return response.text();
+        })
+        .then(html => {
+            document.body.insertAdjacentHTML('beforeend', html.trim());
+            const popup = document.querySelector('.popup');
+            if (!popup) {
+                console.error('[ui] Popup element not found after initialization'); // ポップアップ要素が見つからない場合のエラーログ
+                return null;
+            }
+            popup.querySelector('.close-popup-button').addEventListener('click', (e) => closePopup(e)); // 閉じるボタンのイベントリスナーを設定
+            console.log('[ui] Popup initialized successfully'); // ポップアップ初期化成功ログ
+            return popup; // 初期化されたポップアップを返す
+        })
+        .catch(error => {
+            console.error('Error loading popup HTML:', error); // エラーログ
+            const existingPopup = document.querySelector('.popup');
+            if (existingPopup) existingPopup.remove(); // 既存のポップアップを削除
+        });
 }
 
+/** * ポップアップを閉じる
+ * - デフォルトの動作を防ぐ
+ * - ポップアップ要素を非表示にする
+ * - ルートをホームに変更
+ * * @param {Event} event - イベントオブジェクト
+ * * @returns {void}
+ */
 function closePopup(event) {
     event?.preventDefault(); // デフォルトの動作を防ぐ
     console.log('[ui] Closing popup'); // ポップアップ閉じるログ
@@ -33,10 +51,14 @@ function closePopup(event) {
     route('/'); // ルートをホームに変更
 }
 
+/** * ポップアップを表示する
+ * - ポップアップ要素が存在しない場合は初期化関数を呼び出す
+ * - ポップアップ要素を取得または初期化
+ * * @returns {Promise<void>} - 非同期処理の完了を示すPromise
+ * @async
+ */
 export async function showPopup() {
     console.log('[ui] Showing popup'); // ポップアップ表示ログ
-    // let popup = document.querySelector('.popup');
-    // if (!popup) initPopup(); // ポップアップが存在しない場合は初期化
     const popup = document.querySelector('.popup') || await initPopup(); // ポップアップを取得または初期化
     if (!popup) {
         console.error('[ui] Popup element not found'); // ポップアップ要素が見つからない場合のエラーログ
@@ -46,7 +68,12 @@ export async function showPopup() {
     showFormForCurrentPath(); // 現在のパスに応じてフォームを表示
 }
 
-export function showFormForCurrentPath() {
+/** * 現在のパスに応じてフォームを表示する
+ * - ポップアップ内のすべてのフォームを非表示にする
+ * - 現在のパスに対応するフォームを表示
+ * * @returns {void}
+ */
+function showFormForCurrentPath() {
     console.log('Showing form for current path');
     const popup = document.querySelector('.popup');
     popup.querySelectorAll('form').forEach(f => f.style.display = 'none');
@@ -62,6 +89,15 @@ export function showFormForCurrentPath() {
     });
 }
 
+/** * フォームのバリデーションを行う
+ * - フォームが存在しない場合は無効
+ * - 各入力フィールドのバリデーションを実行
+ * - エラーメッセージを表示
+ * - パスワード確認のバリデーションを行う
+ * - 送信ボタンの有効/無効を設定
+ * @param {HTMLFormElement} form - バリデーション対象のフォーム
+ * @returns {boolean} - フォームが有効な場合はtrue、無効な場合はfalse
+ */
 function validateForm(form) {
     console.log('Validating form', form);
     if (!form) return false; // フォームが存在しない場合は無効
@@ -95,6 +131,23 @@ function validateForm(form) {
     return isValid;
 }
 
+/** * フォームを送信する
+ * - デフォルトの送信を防ぐ
+ * - 送信ボタンを無効化
+ * - バリデーションを実行
+ * - フォームのアクションURLを取得
+ * - フォームデータをオブジェクトに変換
+ * - confirm-passwordは送信しない
+ * - オブジェクトをJSON文字列に変換
+ * - fetch APIを使用してPOSTリクエストを送信
+ * - レスポンスをJSONとして処理
+ * - ユーザーデータをセッションストレージに保存
+ * - IndexedDBにユーザーデータを保存
+ * - ルートをホームに変更
+ * - エラーハンドリングを行い、ログ出力を行う
+ * @param {Event} event - フォーム送信イベント
+ * @returns {void}
+ */
 function submitForm(event) {
     console.log('Submitting form', event.target);
     event?.preventDefault(); // デフォルトの送信を防ぐ
