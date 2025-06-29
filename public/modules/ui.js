@@ -51,14 +51,20 @@ export function initPopup() {
     return popupInstance;
 }
 
+export function initSettings() {
+    console.log('[ui] Initializing settings UI'); // 設定UI初期化
+    const main = document.querySelector('main'); // メイン要素を取得
+    main.innerHTML = ''; // メイン要素の内容をクリア
+
 /**
  * メイン領域の初期化
  * - ユーザーデータを元にLineインスタンスを生成し、main要素に描画
  * - Lineの非同期初期化に対応
  * @param {Object} userData - 認証済みユーザーデータ
  */
-export function initMain(uuid) {
-    console.log(`[ui] Initializing main area for UUID: ${uuid}`); // メイン領域初期化ログ
+export function initMain() {
+    const user = JSON.parse(sessionStorage.getItem('user')); // セッションストレージからユーザーデータを取得
+    console.log('[ui] Initializing main UI'); // メインUI初期化ログ
     const main = document.querySelector('main');
     main.innerHTML = '';
     main.innerText = `loading... \n uuid: ${uuid}\n`; 
