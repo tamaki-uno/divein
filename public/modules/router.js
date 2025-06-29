@@ -4,9 +4,7 @@
  */
 
 console.log('[router] module loaded'); // モジュール読み込みログ
-
-// import { initHeader, initPopup, initSettings, initMain } from './ui.js';
-// import initPopup from './ui/popup.js';
+;
 import initHeader from './ui/header.js';
 import { showLoading } from './ui/loading.js';
 import { showPopup } from './ui/popup.js';
@@ -19,6 +17,14 @@ const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
 /**
  * 指定パスに応じてUIや認証状態を制御する
  * @param {string} path - 遷移先パス
+ * @param {Object} options - オプション設定
+ * @param {boolean} options.reload - trueの場合はページをリロード
+ * @param {boolean} options.overwrite - trueの場合は履歴を上書き
+ * @returns {Promise<void>} - 非同期処理の完了を示すPromise
+ * * @async
+ * @description
+ * - ページパスに応じてヘッダーやメインUIを初期化
+ * - 認証状態に応じて適切なUIを表示
  */
 export default async function route(path, options = {reload: false, overwrite: false}) {
     console.log(`[router] route called. path: ${path}`); // ルーティング開始ログ
@@ -44,7 +50,6 @@ export default async function route(path, options = {reload: false, overwrite: f
     if (sessionStorage.getItem('user')) {
         // ユーザーが認証済みの場合はメインUIを初期化
         console.log(`[router] User authenticated, initializing main UI for path: ${path}`); // 認証済みユーザーログ
-        // initMain(); // メインUIを初期化
         switch (path) {
             case '/':
                 initMain(); // ホームページを初期化
@@ -54,22 +59,17 @@ export default async function route(path, options = {reload: false, overwrite: f
                 break;
             case '/login':
             case '/signup':
-                break; // ログイン/サインアップページは特に何もしない
             case '/logout':
-                // initPopup(); // ログアウトポップアップを初期化
                 showPopup(); // ログアウトポップアップを表示
                 break;
             default:
-                // console.warn(`[router] Unhandled path for authenticated user: ${path}`); // 未処理パスログ
-                // route('/'); // ホームページへリダイレクト
-                showLoading(); // ローディングUIを表示
+                initMain(); // その他のページはメインUIを初期化
                 break;
         }
         return;
     } else if (PUBLIC_PATHS.includes(path)) {
         // 認証不要ページの場合はポップアップのみ初期化
         console.log(`[router] Public path detected: ${path}`); // 認証不要ページログ
-        // initPopup();
         showPopup(); // ポップアップを表示
         return;
     } else {
