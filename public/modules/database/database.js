@@ -48,7 +48,20 @@ export async function getRecordFromIndexedDB(uuid) {
         const tx = db.transaction('records', 'readonly');
         const store = tx.objectStore('records');
         const req = store.get(uuid);
-        req.onsuccess = () => resolve(req.result);
+        req.onsuccess = async () => {
+            if (req.result) {
+                resolve(req.result);
+            } else {
+                // レコードが存在しない場合は新規作成して保存
+                const newRecord = { uuid, createdAt: new Date().toISOString() };
+                try {
+                    await saveRecordToIndexedDB(newRecord);
+                    resolve(newRecord);
+                } catch (e) {
+                    reject(e);
+                }
+            }
+        };
         req.onerror = (e) => reject(e.target.error);
     });
 }
