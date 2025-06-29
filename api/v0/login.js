@@ -75,7 +75,8 @@ export default async function loginHandler(req, res) {
         res.status(200).json({
             message: 'ログイン成功',
             success: true,
-            payload: payload
+            payload: payload,
+            user: userRecordData
         });
     } catch (error) {
         console.error('Login error:', error);

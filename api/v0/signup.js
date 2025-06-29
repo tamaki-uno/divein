@@ -68,7 +68,7 @@ export default async function signupHandler(req, res) {
 
     try {
         const newUser = await insertRecord(userData);
-        res.status(201).json({ message: 'ユーザー登録が成功しました。', user: { uuid, username, email }, success: true });
+        res.status(201).json({ message: 'ユーザー登録が成功しました。', user: newUser, success: true });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'サーバーエラーが発生しました。' });

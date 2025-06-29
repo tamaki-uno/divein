@@ -1,6 +1,7 @@
 'use strict';
 
-import checkAuth from "/modules/auth/auth.js";
+import route from '/modules/router.js'; // ルーティング用モジュール
+import { saveRecordToIndexedDB } from '../database.js';
 
 export default class Popup {
     constructor() {
@@ -11,83 +12,53 @@ export default class Popup {
 
     // 初期化処理
     init() {
-        // すでに.popupが存在する場合は再生成しない
-        const existingPopup = document.querySelector('.popup');
-        if (existingPopup) {
-            this.popup = existingPopup;
-            this.showFormForCurrentPath();
+        this.popup = document.querySelector('.popup'); // すでに存在する.popupを取得
+        if (!this.popup) {
+            fetch('/modules/ui/popup.html') // 存在しない場合はHTMLを取得
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to load popup HTML');
+                    return response.text();
+                })
+                .then(html => {
+                    document.body.insertAdjacentHTML('beforeend', html.trim());
+                    this.popup = document.querySelector('.popup');
+                    this.popup.querySelector('.close-popup-button').addEventListener('click', (e) => this.closePopup(e));
+                    this.showPopup(); // ポップアップを表示
+                })
+                .catch(error => {
+                    console.error('Error loading popup HTML:', error);
+                    const existingPopup = document.querySelector('.popup');
+                    if (existingPopup) existingPopup.remove();
+                });
             return;
         }
-        fetch('/modules/ui/popup.html')
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to load popup HTML');
-                return response.text();
-            })
-            .then(html => {
-                document.body.insertAdjacentHTML('beforeend', html.trim());
-                this.popup = document.querySelector('.popup');
-                if (!this.popup) {
-                    return;
-                }
-                this.setupCloseButton();
-                this.showFormForCurrentPath();
-            })
-            .catch(error => {
-                const popup = document.querySelector('.popup');
-                if (popup) popup.remove();
-            });
     }
 
-    // 閉じるボタンのイベント設定
-    setupCloseButton() {
-        if (!this.popup) return;
-        const closeBtn = this.popup.querySelector('.close-popup-button');
-        if (closeBtn) {
-            closeBtn.onclick = () => {
-                this.popup.style.display = 'none';
-                window.history.pushState({}, '', '/');
-            };
-        }
+    closePopup(event) {
+        event?.preventDefault(); // デフォルトの動作を防ぐ
+        this.popup.style.display = 'none';
+        route('/', { reload: false, replace: true }); // ルートをホームに変更
+    }
+
+    showPopup() {
+        if (!this.popup) this.init(); // 再初期化
+        this.popup.style.display = 'flex';
+        this.showFormForCurrentPath(); // 現在のパスに応じてフォームを表示
     }
 
     // 現在のパスに応じてフォームを表示
     showFormForCurrentPath() {
-        if (!this.popup) return;
         const path = window.location.pathname;
-        if (!['/login', '/signup', '/logout'].includes(path)) {
-            this.popup.style.display = 'none';
-            return;
-        }
-        this.popup.style.display = 'flex';
         this.popup.querySelectorAll('form').forEach(f => f.style.display = 'none');
         this.form = this.popup.querySelector(`form.${path.slice(1)}-form`);
         if (!this.form) return;
         this.form.style.display = 'flex';
-        this.setupFormEvents();
-    }
-
-    // フォームのイベント設定
-    setupFormEvents() {
-        if (!this.form) return;
-        // submitイベント
-        this.form.onsubmit = (event) => {
+        this.form.addEventListener('submit', (event) => this.submitForm(event)); // フォーム送信イベントを設定
+        this.form.querySelector('p:last-of-type a')?.addEventListener('click', (event) => {
             event.preventDefault();
-            if (!this.validateForm()) return;
-            this.submitForm();
-        };
-        // 最後の<p>要素のリンクイベント
-        const pList = this.form.querySelectorAll('p');
-        if (pList.length > 0) {
-            const link = pList[pList.length - 1].querySelector('a');
-            if (link) {
-                link.onclick = (event) => {
-                    event.preventDefault();
-                    const href = link.getAttribute('href');
-                    window.history.pushState({}, '', href);
-                    this.showFormForCurrentPath();
-                };
-            }
-        }
+            const href = event.target.getAttribute('href');
+            route(href, { reload: false, replace: false }); // リンククリックでルーティング
+        });
     }
 
     // バリデーション
@@ -124,14 +95,14 @@ export default class Popup {
     }
 
     // フォーム送信
-    submitForm() {
-        if (!this.form) return;
-        const submitBtn = this.form.querySelector('button[type="submit"]');
-        if (submitBtn) submitBtn.disabled = true;
-        const dataObj = Object.fromEntries(new FormData(this.form).entries());
-        delete dataObj['confirm-password'];
-        const jsonData = JSON.stringify(dataObj);
-        const action = this.form.getAttribute('action');
+    submitForm(event) {
+        event?.preventDefault(); // デフォルトの送信を防ぐ
+        this.form.querySelector('button[type="submit"]').disabled = true; // 送信ボタンを無効化
+        this.validateForm(); // バリデーションを実行
+        const action = this.form.getAttribute('action'); // フォームのアクションURLを取得
+        const dataObj = Object.fromEntries(new FormData(this.form).entries()); // フォームデータをオブジェクトに変換
+        delete dataObj['confirm-password']; // confirm-passwordは送信しない
+        const jsonData = JSON.stringify(dataObj); // オブジェクトをJSON文字列に変換
         fetch(action, {
             method: 'POST',
             body: jsonData,
@@ -142,33 +113,15 @@ export default class Popup {
             credentials: 'include' // セッション維持
         })
         .then(async response => {
-            let data;
-            try {
-                data = await response.json();
-            } catch {
-                throw new Error('サーバーから不正なレスポンスが返されました');
+            if (!response.status === 200) {
+                throw new Error(`HTTPエラー: ${response.status}`);
             }
-            if (!response.ok || data.success === false) {
-                throw new Error(data.message || 'エラーが発生しました');
-            }
-            return data;
+            return response.json();
         })
-        .then(() => {
-            // // ログイン直後に認証チェック
-            // fetch('/api/v0/check', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     credentials: 'include'
-            // })
-            // .then(async response => {
-            //     if (response.status === 200) {
-            //         window.location.href = '/';
-            //     } else {
-            //         window.location.href = '/login';
-            //     }
-            // });
-            // ログイン成功後はホームにリダイレクト
-            window.location.href = '/';
+        .then((json) => {
+            window.user = json.user;
+            saveRecordToIndexedDB(json.user);
+            route('/', { reload: true, replace: false });
         })
         .catch((error) => {
             if (submitBtn) submitBtn.disabled = false;
