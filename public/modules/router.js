@@ -3,8 +3,10 @@
  * - ページパスに応じてUI初期化や認証チェックを行う
  */
 
-import checkAuth from '../auth/auth.js';
-import { initHeader, initPopup, initMain } from '../ui.js';
+console.log('[router] module loaded'); // モジュール読み込みログ
+
+import checkAuth from './auth/auth.js';
+import { initHeader, initPopup, initMain } from './ui.js';
 
 // 認証不要ページのパス一覧
 const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
@@ -13,7 +15,7 @@ const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
  * 指定パスに応じてUIや認証状態を制御する
  * @param {string} path - 遷移先パス
  */
-export function route(path, options = {reload: false, overwrite: false}) {
+export default async function route(path, options = {reload: false, overwrite: false}) {
     console.log(`[router] route called. path: ${path}`); // ルーティング開始ログ
 
     // リロードフラグが立っている場合はページをリロード

@@ -3,21 +3,41 @@
  * - ヘッダー、ポップアップ、メイン領域の初期化関数を提供
  */
 
-import Header from './ui/header.js';
+console.log('[ui] module loaded'); // モジュール読み込みログ
+
+// import { route } from '../router/router.js';
+import route from '/modules/router.js';
+
+// import Header from './ui/header.js';
 import Popup from './ui/popup.js';
 import Line from './ui/line.js';
 
-// ヘッダーインスタンス（シングルトン）
-let headerInstance = null;
-/**
- * ヘッダーの初期化（シングルトン）
- * @returns {Header} Headerインスタンス
- */
+// // ヘッダーインスタンス（シングルトン）
+// let headerInstance = null;
+// /**
+//  * ヘッダーの初期化（シングルトン）
+//  * @returns {Header} Headerインスタンス
+//  */
+
+// 
 export function initHeader() {
-    if (!headerInstance) {
-        headerInstance = new Header();
+    const header = document.querySelector('header');
+    const userIcon = header.querySelector('.user-icon');
+    if (window.user) {
+        // ユーザーがログインしている場合
+        userIcon.src = `/icon/open.svg`;
+        userIcon.addEventListener('click', (e) => {
+            e.preventDefault();
+            route('/settings');
+        });
+    } else {
+        // ユーザーが未ログインの場合
+        userIcon.src = '/icon/closed.svg';
+        userIcon.addEventListener('click', (e) => {
+            e.preventDefault();
+            route('/login');
+        });
     }
-    return headerInstance;
 }
 
 // ポップアップインスタンス（シングルトン）
