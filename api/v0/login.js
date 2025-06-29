@@ -14,35 +14,27 @@ import { generateAccessToken } from './auth.js'; // JWT生成関数のパスを�
  * - 成功時はユーザー情報を返す
  */
 export default async function loginHandler(req, res) {
+    // POSTメソッド以外は許可しない
+    if (req.method !== 'POST') {
+        return res.status(405).json({ message: '許可されていないメソッドです。' });
+    }
+
+    // リクエストボディからユーザー名とパスワードを取得
     const { username, password } = req.body;
+    // ユーザー名とパスワードが未入力の場合は400 Bad Requestを返す
     if (!username || !password) {
         return res.status(400).json({ message: 'ユーザー名とパスワードは必須です。' });
     }
-
-    // ユーザーを検索
-    // const users = await findRecords({
-    //     type: 'user',
-    //     content: username // 部分一致検索
-    // });
+    // ユーザー名でユーザーレコードを検索（部分一致）
     const userRecords = await findRecords({
         type: 'user',
         content: username // 部分一致検索
     });
-
-    // // 厳密一致でユーザーを特定し、パース済みcontentも取得
-    // let user, userContent;
-    // for (const u of users) {
-    //     try {
-    //         const content = JSON.parse(u.content);
-    //         if (content.username === username) {
-    //             user = u;
-    //             userContent = content;
-    //             break;
-    //         }
-    //     } catch {
-    //         continue;
-    //     }
-    // }
+    // ユーザーレコードが見つからない場合は401 Unauthorizedを返す
+    if (!userRecords || userRecords.length === 0) {
+        return res.status(401).json({ message: 'ユーザー名またはパスワードが正しくありません。' });
+    }
+    // ユーザーレコードからユーザー名を含むものを探す
     const userRecordData = userRecords.find(recordData => {
         try {
             const content = JSON.parse(recordData.content);
@@ -51,24 +43,17 @@ export default async function loginHandler(req, res) {
             return false;
         }
     });
-
-    // if (!user || !userContent) {
-    //     return res.status(401).json({ message: 'ユーザー名またはパスワードが正しくありません。' });
-    // }
+    // ユーザーレコードが見つからない場合は401 Unauthorizedを返す
     if (!userRecordData) {
         return res.status(401).json({ message: 'ユーザー名またはパスワードが正しくありません。' });
     }
-    // const userRecord = userRecordData.forEach( (column)
-        
-    // });
-    // パースが必要なものをパース
+    // contentをパースしてオブジェクトに変換
+    const parsedContent = JSON.parse(userRecordData.content);
     const userRecord = {
         ...userRecordData,
-        content: JSON.parse(userRecordData.content) // contentをパース
-    }
-
+        content: parsedContent
+    };
     // パスワードハッシュを取得
-    // const passwordHash = userContent.password_hash;
     const passwordHash = userRecord.content.password_hash;
     if (!passwordHash) {
         return res.status(500).json({ message: 'ユーザーデータが不正です。' });
@@ -80,14 +65,7 @@ export default async function loginHandler(req, res) {
         return res.status(401).json({ message: 'ユーザー名またはパスワードが正しくありません。' });
     }
 
-    // JWTを生成して返す（uuid, usernameのみ渡す）
-    // const token = generateAccessToken({
-        // id: user.uuid,
-        // username: userContent.username,
-        // email: userContent.email, // 必要なら
-        
-    // });
-
+    // 認証成功時の処理
     const payload = {
         ...userRecord,
         content: {
@@ -95,18 +73,18 @@ export default async function loginHandler(req, res) {
             password_hash: undefined // パスワードハッシュは含めない
         }
     };
-    const token = generateAccessToken(payload);
+    const token = generateAccessToken(payload); // ペイロードを渡してトークンを生成
 
+    // クッキーにトークンをセット
     res.setHeader('Set-Cookie', cookie.serialize('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true, // JavaScriptからはアクセスできないようにする
+        secure: process.env.NODE_ENV === 'production', // 本番環境ではSecure属性を有効にする
         sameSite: 'Lax', // ← StrictからLaxに変更
         maxAge: 60 * 60 // 1時間
     }));
 
     res.status(200).json({
         message: 'ログイン成功',
-        // user: { uuid: user.uuid, username: userContent.username },
         success: true,
         payload: payload // ペイロードを返す
     });

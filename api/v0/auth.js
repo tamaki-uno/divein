@@ -10,15 +10,11 @@ export function generateAccessToken(payload) {
     });
 }
 
-// リクエストヘッダーのトークンを検証するミドルウェア
+// リクエストヘッダーのトークンを検証するミドルウェア（Cookieのみ対応）
 export function authenticateToken(req, res, next) {
-    // Authorizationヘッダー優先、なければクッキーから
-    let token;
-    const authHeader = req.headers['authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1];
-    } else if (req.headers.cookie) {
-        // クッキーからtokenを抽出
+    // クッキーからtokenを抽出
+    let token = null;
+    if (req.headers.cookie) {
         const match = req.headers.cookie.match(/(?:^|;\s*)token=([^;]+)/);
         if (match) token = match[1];
     }
