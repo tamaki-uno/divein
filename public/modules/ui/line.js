@@ -1,5 +1,5 @@
 // import { saveRecordToIndexedDB,getRecordFromIndexedDB, syncDB } from '../database/database.js';
-import { saveRecordToIndexedDB, getRecordFromIndexedDB, syncDB } from '../database/database.js';
+import { saveRecordToIndexedDB, getRecordFromIndexedDB, syncDB } from '../database.js';
 
 
 // const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
