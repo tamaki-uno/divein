@@ -108,17 +108,21 @@ export async function syncWithAPI(record) {
     }
 }
 
-// IndexedDBと同期
-// @param {Object} record - 同期するレコード
-export async function syncWithIndexedDB(record) {
-    try {
-        await saveRecordToIndexedDB(record);
-        return record;
-    } catch (error) {
-        console.error('IndexedDB sync error:', error);
-        throw error;
-    }
-}
+// // IndexedDBと同期
+// // @param {Object} record - 同期するレコード
+// export async function syncWithIndexedDB(record) {
+//     if (!record || !record.uuid) {
+//         throw new Error('syncWithIndexedDB: record or record.uuid is missing');
+//     }
+//     const db = await initIndexedDB();
+//     try {
+//         const 
+//         return record;
+//     } catch (error) {
+//         console.error('IndexedDB sync error:', error);
+//         throw error;
+//     }
+// }
 
 // データベースの同期を行う関数
 // @param {string} uuid - 同期対象レコードのUUID
@@ -129,7 +133,7 @@ export async function syncDB(uuid) {
             throw new Error(`Record with UUID ${uuid} not found in IndexedDB`);
         }
         const syncedRecord = await syncWithAPI(record);
-        await syncWithIndexedDB(syncedRecord);
+        // await syncWithIndexedDB(syncedRecord);
         return syncedRecord;
     } catch (error) {
         console.error('Database sync error:', error);
