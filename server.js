@@ -58,7 +58,7 @@ console.log('APIエンドポイントの設定完了');
 // それ以外のリクエストはindex.htmlを返す（SPA対応）
 const indexFile = join(publicDir, 'index.html');
 console.log(`SPA対応: それ以外のリクエストは ${indexFile} を返します`);
-app.get('*', (req, res) => {
+app.get(/(.*)/, (req, res) => {
     res.sendFile(indexFile, (err) => {
         if (err) {
             console.error('静的ファイルの配信中にエラーが発生:', err);
