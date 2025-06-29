@@ -54,38 +54,11 @@ app.post('/api/v0/sync', authenticateToken, syncHandler);
 console.log('APIエンドポイントの設定完了');
 
 // // --- 静的ファイルの配信設定 ---
-// const publicDir = join(process.cwd(), 'public');
-// // app.use(express.static(publicDir));
-
-// // // SPA対応: API以外のリクエストは index.html を返す
-// // // app.get(/^\/(?!api\/v0\/).*/, (req, res) => {
-// // //     res.sendFile(join(publicDir, 'index.html'));
-// // // });
-// // app.get('*', (req, res) => {
-// //     res.sendFile(join(publicDir, 'index.html'));
-// // });
-// // .js/.css/.svg/.jsonのときのみpublicディレクトリから静的ファイルを配信
-// const regexp = '/\.(js|css|svg|json)$/';
-// app.get(regexp, (req, res) => {
-//     res.sendFile(join(publicDir, req.path));
-// });
-// // それ以外のリクエストはindex.htmlを返す
-// app.get('*', (req, res) => {
-//     res.sendFile(join(publicDir, 'index.html'));
-// });
-
-// --- 静的ファイルの配信設定 ---
-// const publicDir = join(process.cwd(), 'public');
-// app.use(express.static(publicDir));
 
 // それ以外のリクエストはindex.htmlを返す（SPA対応）
 const indexFile = join(publicDir, 'index.html');
 console.log(`SPA対応: それ以外のリクエストは ${indexFile} を返します`);
-// const regexp = 
-// console.log(`静的ファイルの配信: ${regexp} にマッチするリクエストを処理します`);
 app.get('*', (req, res) => {
-    // res.sendFile(join(publicDir, 'index.html'));
-    // res.sendFile(join(publicDir, 'index.html'));
     res.sendFile(indexFile, (err) => {
         if (err) {
             console.error('静的ファイルの配信中にエラーが発生:', err);
