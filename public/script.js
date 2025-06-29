@@ -10,6 +10,6 @@
 import { route } from './modules/router/router.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    route(window.location.pathname, false); // 初期ルーティング trueだとおそらく無限リロード編突入不可避
+    route(window.location.pathname); // 初期ルーティング trueだとおそらく無限リロード編突入不可避
 });
 

@@ -13,15 +13,16 @@ const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
  * 指定パスに応じてUIや認証状態を制御する
  * @param {string} path - 遷移先パス
  */
-export function route(path, reload = false, overwrite = false) {
+export function route(path, options = {reload: false, overwrite: false}) {
     console.log(`[router] route called. path: ${path}`); // ルーティング開始ログ
 
-    if (reload) {
+    // リロードフラグが立っている場合はページをリロード
+    if (options.reload) {
         console.log('[router] Reloading page due to reload flag'); // リロードフラグログ
         window.location.pathname = path; // パスを更新してリロード
         return;
     } else {
-        if (overwrite) {
+        if (options.overwrite) {
             // overwriteがtrueの場合は履歴を上書き
             window.history.replaceState({}, '', path);
         } else {
@@ -46,7 +47,7 @@ export function route(path, reload = false, overwrite = false) {
             if (!uuid) {
                 // 認証失敗時はログインページへリダイレクト
                 console.warn('[router] User not authenticated, redirecting to login');
-                route('/login', false, true); // ログインページへリダイレクト
+                route('/login', {reload: false, overwrite: true}); // ログインページへリダイレクト
                 return;
             }
             window.user = { uuid }; // ユーザーデータをグローバルに設定
@@ -61,6 +62,6 @@ export function route(path, reload = false, overwrite = false) {
         .catch((err) => {
             // エラー時もログインページへリダイレクト
             console.error('[router] Authentication check failed, redirecting to login', err);
-            route('/login', false, true); // ログインページへリダイレクト
+            route('/login', {reload: false, overwrite: true}); // ログインページへリダイレクト
         });
 }
