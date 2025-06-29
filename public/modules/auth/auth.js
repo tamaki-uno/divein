@@ -15,16 +15,20 @@ export async function checkAuth() {
     });
     // レスポンスの詳細をログ出力
     console.log('checkAuth response:', response);
-    console.log('status:', response.status);
-    console.log('statusText:', response.statusText);
-    console.log('ok:', response.ok);
-    console.log('type:', response.type);
-    console.log('url:', response.url);
-    console.log('redirected:', response.redirected);
-    console.log('headers:', Array.from(response.headers.entries()));
-    // if (!response.ok) return null;
+    console.log('checkAuth response type:', response?.type);
+    console.log('checkAuth response status:', response?.status);
+    console.log('checkAuth response ok:', response?.ok);
+
+    // const payload = response.payload;
+    // console.log('checkAuth response payload:', response?.payload);
 
     const json = await response.json();
     console.log('checkAuth response json:', json);
-    return json;
+    const payload = json.payload;
+    console.log('checkAuth response payload:', payload);
+    console.log('checkAuth response payload type:', typeof payload);
+    console.log('checkAuth response payload keys:', Object.keys(payload));
+    console.log('checkAuth response payload uuid:', payload?.uuid);
+    // return json;
+    return payload;
 }
