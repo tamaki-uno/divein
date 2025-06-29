@@ -53,6 +53,23 @@ export async function getRecordFromIndexedDB(uuid) {
     });
 }
 
+// IndexedDBからレコードを削除
+// @param {string} uuid - 削除するレコードのUUID
+// @returns {Promise<boolean>} - 削除成功時はtrueを返す
+export async function deleteRecordFromIndexedDB(uuid) {
+    if (!uuid) {
+        throw new Error('deleteRecordFromIndexedDB: uuidが未指定です');
+    }
+    const db = await initIndexedDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction('records', 'readwrite');
+        const store = tx.objectStore('records');
+        const req = store.delete(uuid);
+        req.onsuccess = () => resolve(true);
+        req.onerror = (e) => reject(e.target.error);
+    });
+}
+
 // APIと同期
 // @param {Object} record - 同期するレコード
 // @returns {Promise<Object>} - 同期後のレコード
