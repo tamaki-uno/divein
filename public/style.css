@@ -207,36 +207,42 @@ div.record-container {
     /* flex-direction: row; Row layout for record lines */
     flex-direction: column; /* Column layout for record lines */
     width: 100%; /* Full width of the container */
-    align-items: center;
-    background-color: #ddd;
-    padding: 10px;
-    margin: 10px 0;
+    /* align-items: center; */
+    align-items: stretch;
+    background-color: #eee;
+    /* padding: 10px; */
+    /* margin: 10px 0; */
     /* position: relative; For positioning child elements */
 }
 div.record-container div.record-line {
     display: flex;
     /* flex-direction: column; Column layout for record content */
     flex-direction: row; /* Row layout for record content */
-    width: 100%; /* Full width of the container */
     align-items: center;
-    width: 100%; /* Full width of the container */
+    box-sizing: border-box;
+    width: 100%;
     /* position: relative; For positioning child elements */
+    padding: 10px 20px; /* Padding for record lines */
+    /* margin: 5px 0; Margin between record lines */
+    background-color: #fff;
+    border: #ddd solid 1px; /* Border for record lines */
 }
 div.record-container div.record-line img.toggle-icon {
-    width: 24px;
-    height: 24px;
+    /* width: 24px;
+    height: 24px; */
     
     /* position: absolute; */
     /* position: relative; */
     /* top: 10px;
     left: 10px; */
+    width: 2em;
     cursor: pointer;
 }
 div.record-container div.record-line span.record-content {
-    flex: 1; /* Allow content to take available space */
+    flex: 1;
     margin: 0;
-    width: calc(100% - 50px); /* Adjusted to account for icon width */
-    font-size: 16px;
+    /* width: calc(100% - 50px); Adjusted to account for icon width */
+    /* font-size: 16px; */
     color: #333;
 }
 div.record-container img.delete-icon {
@@ -253,6 +259,7 @@ div.record-container div.children-container {
     margin-top: 10px;
     display: flex;
     flex-direction: column;
+    width: 100%; /* Full width of the container */
 }
 div.record-container img.add-icon {
     width: 24px;
