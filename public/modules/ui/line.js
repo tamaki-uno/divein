@@ -33,7 +33,7 @@ export default class Line extends Record {
         console.log('[line] Creating child parameters for Line module'); // 子要素のパラメータ作成ログ
         return {
             html: this.html, // HTMLを継承
-            parentNode: this.recordContainer, // 親ノードはレコードコンテナ
+            parentNode: this.querySelector('.children-container'), // 子要素を挿入する親ノード
             delete: this.delete, // 削除機能を継承
             level: this.level + 1 // レベルを1つ上げて子要素のレベルを設定
         };
