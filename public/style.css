@@ -204,21 +204,36 @@ main .level6 {
 /* Record styles */
 div.record-container {
     display: flex;
+    /* flex-direction: row; Row layout for record lines */
+    flex-direction: column; /* Column layout for record lines */
+    width: 100%; /* Full width of the container */
+    align-items: center;
     background-color: #ddd;
     padding: 10px;
     margin: 10px 0;
     /* position: relative; For positioning child elements */
 }
-div.record-container img.toggle-icon {
+div.record-container div.record-line {
+    display: flex;
+    /* flex-direction: column; Column layout for record content */
+    flex-direction: row; /* Row layout for record content */
+    width: 100%; /* Full width of the container */
+    align-items: center;
+    width: 100%; /* Full width of the container */
+    /* position: relative; For positioning child elements */
+}
+div.record-container div.record-line img.toggle-icon {
     width: 24px;
     height: 24px;
+    
     /* position: absolute; */
     /* position: relative; */
     /* top: 10px;
     left: 10px; */
     cursor: pointer;
 }
-div.record-container p.record-content {
+div.record-container div.record-line span.record-content {
+    flex: 1; /* Allow content to take available space */
     margin: 0;
     width: calc(100% - 50px); /* Adjusted to account for icon width */
     font-size: 16px;
