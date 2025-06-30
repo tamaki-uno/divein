@@ -18,12 +18,20 @@ export default class Record {
      */
     constructor(record, { html = '', parentNode, delete: deleteCallback }) {
         console.log('[record] Record module initialized'); // レコードモジュール初期化ログ
-        this.record = record; // レコードデータを設定
+        this.setRecord(record); // レコードデータを設定
         this.html = html; // レコードのHTMLを設定
         this.parentNode = parentNode; // レコードを挿入する親ノードを設定
-        this.childrenInstance = []; // 子要素のインスタンスを格納する配列
+        this.childInstances = []; // 子要素のインスタンスを格納する配列
         this.isOpen = false; // レコードの開閉状態を管理
         this.getRender(); // レコードを同期してレンダリング
+    }
+    setRecord(record) {
+        this.record = {
+            ...record,
+            children: parseJsonArray(record.children),
+            permissionRead: parseJsonArray(record.permissionRead),
+            permissionWrite: parseJsonArray(record.permissionWrite)
+        };
     }
     /**
      * レコードのHTMLを初期化
@@ -61,6 +69,18 @@ export default class Record {
         console.log('[record] Rendering Record module'); // レンダリングログ
         this.initHtml(); // HTMLを初期化
         this.querySelector('.record-content').innerText = this.record?.content || 'Loading...'; // レコード内容を設定
+        try{
+        this.record.children.forEach(childUuid => {
+            if (this.childInstances.some(child => child.record.uuid === childUuid)) return; // 既に子要素が存在する場合はスキップ
+            const childRecord = { uuid: childUuid, type: 'text', content: 'Loading...' }; // 子要素のレコードを作成
+            const childParams = this.createChildParams(); // 子要素のパラメータを作成
+            const childInstance = new Record(childRecord, childParams); // 子要素のインスタンスを作成
+            this.childInstances.push(childInstance); // 子要素のインスタンスを配列に追加
+            this.querySelector('.children-container').appendChild(childInstance); // 子要素をレンダリングして追加
+        });
+        } catch (error) {
+            console.error('[record] Error rendering children:', error); // 子要素レンダリングエラーをログ出力
+        }
         return this.recordContainer; // レコードのHTML要素を返す
     }
     /**
@@ -77,7 +97,7 @@ export default class Record {
             // getRecordFromIndexedDB(this.record.uuid) // IndexedDBからレコードを取得
             saveRecordToIndexedDB(this.record) // IndexedDBにレコードを保存
                 .then(record => {
-                    this.record = record; // 取得したレコードを設定
+                    this.setRecord(record); // 取得したレコードを設定
                     console.log('[record] Record fetched from IndexedDB:', this.record); // IndexedDB取得成功ログ
                     resolve(this.render()); // レコードをレンダリング
                 })
@@ -90,7 +110,7 @@ export default class Record {
             // getRecordFromAPI(this.record.uuid)
             syncRecord(this.record) // APIと同期してレコードを取得
                 .then(record => {
-                    this.record = record; // APIから取得したレコードを設定
+                    this.setRecord(record); // 取得したレコードを設定
                     console.log('[record] Record synced with API:', this.record); // API同期成功ログ
                     resolve(this.render()); // レコードをレンダリング
                 })
@@ -122,7 +142,7 @@ export default class Record {
         this.isOpen = true; // 開閉状態を更新
         this.querySelector('.toggle-icon').src = '/icon/open.svg'; // トグルアイコンを開いた状態に更新
         this.querySelector('.children-container').style.display = 'flex'; // 子要素を表示する
-        this.childrenInstance.forEach(child => child.render()); // 子要素をレンダリング
+        this.childInstances.forEach(child => child.render()); // 子要素をレンダリング
         return
     }
     /**
@@ -216,10 +236,10 @@ export default class Record {
         this.open(); // レコードを開く
         const childRecord = this.createChildRecord(); // 子要素のレコードを作成
         console.log('[record] Child record created:', childRecord); // 子要素のレコード作成ログ
-        this.childrenInstance.push(new Record(childRecord, this.createChildParams())); // 子要素のインスタンスを作成して配列に追加
+        this.childInstances.push(new Record(childRecord, this.createChildParams())); // 子要素のインスタンスを作成して配列に追加
         this.record.children.push(childRecord.uuid); // 親レコードの子要素配列に子要素のUUIDを追加
         return await syncRecord(this.record) // 親レコードをAPIと同期
-            .then(() => {
+            .then((syncedRecord) => {
                 console.log('[record] Child added successfully:', syncedRecord); // 子要素追加成功ログ
                 return this.getRender(); // レコードを再レンダリング
             })
@@ -241,7 +261,7 @@ export default class Record {
         const targetUuid = targetContainer.id; // ターゲットのUUIDを取得
         console.log(`[record] Deleting child with UUID: ${targetUuid}`); // 削除する子要素のUUIDをログに出力
         targetContainer.remove(); // ターゲットのHTML要素を親ノードから削除
-        this.childrenInstance = this.childrenInstance.filter(child => child.record.uuid !== targetUuid); // 子要素のインスタンスをフィルタリングして削除
+        this.childInstances = this.childInstances.filter(child => child.record.uuid !== targetUuid); // 子要素のインスタンスをフィルタリングして削除
         this.record.children = this.record.children.filter(uuid => uuid !== targetUuid); // 親レコードの子要素配列から削除
         const syncedRecord = syncRecord(this.record) // 親レコードをAPIと同期
             .then(() => {
@@ -255,4 +275,23 @@ export default class Record {
         // ゴミ箱に入れるを将来的に実装
         return syncedRecord; // 同期した親レコードを返す
     }
+}
+
+/**
+ * 空文字列やnullでも安全に配列を返すユーティリティ
+ * - 文字列がJSON形式の配列であればパースして返す
+ * - それ以外は空の配列を返す
+ * @param {any} val - 入力値
+ * @returns {Array} - パースされた配列または空の配列
+ */
+function parseJsonArray(val) {
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string' && val.trim() !== '') {
+        try {
+            return JSON.parse(val);
+        } catch {
+            return [];
+        }
+    }
+    return [];
 }
