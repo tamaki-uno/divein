@@ -1,156 +1,113 @@
 import { getRecordFromIndexedDB, saveRecordToIndexedDB, syncRecord } from './database.js';
 
+/** * レコード親クラス
+ * - ユーザーのレコードを管理
+ * * - IndexedDBからレコードを取得・保存
+ * - レコードの同期とレンダリングを行う
+ * * @class
+ * @param {string} uuid - ユーザーのUUID
+ * @param {HTMLElement} parentNode - レコードを挿入する親ノード
+ */
 export default class Record {
     /**
      * コンストラクタ
      * @param {string} uuid - ユーザーのUUID
+     * @param {HTMLElement} parentNode - レコードを挿入する親ノード
+     * @constructor
      */
-    constructor(uuid) {
+    constructor(uuid, parentNode) {
+        console.log('[record] Record module initialized'); // レコードモジュール初期化ログ
         this.uuid = uuid; // ユーザーのUUIDを設定
-        this.init().then(() => this.render()); // 初期化とレンダリングを実行
-        this.syncRecord().then(() => this.render()); // レコードを同期して再レンダリング
+        this.HTML_URL = '/modules/ui/html/record.html'; // レコードHTMLのURL
+        this.init(parentNode).then(() => this.render()); // 初期化とレンダリングを実行
+        syncRecord(uuid).then(() => this.rerender()); // レコードの同期後に再レンダリング
     }
     /**
      * 初期化処理
      * - HTMLを非同期で取得
      * - IndexedDBからレコードを取得
+     * @param {HTMLElement} parentNode - レコードを挿入する親ノード
      * @returns {Promise<void>} - 非同期処理の完了を示すPromise
      * @async
      */
-    async init() {
+    async init(parentNode) {
+        console.log('[record] Initializing Record module'); // 初期化ログ
         try {
+            this.parentNode = parentNode; // 親ノードを設定
             await this.fetchHtml(); // HTMLを非同期で取得
-            await this.getRecordFromIndexedDB(this.uuid); // IndexedDBからレコードを取得
+            this.html.id = this.uuid; // HTMLにUUIDを設定
+            await getRecordFromIndexedDB(this.uuid); // IndexedDBからレコードを取得
         } catch (error) {
             console.error('Initialization error:', error); // 初期化エラーをログ出力
         }
     }
 
+    /**
+     * レコードを同期して再レンダリング
+     * @returns {Promise<void>} - 非同期処理の完了を示すPromise
+     * @async
+     */
     async fetchHtml() {
-        return fetch('/modules/ui/html/record.html')
+        return fetch(this.HTML_URL) // レコードHTMLを非同期で取得
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load record HTML');
                 return response.text();
             })
             .then(html => {
-                const parser = new DOMParser();
-                this.html = parser.parseFromString(html, 'text/html');
-                return this.html;
+                this.html = DOMParser.parseFromString(html, 'text/html');
+                this.html.id = this.uuid; // HTMLにUUIDを設定
+                return this.html; // HTMLを返す
             })
             .catch(error => {
                 console.error('Error loading record HTML:', error);
             });
     }
-
-
     /**
-     * レコードをIndexedDBから取得し、this.recordに保存する
-     * @param {string} uuid - 取得するレコードのUUID
-     * @async
-     * @return {Promise<Object>} - 取得したレコードオブジェクト
-     * @throws {Error} - IndexedDBの操作に失敗した場合
+     * レコードをレンダリング
+     * - HTMLをbodyに挿入
+     * - レコードデータを表示
+     * @returns {HTMLElement} - レコードのHTML要素
      */
-    async getRecordFromIndexedDB(uuid) {
-        // return new Promise((resolve, reject) => {
-        //     const request = indexedDB.open('divein', 1);
-        //     request.onsuccess = (event) => {
-        //         const db = event.target.result;
-        //         const transaction = db.transaction(['records'], 'readonly');
-        //         const store = transaction.objectStore('records');
-        //         const getRequest = store.get(uuid);
-        //         getRequest.onsuccess = (event) => {
-        //             resolve(event.target.result);
-        //         };
-        //         getRequest.onerror = (event) => {
-        //             reject(event.target.error);
-        //         };
-        //     };
-        //     request.onerror = (event) => {
-        //         reject(event.target.error);
-        //     };
-        // });
-        try {
-            const request = await indexedDB.open('divein', 1);
-            const db = request.result;
-            const transaction = db.transaction(['records'], 'readonly');
-            const store = transaction.objectStore('records');
-        // return indexedDB.open('divein', 1)
-        //     .then(request => {
-        //         const db = request.result;
-        //         const transaction = db.transaction(['records'], 'readonly');
-        //         const store = transaction.objectStore('records');
-        //         return store.get(uuid)
-        //             .then(getRequest => {
-        //                 if (getRequest) {
-        //                     this.record = getRequest; // レコードをthis.recordに保存
-        //                     return this.record;
-        //                 } else {
-        //                     throw new Error(`Record with UUID ${uuid} not found`);
-        //                 }
-        //             });
+    render() {
+        console.log('[record] Rendering Record module'); // レンダリングログ
+        if (!this.html) this.fetchHtml(); // HTMLが未取得の場合は取得を試みる
+        if (document.getElementById(this.uuid)) this.rerender(); // 既にレンダリング済みの場合は再レンダリング
+        return this.parentNode.insertAdjacentHTML('beforeend', this.html); // HTMLを親ノードに挿入
     }
-
     /**
-     * レコードをthis.recordからIndexedDBに保存する
-     * @async
-     * @param {Object} record - 保存するレコードオブジェクト
-     * @returns {Promise<void>} - 非同期処理の完了を示すPromise
-     * @throws {Error} - IndexedDBの操作に失敗した場合
+     * レコードを再レンダリング
+     * - HTMLの内容を更新
+     * - レコードが未レンダリングの場合はレンダリングを実行
+     * @returns {void}
      */
-    async saveRecordToIndexedDB(record) {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open('divein', 1);
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('records')) {
-                    db.createObjectStore('records', { keyPath: 'uuid' });
-                }
-            };
-            request.onsuccess = (event) => {
-                const db = event.target.result;
-                const transaction = db.transaction(['records'], 'readwrite');
-                const store = transaction.objectStore('records');
-                const putRequest = store.put(record);
-                putRequest.onsuccess = () => {
-                    resolve();
-                };
-                putRequest.onerror = (event) => {
-                    reject(event.target.error);
-                };
-            };
-            request.onerror = (event) => {
-                reject(event.target.error);
-            };
-        });
+    rerender() {
+        console.log('[record] Re-rendering Record module'); // 再レンダリングログ
+        if (!this.html) this.fetchHtml(); // HTMLが未取得の場合は取得を試みる
+        if (!document.getElementById(this.uuid)) this.render(); // レコードが未レンダリングの場合はレンダリングを実行
+        return document.getElementById(this.uuid).innerHTML = this.html.innerHTML; // HTMLの内容を更新
     }
-
     /**
-     * レコードをIndexedDBから取得し、APIと同期する
-     * - レコードが存在しない場合は新規作成
-     * - レコードが存在する場合はAPIと同期
-     * @returns {Promise<void>} - 非同期処理の完了を示すPromise
-     * @async
+     * レコードモジュールを開く
+     * - レコードモジュールの初期化とレンダリングを実行
+     * @returns {void}
      */
-    async syncRecord() {
-        try {
-            const response = await fetch(API_ENDPOINT, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(this.record)
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            console.log('Sync successful:', data);
-            this.record = data.record || this.record;
-            return data;
-        } catch (error) {
-            console.error('Sync failed:', error);
-            throw error;
-        }
+    open() {
+        console.log('[record] Opening Record module'); // レコードモジュールを開くログ
     }
-
+    /**
+     * レコードモジュールを閉じる
+     * - レコードモジュールのHTMLを削除
+     * @returns {void}
+     */
+    close() {
+        console.log('[record] Closing Record module'); // レコードモジュールを閉じるログ
+    }
+    /**
+     * レコードモジュールに子要素を追加
+     * - 子要素を追加するためのメソッド
+     * @returns {void}
+     */
+    addChild() {
+        console.log('[record] Adding child to Record module'); // レコードモジュールに子要素を追加するログ
+    }
 }
