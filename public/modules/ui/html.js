@@ -25,6 +25,12 @@ export default class Html {
         console.log('[html] HTML fetched successfully'); // HTMLフェッチ成功ログ
         return this.node; // パースしたHTMLドキュメントを返す
     }
+    /**
+     * HTMLを初期化して返す
+     * - HTMLが未取得の場合はfetchHtmlを呼び出す
+     * @return {Promise<string>} - フェッチしたHTMLドキュメント
+     * @async
+     */
     async getHtml() {
         console.log('[html] Getting HTML'); // HTML取得ログ
         if (!this.doc) await this.fetchHtml(); // HTMLが未取得の場合はfetchHtmlを呼び出す

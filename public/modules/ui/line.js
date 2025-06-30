@@ -27,12 +27,6 @@ export default class Line extends Record {
         console.log('[line] Initializing HTML for Line module'); // LineモジュールのHTML初期化ログ
         super.initHtml();
         this.recordContainer.classList.add('level-' + this.level); // レコードコンテナにレベルクラスを追加
-            // .then(html => {
-            //     this.recordContainer.classList.add('line'); // レコードコンテナにlineクラスを追加
-            // })
-            // .catch(error => {
-            //     console.error('[line] Error initializing HTML:', error); // HTML初期化エラーログ
-            // });
         return this.recordContainer; // レコードコンテナを返す
     }
     /**
@@ -47,18 +41,11 @@ export default class Line extends Record {
         // 子要素のUUIDを生成
         const childUuid = crypto.randomUUID(); // 子要素のUUIDを生成
         console.log(`[line] Creating new Line child with UUID: ${childUuid} html: ${this.html} parentNode: ${this.parentNode} level: ${this.level + 1}`); // 子要素のUUIDをログに出力
-        console.log(this.html); // LineのHTMLをログに出力
-        // console.log(this.html.cloneNode(true)); // HTMLをクローンしてログに出力
-        console.log(this.node); // Lineのノードをログに出力
-        console.log(this.recordContainer); // レコードコンテナをログに出力
-        console.log(this.querySelector('.children-container')); // 子要素を追加するコンテナをログに出力
 
         this.child.push(
             new Record(
                 childUuid,
                 this.html, // LineのHTMLを使用
-                // this.html.cloneNode(true), // HTMLをクローンして子要素に渡す
-                // this.recordContainer, // レコードコンテナを使用
                 this.querySelector('.children-container'),
                 this.level + 1 // 子要素のレベルを親のレベル+1に設定
             ) // 子要素を追加

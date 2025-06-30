@@ -1,7 +1,7 @@
 'use strict';
 
 import route from '/modules/router.js'; // ルーティング用モジュール
-import { saveRecordToIndexedDB } from '../database.js';
+import { syncRecord } from '../database.js';
 
 /**
  * ポップアップを初期化する
@@ -177,7 +177,11 @@ function submitForm(event) {
         .then((json) => {
             console.log('User data received:', json.user);
             sessionStorage.setItem('user', JSON.stringify(json.user)); // ユーザーデータをセッションストレージに保存
-            saveRecordToIndexedDB(json.user); // IndexedDBにユーザーデータを保存
+            const syncedRecord = syncRecord(json.user);
+            if (json.user !== syncedRecord) {
+                console.warn('User data from API differs from action response, updating sessionStorage');
+                // sessionStorage.setItem('user', JSON.stringify(syncedRecord)); // セッションストレージを更新
+            }
             route('/', { reload: true, replace: false }); // ホームページへリダイレクト
         })
         .catch((error) => {

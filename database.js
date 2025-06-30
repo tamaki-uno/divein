@@ -254,7 +254,7 @@ export async function syncRecord(record) {
                     updatedAt: new Date().toISOString(),
                     updatedBy: record.updatedBy || existingRecord.updatedBy
                 };
-                return updateRecord(update);
+                return updateRecord(updates);
             } else {
                 return existingRecord;
             }

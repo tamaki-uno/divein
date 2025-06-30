@@ -1,4 +1,4 @@
-import { getRecordFromIndexedDB, saveRecordToIndexedDB, syncWithAPI } from './database.js';
+import { getRecordFromIndexedDB, getRecordFromAPI, syncRecord } from "./database.js";
 
 /** * レコード親クラス
  * - ユーザーのレコードを管理
@@ -16,14 +16,14 @@ export default class Record {
      * @param {HTMLElement} parentNode - レコードを挿入する親ノード
      * @constructor
      */
-    constructor(uuid, html, parentNode) {
+    constructor(record, { html = '', parentNode, delete: deleteCallback }) {
         console.log('[record] Record module initialized'); // レコードモジュール初期化ログ
-        this.uuid = uuid; // ユーザーのUUIDを設定
+        this.record = record; // レコードデータを設定
         this.html = html; // レコードのHTMLを設定
         this.parentNode = parentNode; // レコードを挿入する親ノードを設定
-        this.child = []; // 子要素を管理する配列
+        this.childrenInstance = []; // 子要素のインスタンスを格納する配列
         this.isOpen = false; // レコードの開閉状態を管理
-        this.render(); // レコードをレンダリング
+        this.getRender(); // レコードを同期してレンダリング
     }
     /**
      * レコードのHTMLを初期化
@@ -36,11 +36,10 @@ export default class Record {
         if (this.recordContainer) return this.recordContainer; // レコードコンテナが既に存在する場合はそのまま返す
         const parser = new DOMParser(); // DOMParserを使用してHTMLをパース
         this.node = parser.parseFromString(this.html, 'text/html'); // HTMLをパースしてノードを取得
-        this.recordContainer = document.getElementById(this.uuid) || this.node.querySelector('.record-container'); // レコードコンテナを取得または新規作成
-        console.log('[record] Record container initialized:', this.recordContainer); // レコードコンテナ初期化ログ
+        this.recordContainer = document.getElementById(this.record.uuid) || this.node.querySelector('.record-container'); // レコードコンテナを取得または新規作成
         this.parentNode.appendChild(this.recordContainer); // 親ノードにレコードコンテナを追加
         //
-        this.recordContainer.id = this.uuid; // レコードコンテナのIDをUUIDに設定
+        this.recordContainer.id = this.record.uuid; // レコードコンテナのIDをUUIDに設定
         this.querySelector = (selector) => this.recordContainer.querySelector(selector); // HTML要素のクエリセレクタを設定
         this.querySelectorAll = (selector) => this.recordContainer.querySelectorAll(selector); // HTML要素のクエリセレクタを設定
         // イベントリスナーを設定
@@ -48,7 +47,7 @@ export default class Record {
         this.querySelector('.toggle-icon').addEventListener('contextmenu', (e) => this.menu(e)); // トグルアイコンの右クリックイベントを設定
         this.querySelector('.record-content').addEventListener('click', (e) => this.edit(e)); // レコード内容のクリックイベントを設定
         this.querySelector('.record-content').addEventListener('contextmenu', (e) => this.menu(e)); // レコード内容の右クリックイベントを設定
-        this.querySelector('.delete-icon').addEventListener('click', (e) => this.delete(e)); // 削除アイコンのクリックイベントを設定
+        // this.querySelector('.delete-icon').addEventListener('click', (e) => this.delete(e)); // 削除アイコンのクリックイベントを設定
         this.querySelector('.add-icon').addEventListener('click', (e) => this.addChild(e)); // 子要素追加アイコンのクリックイベントを設定
         console.log('[record] HTML initialized successfully:', this.recordContainer); // HTML初期化成功ログ
         return this.recordContainer; // レコードのHTML要素を返す
@@ -75,9 +74,10 @@ export default class Record {
     async getRender() {
         console.log('[record] Syncing and rendering Record module'); // 同期とレンダリングログ
         const renderIndexedDB = new Promise((resolve, reject) => {
-            getRecordFromIndexedDB(this.uuid) // IndexedDBからレコードを取得
+            getRecordFromIndexedDB(this.record.uuid) // IndexedDBからレコードを取得
                 .then(record => {
                     this.record = record; // 取得したレコードを設定
+                    console.log('[record] Record fetched from IndexedDB:', this.record); // IndexedDB取得成功ログ
                     resolve(this.render()); // レコードをレンダリング
                 })
                 .catch(error => {
@@ -86,9 +86,10 @@ export default class Record {
                 });
         });
         const renderAPI = new Promise((resolve, reject) => {
-            syncWithAPI(this.uuid) // APIと同期してレコードを取得
+            getRecordFromAPI(this.record.uuid)
                 .then(record => {
                     this.record = record; // APIから取得したレコードを設定
+                    console.log('[record] Record synced with API:', this.record); // API同期成功ログ
                     resolve(this.render()); // レコードをレンダリング
                 })
                 .catch(error => {
@@ -96,7 +97,15 @@ export default class Record {
                     reject(error); // エラーを拒否
                 });
         });
-        return Promise.all([this.render(), renderIndexedDB, renderAPI]) // 全てのレンダリングを待つ
+        return Promise.all([this.render(), renderIndexedDB, renderAPI]) // レコードのレンダリングとIndexedDB、API同期を同時に実行
+            .then(() => {
+                console.log('[record] Record module rendered successfully'); // レコードモジュールレンダリング成功ログ
+                return this.recordContainer; // レコードのHTML要素を返す
+            })
+            .catch(error => {
+                console.error('[record] Error rendering Record module:', error); // レコードモジュールレンダリングエラーをログ出力
+                throw error; // エラーをスロー
+            });
     }
     /**
      * レコードを開く
@@ -111,9 +120,7 @@ export default class Record {
         this.isOpen = true; // 開閉状態を更新
         this.querySelector('.toggle-icon').src = '/icon/open.svg'; // トグルアイコンを開いた状態に更新
         this.querySelector('.children-container').style.display = 'flex'; // 子要素を表示する
-        this.child.forEach(child => {
-            child.render(); // 子要素をレンダリング
-        }); // 子要素をレンダリング
+        this.childrenInstance.forEach(child => child.render()); // 子要素をレンダリング
         return
     }
     /**
@@ -140,7 +147,6 @@ export default class Record {
         console.log('[record] Toggling Record module'); // トグルログ
         event.preventDefault(); // デフォルトの動作を防ぐ
         this.isOpen ? this.close() : this.open(); // 開閉状態に応じて開く/閉じる
-        this.rerender(); // レコードを再レンダリング
     }
     /**
      * レコードのコンテキストメニュー
@@ -166,36 +172,60 @@ export default class Record {
         event.preventDefault(); // デフォルトの動作を防ぐ
     }
     /**
-     * レコードを削除
-     * - HTML要素を親ノードから削除
-     * - インスタンス
-     * 
+     * レコードモジュールに子要素を追加
+     * - 子要素を追加するためのメソッド
      * @param {Event} event - クリックイベント
      * @returns {void}
      */
-    delete(event) {
-        console.log('[record] Deleting Record module'); // 削除ログ
-        event.preventDefault(); // デフォルトの動作を防ぐ
-        this.parentNode.removeChild(this.node); // HTML要素を親ノードから削除
-    }
-    /**
-     * レコードモジュールに子要素を追加
-     * - 子要素を追加するためのメソッド
-     * @returns {void}
-     */
-    addChild(event) {
+    async addChild(event) {
         console.log('[record] Adding child to Record module'); // レコードモジュールに子要素を追加するログ
         event.preventDefault(); // デフォルトの動作を防ぐ
-        // 子要素のUUIDを生成
-        const childUuid = crypto.randomUUID(); // 子要素のUUIDを生成
-        this.child.push(
-            new Record(
-                childUuid,
-                this.html,
-                this.querySelector('.children-container'),
-            ) // 子要素を追加
-        )
         this.open(); // レコードを開く
+        // 子要素のrecordを生成
+        const childUuid = crypto.randomUUID(); // 子要素のUUIDを生成
+        const user = JSON.parse(sessionStorage.getItem('user')); // セッションストレージからユーザーデータを取得
+        const childRecord = {
+            uuid: childUuid, // 子要素のUUID
+            type: 'text', // 子要素のタイプ（初期はテキスト）
+            content: 'Type something...', // 子要素の内容（初期は空）
+            children: [], // 子要素の配列を初期化
+            permissionRead: [user.uuid], // 読み取り権限にユーザーのUUIDを追加
+            permissionWrite: [user.uuid], // 書き込み権限にユーザーのUUIDを追加
+            createdBy: user.uuid, // 作成者のUUIDを設定
+            updatedBy: user.uuid, // 更新者のUUIDを設定
+            createdAt: new Date().toISOString(), // 作成日時をISO形式で設定
+            updatedAt: new Date().toISOString(), // 更新日時をISO形式で設定
+        };
+
+        const params = {
+            html: this.html, // 親レコードのHTMLを継承
+            parentNode: this.querySelector('.children-container'), // 子要素を挿入する親ノード
+            delete: this.deleteChild.bind(this) // 子要素削除メソッドをバインド
+        };
+        
+        this.childrenInstance.push(new Record(childRecord, params)); // 子要素のインスタンスを作成して配列に追加
+        this.record.children.push(childRecord.uuid); // 親レコードの子要素配列に子要素のUUIDを追加
+
+        const syncedRecord = await syncRecord(childRecord)
+            .then(record => {
+                console.log('[record] Child record synced with API:', record); // 子要素のAPI同期成功ログ
+                return record; // 同期した子要素のレコードを返す
+            })
+            .catch(error => {
+                console.error('[record] Error syncing child record with API:', error); // 子要素のAPI同期エラーをログ出力
+                throw error; // エラーをスロー
+            });
+
+
+        return await syncRecord(this.record) // 親レコードをAPIと同期
+            .then(() => {
+                console.log('[record] Child added successfully:', syncedRecord); // 子要素追加成功ログ
+                return this.getRender(); // レコードを再レンダリング
+            })
+            .catch(error => {
+                console.error('[record] Error adding child:', error); // 子要素追加エラーをログ出力
+                throw error; // エラーをスロー
+            });
     }
     /**
      * レコードモジュールから子要素を削除
@@ -203,11 +233,25 @@ export default class Record {
      * @param {number} index - 削除する子要素のインデックス
      * @returns {void}
      */
-    deleteChild(index) {
+    deleteChild(event) {
         console.log('[record] Deleting child from Record module'); // レコードモジュールから子要素を削除するログ
-        // 子要素を削除するためのメソッド
-        this.child[index].delete(); // 指定されたインデックスの子要素を削除
-        this.child.splice(index, 1); // 指定されたインデックスの子要素を削除
-        this.rerender(); // レコードを再レンダリング
+        event.preventDefault(); // デフォルトの動作を防ぐ
+        const targetContainer = event.target.closest('.record-container'); // イベントターゲットの最も近いレコードコンテナを取得
+        const targetUuid = targetContainer.id; // ターゲットのUUIDを取得
+        console.log(`[record] Deleting child with UUID: ${targetUuid}`); // 削除する子要素のUUIDをログに出力
+        targetContainer.remove(); // ターゲットのHTML要素を親ノードから削除
+        this.childrenInstance = this.childrenInstance.filter(child => child.record.uuid !== targetUuid); // 子要素のインスタンスをフィルタリングして削除
+        this.record.children = this.record.children.filter(uuid => uuid !== targetUuid); // 親レコードの子要素配列から削除
+        const syncedRecord = syncRecord(this.record) // 親レコードをAPIと同期
+            .then(() => {
+                console.log('[record] Child deleted successfully:', targetUuid); // 子要素削除成功ログ
+                return this.getRender(); // レコードを再レンダリング
+            })
+            .catch(error => {
+                console.error('[record] Error deleting child:', error); // 子要素削除エラーをログ出力
+                throw error; // エラーをスロー
+            });
+        // ゴミ箱に入れるを将来的に実装
+        return syncedRecord; // 同期した親レコードを返す
     }
 }

@@ -52,7 +52,10 @@ export async function saveRecordToIndexedDB(record) {
         const req = store.put(record); // putメソッドを使用してレコードを保存または更新
         req.onsuccess = () => {
             console.log('[database] Record saved successfully:', record.uuid);
-            resolve();
+            // resolve();
+            console.log('[database] Record saved successfully:', req);
+            console.log('[database] Record saved successfully:', req.result);
+            resolve(record); // 保存したレコードを返す
         };
         req.onerror = (e) => {
             console.error('[database] Error saving record:', e.target.error);
@@ -142,10 +145,11 @@ export async function fetchAPI(record, API_URL='/api/v0/sync', method='POST') {
         });
         if (!response.ok) {
             if (response.status === 401) {
-                // 認証エラーの場合はログインページにリダイレクト
-                const loginUrl = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                // // 認証エラーの場合はログインページにリダイレクト
+                // const loginUrl = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                const loginUrl = '/login';
+                console.warn('[database] Authentication error, redirecting to login:', loginUrl);
                 route(loginUrl, { reload: true, overwrite: true });
-                throw new Error('認証エラー: ログインが必要です');
             } else {
                 throw new Error(`API fetch failed: ${response.status}`);
             }
