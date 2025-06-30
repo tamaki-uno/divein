@@ -3,6 +3,9 @@
  * - openDBは使わず標準APIで実装
  * - レコードの保存・取得・同期処理を提供
  */
+'use strict';
+
+import route from './router.js';
 
 const API_URL = '/api/v0/sync';
 
@@ -140,12 +143,23 @@ export async function syncWithAPI(uuid) {
             body: JSON.stringify(record)
         });
         if (!response.ok) {
-            throw new Error(`API sync failed: ${response.status}`);
+            // throw new Error(`API sync failed: ${response.status}`);
+            if (response.status === 401) {
+                route('/login', { reload: true, overwrite: true });
+                throw new Error('認証エラー: ログインが必要です');
+            } else {
+                throw new Error(`API sync failed: ${response.status}`);
+            }
         }
         console.log('[database] API sync successful:', response);
-        const syncedRecord = await response.json();
+        // const syncedRecord = await response.json();
+        // const syncedRecord = await response.json();
+        const json = await response.json();
+        console.log('[database] response.json():', json);
+        const syncedRecord = json.record;
+        console.log('[database] Synced record:', syncedRecord);
         if (!syncedRecord || !syncedRecord.uuid) {
-            throw new Error('APIから不正なレコードデータが返されました');
+            throw new Error('APIから不正なレコードデータが返されました', syncedRecord);
         }
         await saveRecordToIndexedDB(syncedRecord);
         console.log('[database] Record synced successfully:', syncedRecord);
