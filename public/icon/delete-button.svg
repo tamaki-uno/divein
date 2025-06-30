@@ -1,12 +1,12 @@
 <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- ゴミ箱本体 -->
-  <rect x="15" y="25" width="70" height="60" rx="8" ry="8" fill="#E57373"/>
-  <!-- 左の白線 -->
-  <rect x="32" y="40" width="8" height="35" fill="white"/>
-  <!-- 右の白線 -->
-  <rect x="60" y="40" width="8" height="35" fill="white"/>
+  <!-- ゴミ箱のアイコン -->
   <!-- フタ -->
-  <rect x="38" y="15" width="24" height="8" fill="#E57373"/>
-  <!-- フタの線 -->
-  <line x1="20" y1="25" x2="80" y2="25" stroke="white" stroke-width="12" stroke-linecap="round"/>
+  <line x1="50" y1="10" x2="50" y2="20" stroke="#333" stroke-width="12" stroke-linecap="round"/>
+  <line x1="20" y1="20" x2="80" y2="20" stroke="#333" stroke-width="12" stroke-linecap="round"/>
+  <!-- 本体 -->
+  <path 
+    d="M25 40 L30 90 L70 90 L75 40" 
+    stroke="#333" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"
+    fill="none"
+  />
 </svg>
