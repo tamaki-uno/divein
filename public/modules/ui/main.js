@@ -1,7 +1,8 @@
 
 
 import { showLoading, hideLoading } from './loading.js';
-import Record from '../record.js';
+// import Record from '../record.js';
+import Line from './line.js';
 
 export default function initMain() {
     console.log('[ui] Initializing main UI'); // メインUI初期化ログ
@@ -19,26 +20,8 @@ export default function initMain() {
         hideLoading(); // ローディングUIを非表示
         const div = document.createElement('div'); // 新しいdiv要素を作成
         main.appendChild(div); // メイン要素に追加
-        const record = new Record(user.uuid, div); // Recordインスタンスを生成
-
-
-    //     // ユーザーデータが存在する場合はLineインスタンスを生成し、メイン要素に描画
-    //     const line = new Line(user.uuid);
-    //     line.render(main).then(() => {
-    //         hideLoading(); // 描画完了後にローディングUIを非表示
-    //     });
-    // } else {
-    //     main.innerText = 'Please log in to view your data.'; // ユーザーデータがない場合のメッセージ
-    //     hideLoading(); // ローディングUIを非表示
-    // }
+        div.classList.add('space'); // divにクラスを追加
+        // const line = new Line(user.uuid, div, 0); // Lineインスタンスを生成
+        new Line(user.uuid, div, 0) // Lineインスタンスを生成
     }
-        // const line = new Line(userData.user.uuid);
-        // // Lineインスタンスがreadyプロパティを持つ場合は非同期描画
-        // if (line.ready && typeof line.ready.then === 'function') {
-        //     line.ready.then(() => {
-        //         main.appendChild(line.render());
-        //     });
-        // } else {
-        //     main.appendChild(line.render());
-        // }
 }
