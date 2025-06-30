@@ -42,6 +42,10 @@ export default function initMain() {
             p.innerText = testText; // p要素のテキストを更新
         }, 1000); // 1秒後にテキストを更新
 
-        hideLoading(); // ローディングUIを非表示
+        // hideLoading(); // ローディングUIを非表示
+        setTimeout(() => {
+            console.log('[ui] Always load for 2 seconds(for test, of course (how the hell do i need to leave this in production?))'); // 2秒後のログ
+            hideLoading(); // ローディングUIを非表示
+        }, 2000); // 2秒後にローディングUIを非表示
     }
 }
