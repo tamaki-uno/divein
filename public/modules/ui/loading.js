@@ -12,10 +12,8 @@ export function showLoading() {
     const loadingElement = document.querySelector('.loading'); // ローディング要素を取得
     if (loadingElement) {
         loadingElement.style.display = 'flex'; // ローディング要素を表示
-        // document.querySelector('body').style.filter = 'blur(20px)'; // ボディにぼかし効果を適用
-        // document.body.style.filter = 'blur(5px)'; // ボディにぼかし効果を適用
-        document.querySelector('header').style.filter = 'blur(5px)'; // ヘッダーにぼかし効果を適用
-        document.querySelector('main').style.filter = 'blur(5px)'; // メインにぼかし効果を適用
+        // document.querySelector('header').style.filter = 'blur(5px)'; // ヘッダーにぼかし効果を適用
+        // document.querySelector('main').style.filter = 'blur(5px)'; // メインにぼかし効果を適用
     } else {
         console.warn('[ui] Loading element not found'); // ローディング要素が見つからない場合の警告
     }
@@ -31,10 +29,8 @@ export function hideLoading() {
     const loadingElement = document.querySelector('.loading'); // ローディング要素を取得
     if (loadingElement) {
         loadingElement.style.display = 'none'; // ローディング要素を非表示
-        // .querySelector('body').style.filter = 'none'; // ボディのぼかし効果を解除
-        // document.body.style.filter = 'none'; // ボディのぼかし効果を解除
-        document.querySelector('header').style.filter = 'none'; // ヘッダーのぼかし効果を解除
-        document.querySelector('main').style.filter = 'none'; // メインのぼかし効果を解除
+        // document.querySelector('header').style.filter = 'none'; // ヘッダーのぼかし効果を解除
+        // document.querySelector('main').style.filter = 'none'; // メインのぼかし効果を解除
     } else {
         console.warn('[ui] Loading element not found'); // ローディング要素が見つからない場合の警告
     }
