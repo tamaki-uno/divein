@@ -1,6 +1,7 @@
 
 
 import { showLoading, hideLoading } from './loading.js';
+import Record from '../record.js';
 
 export default function initMain() {
     console.log('[ui] Initializing main UI'); // メインUI初期化ログ
@@ -16,6 +17,9 @@ export default function initMain() {
         main.innerHTML = ''; // ユーザーデータが存在する場合はメイン要素をクリア
         main.innerText = `loading... \n uuid: ${user.uuid}\n`; // ユーザーデータのUUIDを表示
         hideLoading(); // ローディングUIを非表示
+        const div = document.createElement('div'); // 新しいdiv要素を作成
+        main.appendChild(div); // メイン要素に追加
+        const record = new Record(user.uuid, div); // Recordインスタンスを生成
 
 
     //     // ユーザーデータが存在する場合はLineインスタンスを生成し、メイン要素に描画

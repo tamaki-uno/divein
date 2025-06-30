@@ -1,4 +1,4 @@
-import { getRecordFromIndexedDB, saveRecordToIndexedDB, syncRecord } from './database.js';
+import { getRecordFromIndexedDB, saveRecordToIndexedDB, syncWithAPI } from './database.js';
 
 /** * レコード親クラス
  * - ユーザーのレコードを管理
@@ -20,7 +20,7 @@ export default class Record {
         this.uuid = uuid; // ユーザーのUUIDを設定
         this.HTML_URL = '/modules/ui/html/record.html'; // レコードHTMLのURL
         this.init(parentNode).then(() => this.render()); // 初期化とレンダリングを実行
-        syncRecord(uuid).then(() => this.rerender()); // レコードの同期後に再レンダリング
+        syncWithAPI(uuid).then(() => this.rerender()); // レコードの同期後に再レンダリング
     }
     /**
      * 初期化処理
@@ -35,13 +35,12 @@ export default class Record {
         try {
             this.parentNode = parentNode; // 親ノードを設定
             await this.fetchHtml(); // HTMLを非同期で取得
-            this.html.id = this.uuid; // HTMLにUUIDを設定
+            this.initHtml(); // HTMLを初期化
             await getRecordFromIndexedDB(this.uuid); // IndexedDBからレコードを取得
         } catch (error) {
             console.error('Initialization error:', error); // 初期化エラーをログ出力
         }
     }
-
     /**
      * レコードを同期して再レンダリング
      * @returns {Promise<void>} - 非同期処理の完了を示すPromise
@@ -54,13 +53,29 @@ export default class Record {
                 return response.text();
             })
             .then(html => {
-                this.html = DOMParser.parseFromString(html, 'text/html');
-                this.html.id = this.uuid; // HTMLにUUIDを設定
-                return this.html; // HTMLを返す
+                // const parser = new DOMParser(); // DOMParserを使用してHTMLをパース
+                // // this.html = DOMParser.parseFromString(html, 'text/html');
+                // this.html = parser.parseFromString(html, 'text/html');
+                const doc = new DOMParser().parseFromString(html, 'text/html'); // HTMLをパース
+                this.html = doc.querySelector('.record-container'); // レコードコンテナを取得
+                console.log(this.html); // HTMLの内容をログ出力
+                return this.html; // レコードのHTML要素を返す
             })
             .catch(error => {
                 console.error('Error loading record HTML:', error);
             });
+    }
+    /**
+     * レコードのHTMLを初期化
+     * - HTMLが未取得の場合はfetchHtmlを呼び出す
+     * - HTMLにUUIDを設定
+     * @returns {HTMLElement} - レコードのHTML要素
+     */
+    initHtml() {
+        console.log('[record] Initializing HTML for Record module'); // HTML初期化ログ
+        if (!this.html) this.fetchHtml(); // HTMLが未取得の場合は取得を試みる
+        this.html.id = this.uuid; // HTMLにUUIDを設定
+        return this.html; // HTMLを返す
     }
     /**
      * レコードをレンダリング
