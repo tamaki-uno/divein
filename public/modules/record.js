@@ -108,20 +108,48 @@ export default class Record {
         console.log('[record] Re-rendering Record module'); // 再レンダリングログ
         if (!this.html) this.fetchHtml(); // HTMLが未取得の場合は取得を試みる
         if (!document.getElementById(this.uuid)) this.render(); // レコードが未レンダリングの場合はレンダリングを実行
-        return document.getElementById(this.uuid).innerHTML = this.html.innerHTML; // HTMLの内容を更新
+        // return document.getElementById(this.uuid).innerHTML = this.html.innerHTML; // HTMLの内容を更新
+        // return document.getElementById(this.uuid).
+        const targetDiv = document.getElementById(this.uuid); // レコードのHTML要素を取得
+        const target = targetDiv.querySelector('.record-content'); // レコード内容の要素を取得
+        return target.innerHTML = this.html.querySelector('.record-content').innerHTML; // レコード内容を更新
     }
+    open() {
+        console.log('[record] Opening Record module'); // 開くログ
+        this.isOpen = true; // 開閉状態を更新
+        this.html.querySelector('.toggle-icon').src = '/icon/open.svg'; // トグルアイコンを開いた状態に更新
+        this.html.querySelector('.children-container').style.display = 'flex'; // 子要素を表示する
+        this.child.forEach(child => {
+            child.render(); // 子要素をレンダリング
+        }); // 子要素をレンダリング
+        return
+    }
+    close() {
+        console.log('[record] Closing Record module'); // 閉じるログ
+        this.isOpen = false; // 開閉状態を更新
+        this.html.querySelector('.toggle-icon').src = '/icon/closed.svg'; // トグルアイコンを閉じた状態に更新
+        this.html.querySelector('.children-container').style.display = 'none'; // 子要素を非表示にする
+        return
+    }
+    /**
+     * レコードの編集
+     * - レコード内容をクリックしたときに編集モードにする
+     * @param {Event} event - クリックイベント
+     * @returns {void}
+     */
     toggle(event) {
         console.log('[record] Toggling Record module'); // トグルログ
         event.preventDefault(); // デフォルトの動作を防ぐ
-        if (this.isOpen) {
-            this.isOpen = false; // 開閉状態を更新
-            this.html.querySelector('.toggle-icon').src = '/icon/closed.svg'; // トグルアイコンを閉じた状態に更新
-            this.html.querySelector('.children-container').style.display = 'none'; // 子要素を非表示にする
-        } else {
-            this.isOpen = true; // 開閉状態を更新
-            this.html.querySelector('.toggle-icon').src = '/icon/open.svg'; // トグルアイコンを開いた状態に更新
-            this.html.querySelector('.children-container').style.display = 'flex'; // 子要素を表示する
-        }
+        // if (this.isOpen) {
+        //     this.isOpen = false; // 開閉状態を更新
+        //     this.html.querySelector('.toggle-icon').src = '/icon/closed.svg'; // トグルアイコンを閉じた状態に更新
+        //     this.html.querySelector('.children-container').style.display = 'none'; // 子要素を非表示にする
+        // } else {
+        //     this.isOpen = true; // 開閉状態を更新
+        //     this.html.querySelector('.toggle-icon').src = '/icon/open.svg'; // トグルアイコンを開いた状態に更新
+        //     this.html.querySelector('.children-container').style.display = 'flex'; // 子要素を表示する
+        // }
+        this.isOpen ? this.close() : this.open(); // 開閉状態に応じて開く/閉じる
         this.rerender(); // レコードを再レンダリング
     }
     /**
@@ -145,7 +173,16 @@ export default class Record {
     addChild(event) {
         console.log('[record] Adding child to Record module'); // レコードモジュールに子要素を追加するログ
         event.preventDefault(); // デフォルトの動作を防ぐ
-        this.child.push(new Record(this.uuid, this.html.querySelector('.children-container'))); // 子要素を追加
+        // 子要素のUUIDを生成
+        const childUuid = crypto.randomUUID(); // 子要素のUUIDを生成
+        // this.child.push(new Record(this.uuid, this.html.querySelector('.children-container'))); // 子要素を追加
+        this.child.push(
+            new Record(
+                childUuid,
+                this.html.querySelector('.children-container')
+            ) // 子要素を追加
+        )
+        this.open(); // レコードを開く
     }
     /**
      * レコードモジュールから子要素を削除
