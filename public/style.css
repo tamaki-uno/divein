@@ -220,6 +220,7 @@ div.record-container img.toggle-icon {
 }
 div.record-container p.record-content {
     margin: 0;
+    width: calc(100% - 50px); /* Adjusted to account for icon width */
     font-size: 16px;
     color: #333;
 }
@@ -238,9 +239,9 @@ div.record-container div.children-container {
     display: flex;
     flex-direction: column;
 }
-div.record-container div.children-container img.add-icon {
+div.record-container img.add-icon {
     width: 24px;
     height: 24px;
     cursor: pointer;
-    align-self: flex-start; /* Align to the start of the container */
+    /* align-self: flex-start; Align to the start of the container */
 }
