@@ -15,12 +15,12 @@ export function showLoading() {
         loadingElement.style.display = 'flex'; // ローディング要素を表示
         // document.querySelector('header').style.filter = 'blur(5px)'; // ヘッダーにぼかし効果を適用
         // document.querySelector('main').style.filter = 'blur(5px)'; // メインにぼかし効果を適用
-        // setTimeout(() => {
-        //     if (loadingElement.style.display === 'flex') {
-        //         console.warn('[ui] Loading UI is still visible after 5 seconds'); // ローディングUIが5秒後も表示されている場合の警告
-        //         route(window.location.pathname, { reload: true, overwrite: true }); // ページをリロード
-        //     }
-        // }, 5000); // 5秒後に警告を表示
+        setTimeout(() => {
+            if (loadingElement.style.display === 'flex' && document.querySelector('.popup').style.display !== 'flex') {
+                console.warn('[ui] Loading UI is still visible after 5 seconds'); // ローディングUIが5秒後も表示されている場合の警告
+                route(window.location.pathname, { reload: true, overwrite: true }); // ページをリロード
+            }
+        }, 5000); // 5秒後に警告を表示
     } else {
         console.warn('[ui] Loading element not found'); // ローディング要素が見つからない場合の警告
     }

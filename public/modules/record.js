@@ -1,4 +1,4 @@
-import { getRecordFromIndexedDB, getRecordFromAPI, syncRecord } from "./database.js";
+import { getRecordFromIndexedDB, getRecordFromAPI, syncRecord, saveRecordToIndexedDB } from "./database.js";
 
 /** * レコード親クラス
  * - ユーザーのレコードを管理
@@ -74,7 +74,8 @@ export default class Record {
     async getRender() {
         console.log('[record] Syncing and rendering Record module'); // 同期とレンダリングログ
         const renderIndexedDB = new Promise((resolve, reject) => {
-            getRecordFromIndexedDB(this.record.uuid) // IndexedDBからレコードを取得
+            // getRecordFromIndexedDB(this.record.uuid) // IndexedDBからレコードを取得
+            saveRecordToIndexedDB(this.record) // IndexedDBにレコードを保存
                 .then(record => {
                     this.record = record; // 取得したレコードを設定
                     console.log('[record] Record fetched from IndexedDB:', this.record); // IndexedDB取得成功ログ
@@ -86,7 +87,8 @@ export default class Record {
                 });
         });
         const renderAPI = new Promise((resolve, reject) => {
-            getRecordFromAPI(this.record.uuid)
+            // getRecordFromAPI(this.record.uuid)
+            syncRecord(this.record) // APIと同期してレコードを取得
                 .then(record => {
                     this.record = record; // APIから取得したレコードを設定
                     console.log('[record] Record synced with API:', this.record); // API同期成功ログ
@@ -172,19 +174,16 @@ export default class Record {
         event.preventDefault(); // デフォルトの動作を防ぐ
     }
     /**
-     * レコードモジュールに子要素を追加
-     * - 子要素を追加するためのメソッド
-     * @param {Event} event - クリックイベント
-     * @returns {void}
+     * 子要素のレコードを作成
+     * - 子要素のレコードを作成するためのメソッド
+     * @returns {Object} - 作成された子要素のレコード
+     * @async
      */
-    async addChild(event) {
-        console.log('[record] Adding child to Record module'); // レコードモジュールに子要素を追加するログ
-        event.preventDefault(); // デフォルトの動作を防ぐ
-        this.open(); // レコードを開く
-        // 子要素のrecordを生成
+    createChildRecord() {
+        console.log('[record] Creating child record'); // 子要素のレコード作成
         const childUuid = crypto.randomUUID(); // 子要素のUUIDを生成
         const user = JSON.parse(sessionStorage.getItem('user')); // セッションストレージからユーザーデータを取得
-        const childRecord = {
+        return {
             uuid: childUuid, // 子要素のUUID
             type: 'text', // 子要素のタイプ（初期はテキスト）
             content: 'Type something...', // 子要素の内容（初期は空）
@@ -196,27 +195,29 @@ export default class Record {
             createdAt: new Date().toISOString(), // 作成日時をISO形式で設定
             updatedAt: new Date().toISOString(), // 更新日時をISO形式で設定
         };
-
-        const params = {
+    }
+    createChildParams() {
+        console.log('[record] Creating child params for Record module'); // 子要素のパラメータ作成ログ
+        return {
             html: this.html, // 親レコードのHTMLを継承
             parentNode: this.querySelector('.children-container'), // 子要素を挿入する親ノード
             delete: this.deleteChild.bind(this) // 子要素削除メソッドをバインド
         };
-        
-        this.childrenInstance.push(new Record(childRecord, params)); // 子要素のインスタンスを作成して配列に追加
+    }
+    /**
+     * レコードモジュールに子要素を追加
+     * - 子要素を追加するためのメソッド
+     * @param {Event} event - クリックイベント
+     * @returns {void}
+     */
+    async addChild(event) {
+        console.log('[record] Adding child to Record module'); // レコードモジュールに子要素を追加するログ
+        event.preventDefault(); // デフォルトの動作を防ぐ
+        this.open(); // レコードを開く
+        const childRecord = this.createChildRecord(); // 子要素のレコードを作成
+        console.log('[record] Child record created:', childRecord); // 子要素のレコード作成ログ
+        this.childrenInstance.push(new Record(childRecord, this.createChildParams())); // 子要素のインスタンスを作成して配列に追加
         this.record.children.push(childRecord.uuid); // 親レコードの子要素配列に子要素のUUIDを追加
-
-        const syncedRecord = await syncRecord(childRecord)
-            .then(record => {
-                console.log('[record] Child record synced with API:', record); // 子要素のAPI同期成功ログ
-                return record; // 同期した子要素のレコードを返す
-            })
-            .catch(error => {
-                console.error('[record] Error syncing child record with API:', error); // 子要素のAPI同期エラーをログ出力
-                throw error; // エラーをスロー
-            });
-
-
         return await syncRecord(this.record) // 親レコードをAPIと同期
             .then(() => {
                 console.log('[record] Child added successfully:', syncedRecord); // 子要素追加成功ログ

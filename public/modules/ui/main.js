@@ -19,7 +19,7 @@ export default async function initMain() {
         // console.log('[ui] User record synced with API:', userRecord); // ユーザーレコード同期成功ログ
 
         lineHtml.getHtml().then(html => {
-            console.log('[ui] Line HTML loaded successfully', html); // Line HTMLの読み込み成功ログ
+            // console.log('[ui] Line HTML loaded successfully', html); // Line HTMLの読み込み成功ログ
             const line = new Line(user, { html, parentNode: main, delete: null }); // Lineのインスタンスを作成
             hideLoading(); // ローディングUIを非表示
         }).catch(error => {

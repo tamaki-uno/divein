@@ -13,10 +13,10 @@ export default class Line extends Record {
      * @param {HTMLElement} parentNode - レコードを挿入する親ノード
      * @param {number} level - レコードのレベル
      */
-    constructor(uuid, html, parentNode, level) {
+    constructor(record, params) {
         console.log('[line] Initializing Line module'); // Lineモジュール初期化ログ
-        super(uuid, html, parentNode); // 親クラスのコンストラクタを呼び出す
-        this.level = level; // レベルを設定
+        super(record, {html: params.html, parentNode: params.parentNode, delete: params.delete}); // 親クラスRecordのコンストラクタを呼び出す
+        this.level = params.level; // レベルを設定、デフォルトは0
     }
     /**
      * HTMLを初期化して返す
@@ -29,27 +29,13 @@ export default class Line extends Record {
         this.recordContainer.classList.add('level-' + this.level); // レコードコンテナにレベルクラスを追加
         return this.recordContainer; // レコードコンテナを返す
     }
-    /**
-     * 子要素を追加する
-     * - 子要素のUUIDを生成し、Recordインスタンスを作成
-     * - レベルを親のレベル+1に設定
-     * @param {Event} event - イベントオブジェクト
-     */
-    addChild(event) {
-        console.log('[line] Adding child to Line module'); // 子要素追加ログ
-        event.preventDefault(); // デフォルトの動作を防ぐ
-        // 子要素のUUIDを生成
-        const childUuid = crypto.randomUUID(); // 子要素のUUIDを生成
-        console.log(`[line] Creating new Line child with UUID: ${childUuid} html: ${this.html} parentNode: ${this.parentNode} level: ${this.level + 1}`); // 子要素のUUIDをログに出力
-
-        this.child.push(
-            new Record(
-                childUuid,
-                this.html, // LineのHTMLを使用
-                this.querySelector('.children-container'),
-                this.level + 1 // 子要素のレベルを親のレベル+1に設定
-            ) // 子要素を追加
-        )
-        this.open(); // レコードを開く
+    createChildParams() {
+        console.log('[line] Creating child parameters for Line module'); // 子要素のパラメータ作成ログ
+        return {
+            html: this.html, // HTMLを継承
+            parentNode: this.recordContainer, // 親ノードはレコードコンテナ
+            delete: this.delete, // 削除機能を継承
+            level: this.level + 1 // レベルを1つ上げて子要素のレベルを設定
+        };
     }
 }
