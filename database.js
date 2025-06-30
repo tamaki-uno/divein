@@ -140,22 +140,23 @@ export async function findRecords(query, options = { limit: 100, sortBy: 'create
  */
 function prepareRecord(record) {
     const keys = Object.keys(columns);
-    const columnsToChange = keys.join(', ');
-    const placeholders = keys.map(() => '?').join(', ');
-    const values = keys.map(key => {
-        if (key === 'children' || key === 'permissionsRead' || key === 'permissionsWrite') {
-            return record[key] !== undefined ? JSON.stringify(record[key]) : JSON.stringify([]);
-        } else if (key === 'createdAt' || key === 'updatedAt') {
-            return record[key] ? new Date(record[key]).toISOString() : new Date().toISOString();
-        } else {
-            return record[key] ?? null;
-        }
-    });
     return {
-        columns: columnsToChange,
-        placeholders,
-        values
-    };
+        columns: keys.join(', '), // カラム名をカンマ区切りで結合
+        placeholders: keys.map(() => '?').join(', '), // プレースホルダをカンマ区切りで結合
+        setClause: keys.map(key => `${key} = ?`).join(', '), // SET句をカンマ区切りで結合
+        values: keys.map(key => {
+            // 特定のカラムに対する変換処理
+            if (key === 'children' || key === 'permissionsRead' || key === 'permissionsWrite') {
+                // JSON文字列として格納するカラムはJSON.stringifyで変換
+                return record[key] !== undefined ? JSON.stringify(record[key]) : JSON.stringify([]);
+            } else if (key === 'createdAt' || key === 'updatedAt') {
+                // 日時カラムはISO形式の文字列に変換
+                return record[key] ? new Date(record[key]).toISOString() : new Date().toISOString();
+            }
+            // その他のカラムはそのまま返す
+            return record[key] ?? null;
+        })
+    }
 }
 
 
@@ -179,92 +180,40 @@ async function insertRecord(record) {
                     console.error('レコード挿入エラー:', err.message);
                     reject(err);
                 } else {
-                    resolve({ id: this.lastID, changes: this.changes });
+                    // resolve({ id: this.lastID, changes: this.changes });
+                    resolve(record); // 挿入したレコードを返す
                 }
             }
         );
     });
 }
-
-// /**
-//  * レコードを更新または挿入する関数
-//  * @param {Object} record
-//  * @returns {Promise<Object>}
-//  */
-// // export async function saveRecord(record) {
-// export async function upsertRecord(record) {
-//     if (!record || !record.uuid) {
-//         throw new Error('saveRecord: recordまたはuuidが未指定です');
-//     }
-//     const db = getDatabaseConnection();
-//     return new Promise((resolve, reject) => {
-//         const keys = Object.keys(columns);
-//         const setClause = keys.map(key => `${key} = ?`).join(', ');
-//         const sql = `
-//             INSERT INTO records (${keys.join(', ')})
-//             VALUES (${keys.map(() => `?`).join(', ')})
-//             ON CONFLICT(uuid) DO UPDATE SET ${setClause}
-//             WHERE updatedAt < ? 
-//             `; // ON CONFLICT句を使用して、uuidが重複した場合は更新する upsert処理 updatedAtが古い場合のみ更新
-//         const values = keys.map(key => {
-//             // 各カラムの値を適切に処理 undefinedの場合はnullにする
-//             if (key === 'children' || key === 'permissionsRead' || key === 'permissionsWrite') {
-//                 // JSON文字列として保存
-//                 return record[key] !== undefined ? JSON.stringify(record[key]) : JSON.stringify([]);
-//             } else if (key === 'createdAt' || key === 'updatedAt') {
-//                 // 日時をISO形式で保存
-//                 return record[key] ? new Date(record[key]).toISOString() : new Date().toISOString();
-//             } else {
-//                 // その他のカラムはそのまま保存
-//                 return record[key] ?? null;
-//             }
-//         });
-//         values.push(new Date().toISOString()); // 更新日時を現在のISO形式に設定
-//         db.run(
-//             sql,
-//             values,
-//             function (err) {
-//                 db.close();
-//                 if (err) {
-//                     console.error('レコード保存エラー:', err.message);
-//                     reject(err);
-//                 } else {
-//                     resolve({ id: this.lastID, changes: this.changes });
-//                 }
-//             }
-//         );
-//     });
-// }
-
+/** * レコードを更新する関数
+ * - レコードのUUIDが指定されている場合に更新
+ * * @param {Object} record - 更新するレコードデータ
+ * @returns {Promise<Object>} - 更新されたレコード
+ * * @throws {Error} - recordまたはuuidが未指定の場合
+ * @async
+ * */
 async function updateRecord(record) {
     if (!record || !record.uuid) {
         throw new Error('updateRecord: recordまたはuuidが未指定です');
     }
     const db = getDatabaseConnection();
     return new Promise((resolve, reject) => {
-        const keys = Object.keys(columns);
-        const setClause = keys.map(key => `${key} = ?`).join(', ');
-        const sql = `UPDATE records SET ${setClause} WHERE uuid = ?`;
-        const values = keys.map(key => {
-            if (key === 'children' || key === 'permissionsRead' || key === 'permissionsWrite') {
-                return record[key] !== undefined ? JSON.stringify(record[key]) : JSON.stringify([]);
-            } else if (key === 'createdAt' || key === 'updatedAt') {
-                return record[key] ? new Date(record[key]).toISOString() : new Date().toISOString();
-            } else {
-                return record[key] ?? null;
-            }
-        });
+        const preparedRecord = prepareRecord(record);
+        const sql = `UPDATE records SET ${preparedRecord.setClause} WHERE uuid = ?`;
         values.push(record.uuid);
         db.run(
             sql,
-            values,
+            preparedRecord.values,
             function (err) {
                 db.close();
                 if (err) {
                     console.error('レコード更新エラー:', err.message);
                     reject(err);
                 } else {
-                    resolve({ changes: this.changes });
+                    // resolve({ changes: this.changes });
+                    resolve(record); // 更新したレコードを返す
                 }
             }
         );
@@ -280,9 +229,8 @@ async function updateRecord(record) {
  * * @throws {Error} - 更新権限がない場合
  * @async
  * */
-
 export async function syncRecord(record) {
-    const existingRecords = await findRecords({ uuid: record.uuid });
+    const existingRecords = await findRecords({ uuid: record.uuid }); // UUIDで既存のレコードを検索 permissionsReadを使用して、読み取り権限を持つユーザーのみが取得可能
     if (existingRecords && existingRecords.length > 0) {
         const existingRecord = existingRecords[0];
         // 更新権限のチェック
@@ -296,38 +244,8 @@ export async function syncRecord(record) {
         } catch {
             permissionsWrite = [];
         }
-        // 更新者が権限を持っているか確認
         if (permissionsWrite.includes(record.updatedBy)) {
-            // const db = getDatabaseConnection();
-            // const updates = {
-            //     ...existingRecord,
-            //     ...record,
-            //     updatedAt: new Date().toISOString(),
-            //     updatedBy: record.updatedBy || existingRecord.updatedBy
-            // };
-            // return new Promise((resolve, reject) => {
-            //     const keys = Object.keys(columns);
-            //     const setClause = keys.map(key => `${key} = ?`).join(', ');
-            //     const sql = `UPDATE records SET ${setClause} WHERE uuid = ?`;
-            //     const values = keys.map(key => {
-            //         if (key === 'children' || key === 'permissionsRead' || key === 'permissionsWrite') {
-            //             return updates[key] !== undefined ? JSON.stringify(updates[key]) : JSON.stringify([]);
-            //         } else if (key === 'createdAt' || key === 'updatedAt') {
-            //             return updates[key] ? new Date(updates[key]).toISOString() : new Date().toISOString();
-            //         }
-            //         return updates[key] ?? null;
-            //     });
-            //     values.push(updates.uuid);
-            //     db.run(sql, values, function (err) {
-            //         db.close();
-            //         if (err) {
-            //             console.error('レコード更新エラー:', err.message);
-            //             reject(err);
-            //         } else {
-            //             resolve({ changes: this.changes });
-            //         }
-            //     });
-            // });
+            // 更新者が権限を持っている場合、更新日時を比較
             if (record.updatedAt > existingRecord.updatedAt) {
                 // 更新日時が新しい場合のみ更新
                 const updates = {
@@ -336,7 +254,9 @@ export async function syncRecord(record) {
                     updatedAt: new Date().toISOString(),
                     updatedBy: record.updatedBy || existingRecord.updatedBy
                 };
-                return insertRecord(updates);
+                return updateRecord(update);
+            } else {
+                return existingRecord;
             }
         } else {
             throw new Error('更新権限がありません。');
@@ -365,10 +285,3 @@ export async function deleteRecord(uuid) {
         });
     });
 }
-
-// // テーブルを作成
-// createTable().then(() => {
-//     console.log('データベースの初期化が完了しました。');
-// }).catch(err => {
-//     console.error('データベースの初期化中にエラーが発生しました:', err);
-// });
