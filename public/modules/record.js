@@ -12,39 +12,18 @@ export default class Record {
     /**
      * コンストラクタ
      * @param {string} uuid - ユーザーのUUID
+     * @param {string} html - レコードのHTML
      * @param {HTMLElement} parentNode - レコードを挿入する親ノード
      * @constructor
      */
-    constructor(uuid, parentNode) {
+    constructor(uuid, html, parentNode) {
         console.log('[record] Record module initialized'); // レコードモジュール初期化ログ
-        this.HTML_URL = '/modules/ui/html/record.html'; // レコードHTMLのURL
         this.uuid = uuid; // ユーザーのUUIDを設定
+        this.html = html; // レコードのHTMLを設定
         this.parentNode = parentNode; // レコードを挿入する親ノードを設定
         this.child = []; // 子要素を管理する配列
         this.isOpen = false; // レコードの開閉状態を管理
         this.render(); // レコードをレンダリング
-    }
-    /**
-     * レコードを同期して再レンダリング
-     * @returns {Promise<void>} - 非同期処理の完了を示すPromise
-     * @async
-     */
-    async fetchHtml() {
-        console.log('[record] Fetching HTML for Record module'); // HTML取得ログ
-        return fetch(this.HTML_URL) // レコードHTMLを非同期で取得
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to load record HTML');
-                return response.text();
-            })
-            .then(html => {
-                const doc = new DOMParser().parseFromString(html, 'text/html'); // HTMLをパース
-                console.log('[record] HTML fetched successfully:', doc); // HTML取得成功ログ
-                this.doc = doc; // パースしたHTMLを保存
-                return this.doc;
-            })
-            .catch(error => {
-                console.error('Error loading record HTML:', error);
-            });
     }
     /**
      * レコードのHTMLを初期化
@@ -52,23 +31,18 @@ export default class Record {
      * - HTMLにUUIDを設定
      * @returns {HTMLElement} - レコードのHTML要素
      */
-    async initHtml() {
+    initHtml() {
         console.log('[record] Initializing HTML for Record module'); // HTML初期化ログ
-        if (this.recordContainer) return this.recordContainer; // レコードコンテナが既に存在する場合はそれを返す
-        if (!this.doc) await this.fetchHtml(); // HTMLが未取得の場合はfetchHtmlを呼び出す
-        this.recordContainer = document.getElementById(this.uuid);
-        if (!this.recordContainer && !this.doc) {
-            console.error('[record] Record container not found and document is not initialized'); // レコードコンテナが見つからない場合のエラーログ
-            throw new Error('Record container not found');
-        }
-
-        this.recordContainer = this.doc.querySelector('.record-container'); // レコードコンテナを取得
+        if (this.recordContainer) return this.recordContainer; // レコードコンテナが既に存在する場合はそのまま返す
+        const parser = new DOMParser(); // DOMParserを使用してHTMLをパース
+        this.node = parser.parseFromString(this.html, 'text/html'); // HTMLをパースしてノードを取得
+        this.recordContainer = document.getElementById(this.uuid) || this.node.querySelector('.record-container'); // レコードコンテナを取得または新規作成
+        console.log('[record] Record container initialized:', this.recordContainer); // レコードコンテナ初期化ログ
         this.parentNode.appendChild(this.recordContainer); // 親ノードにレコードコンテナを追加
         //
         this.recordContainer.id = this.uuid; // レコードコンテナのIDをUUIDに設定
         this.querySelector = (selector) => this.recordContainer.querySelector(selector); // HTML要素のクエリセレクタを設定
         this.querySelectorAll = (selector) => this.recordContainer.querySelectorAll(selector); // HTML要素のクエリセレクタを設定
-        // this.querySelector('.record-content').innerText = this.record.content; // レコード内容を設定
         // イベントリスナーを設定
         this.querySelector('.toggle-icon').addEventListener('click', (e) => this.toggle(e)); // トグルアイコンのクリックイベントを設定
         this.querySelector('.toggle-icon').addEventListener('contextmenu', (e) => this.menu(e)); // トグルアイコンの右クリックイベントを設定
@@ -86,19 +60,9 @@ export default class Record {
      */
     render() {
         console.log('[record] Rendering Record module'); // レンダリングログ
-        // (if (!this.recordContainer) this.initHtml())  // レコードコンテナが未定義の場合は初期化を実行
-        //     .then(() => {
-        // this.querySelector('.record-content').innerText = this.record?.content || 'Loading...'; // レコードタイトルを設定
-        new Promise((resolve, reject) => {
-            if (!this.recordContainer) this.initHtml() // レコードのHTMLを初期化
-        })
-            .then(() => {
-                this.querySelector('.record-content').innerText = this.record?.content || 'Loading...'; // レコード内容を設定
-                return this.recordContainer; // レコードコンテナを返す
-            })
-            .catch(error => {
-                console.error('Error rendering Record module:', error); // レンダリングエラーログ
-            });
+        this.initHtml(); // HTMLを初期化
+        this.querySelector('.record-content').innerText = this.record?.content || 'Loading...'; // レコード内容を設定
+        return this.recordContainer; // レコードのHTML要素を返す
     }
     /**
      * レコードを同期してレンダリング
@@ -145,8 +109,8 @@ export default class Record {
     open() {
         console.log('[record] Opening Record module'); // 開くログ
         this.isOpen = true; // 開閉状態を更新
-        this.html.querySelector('.toggle-icon').src = '/icon/open.svg'; // トグルアイコンを開いた状態に更新
-        this.html.querySelector('.children-container').style.display = 'flex'; // 子要素を表示する
+        this.querySelector('.toggle-icon').src = '/icon/open.svg'; // トグルアイコンを開いた状態に更新
+        this.querySelector('.children-container').style.display = 'flex'; // 子要素を表示する
         this.child.forEach(child => {
             child.render(); // 子要素をレンダリング
         }); // 子要素をレンダリング
@@ -162,8 +126,8 @@ export default class Record {
     close() {
         console.log('[record] Closing Record module'); // 閉じるログ
         this.isOpen = false; // 開閉状態を更新
-        this.html.querySelector('.toggle-icon').src = '/icon/closed.svg'; // トグルアイコンを閉じた状態に更新
-        this.html.querySelector('.children-container').style.display = 'none'; // 子要素を非表示にする
+        this.querySelector('.toggle-icon').src = '/icon/closed.svg'; // トグルアイコンを閉じた状態に更新
+        this.querySelector('.children-container').style.display = 'none'; // 子要素を非表示にする
         return
     }
     /**
@@ -212,7 +176,7 @@ export default class Record {
     delete(event) {
         console.log('[record] Deleting Record module'); // 削除ログ
         event.preventDefault(); // デフォルトの動作を防ぐ
-        this.parentNode.removeChild(this.html); // HTML要素を親ノードから削除
+        this.parentNode.removeChild(this.node); // HTML要素を親ノードから削除
     }
     /**
      * レコードモジュールに子要素を追加
@@ -227,7 +191,8 @@ export default class Record {
         this.child.push(
             new Record(
                 childUuid,
-                this.html.querySelector('.children-container')
+                this.html,
+                this.querySelector('.children-container'),
             ) // 子要素を追加
         )
         this.open(); // レコードを開く
