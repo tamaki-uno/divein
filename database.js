@@ -165,7 +165,7 @@ function prepareRecord(record) {
  * @param {Object} record
  * @returns {Promise<Object>}
  */
-async function insertRecord(record) {
+export async function insertRecord(record) {
     const db = getDatabaseConnection();
     return new Promise((resolve, reject) => {
         const preparedRecord = prepareRecord(record);
