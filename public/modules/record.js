@@ -1,4 +1,3 @@
-import e from 'cors';
 import { getRecordFromIndexedDB, saveRecordToIndexedDB, syncWithAPI } from './database.js';
 
 /** * レコード親クラス
@@ -55,9 +54,13 @@ export default class Record {
      */
     async initHtml() {
         console.log('[record] Initializing HTML for Record module'); // HTML初期化ログ
+        if (this.recordContainer) return this.recordContainer; // レコードコンテナが既に存在する場合はそれを返す
         if (!this.doc) await this.fetchHtml(); // HTMLが未取得の場合はfetchHtmlを呼び出す
         this.recordContainer = document.getElementById(this.uuid);
-        if (this.recordContainer) return this.render(); // レコードコンテナが存在する場合はレンダリングを実行
+        if (!this.recordContainer && !this.doc) {
+            console.error('[record] Record container not found and document is not initialized'); // レコードコンテナが見つからない場合のエラーログ
+            throw new Error('Record container not found');
+        }
 
         this.recordContainer = this.doc.querySelector('.record-container'); // レコードコンテナを取得
         this.parentNode.appendChild(this.recordContainer); // 親ノードにレコードコンテナを追加
@@ -73,104 +76,45 @@ export default class Record {
         this.querySelector('.record-content').addEventListener('contextmenu', (e) => this.menu(e)); // レコード内容の右クリックイベントを設定
         this.querySelector('.delete-icon').addEventListener('click', (e) => this.delete(e)); // 削除アイコンのクリックイベントを設定
         this.querySelector('.add-icon').addEventListener('click', (e) => this.addChild(e)); // 子要素追加アイコンのクリックイベントを設定
-        this.render(); // レコードをレンダリング
         console.log('[record] HTML initialized successfully:', this.recordContainer); // HTML初期化成功ログ
         return this.recordContainer; // レコードのHTML要素を返す
     }
     /**
      * レコードをレンダリング
-     * - HTMLをbodyに挿入
-     * - レコードデータを表示
      * @returns {HTMLElement} - レコードのHTML要素
+     * @async
      */
-    // render() {
-    //     console.log('[record] Rendering Record module'); // レンダリングログ
-    //     // if (!this.html) this.initHtml(); // HTMLが未初期化の場合は初期化を実行
-    //     // if (document.getElementById(this.uuid)) this.rerender(); // 既にレンダリング済みの場合は再レンダリング
-    //     // // return this.parentNode.insertAdjacentHTML('beforeend', this.html); // HTMLを親ノードに挿入
-    //     // return this.parentNode.appendChild(this.html); // HTMLを親ノードに追加
-    // }
-    /**
-     * レコードを再レンダリング
-     * - HTMLの内容を更新
-     * - レコードが未レンダリングの場合はレンダリングを実行
-     * @returns {void}
-     */
-    async render() {
-        console.log('[record] Re-rendering Record module'); // 再レンダリングログ
-        // if (!this.recordContainer) this.initHtml(); // レコードコンテナが未初期化の場合は初期化を実行
-        // if (!this.record) this.
-        // 材料が揃っている場合にレンダリングする
-        this.querySelector('.record-content').innerText = this.record ? this.record.content : 'loading...'; // レコード内容を設定
-        return this.recordContainer; // レコードコンテナを返す
+    render() {
+        console.log('[record] Rendering Record module'); // レンダリングログ
+        // (if (!this.recordContainer) this.initHtml())  // レコードコンテナが未定義の場合は初期化を実行
+        //     .then(() => {
+        // this.querySelector('.record-content').innerText = this.record?.content || 'Loading...'; // レコードタイトルを設定
+        new Promise((resolve, reject) => {
+            if (!this.recordContainer) this.initHtml() // レコードのHTMLを初期化
+        })
+            .then(() => {
+                this.querySelector('.record-content').innerText = this.record?.content || 'Loading...'; // レコード内容を設定
+                return this.recordContainer; // レコードコンテナを返す
+            })
+            .catch(error => {
+                console.error('Error rendering Record module:', error); // レンダリングエラーログ
+            });
     }
-        // const renderContent = () => {
-        //     this.querySelector('.record-content').innerText = this.record.content || 'loading...'; // レコード内容を更新
-        //     return this.recordContainer; // レコードコンテナを返す
-        // };
-        // const firstRender = new Promise((resolve, reject) => {
-        //     if (this.record) {
-        //         if (this.recordContainer) {
-        //             resolve(renderContent()); // レコードコンテナが初期化済みの場合は内容を更新
-        //         }
-        //     } 
-        // });
-        // const secondRender = new Promise.all([
-        //     firstRender, // 最初のレンダリングを待つ
-        //     getRecordFromIndexedDB(this.uuid) // IndexedDBからレコードを取得
-        // ]).then(([recordContainer, record]) => {
-        //     this.record = record; // IndexedDBから取得したレコードを設定
-        //     this.querySelector('.record-content').innerText = this.record.content; // レコード内容を更新
-        //     return recordContainer; // レコードコンテナを返す
-        // }).catch(error => {
-        //     console.error('Error during Record rendering:', error); // レンダリングエラーをログ出力
-        // });
-
-        // return Promise.all([
-        //     // まずは自分のrecordを表示
-        //     Promise(
-        //         this.recordContainer || this.initHtml() // レコードコンテナが未初期化の場合は初期化を実行
-        //     ),
-        //     // 次に
-        //     Promise.all([
-        //         this.recordContainer || this.initHtml(), // レコードコンテナが未初期化の場合は初期化を実行
-        //         getRecordFromIndexedDB(uuid) // IndexedDBからレコードを取得
-        //     ]).then(([recordContainer, record]) => {
-        //         this.record = record; // IndexedDBから取得したレコードを設定
-        //         this.querySelector('.record-content').innerText = this.record.content; // レコード内容を更新
-        //     }).catch(error => {
-        //         console.error('Error during Record initialization:', error); // 初期化エラーをログ出力
-        //     }),
-        //     // 最後にAPIと同期してレコードを取得
-        //     syncWithAPI(uuid) // APIと同期してレコードを取得
-        //         .then(record => {
-        //             this.record = record; // APIから取得したレコードを設定
-        //             this.render(); // レコードをレンダリング
-        //         })
-        //         .catch(error => {
-        //             console.error('Error syncing with API:', error); // API同期エラーをログ出力
-        //         })]
-        // );
-    // }
+    /**
+     * レコードを同期してレンダリング
+     * - IndexedDBからレコードを取得
+     * - APIと同期してレコードを取得
+     * - レコードをレンダリング
+     * @returns {Promise<HTMLElement>} - レコードのHTML要素
+     * @async
+     */
     async getRender() {
         console.log('[record] Syncing and rendering Record module'); // 同期とレンダリングログ
-        const renderHtml = new Promise((resolve, reject) => {
-            if (this.recordContainer) {
-                resolve(this.render()); // レコードコンテナが初期化済みの場合はレンダリングを実行
-            } else { 
-                this.initHtml().then(() => {
-                    resolve(this.render()); // レコードコンテナが未初期化の場合は初期化を実行してレンダリング
-                }).catch(error => {
-                    console.error('Error initializing Record HTML:', error); // 初期化エラーをログ出力
-                    reject(error); // エラーを拒否
-                });
-            }
-        });
         const renderIndexedDB = new Promise((resolve, reject) => {
             getRecordFromIndexedDB(this.uuid) // IndexedDBからレコードを取得
                 .then(record => {
                     this.record = record; // 取得したレコードを設定
-                    resolve(renderHtml); // レコードをレンダリング
+                    resolve(this.render()); // レコードをレンダリング
                 })
                 .catch(error => {
                     console.error('Error fetching Record from IndexedDB:', error); // IndexedDB取得エラーをログ出力
@@ -181,14 +125,14 @@ export default class Record {
             syncWithAPI(this.uuid) // APIと同期してレコードを取得
                 .then(record => {
                     this.record = record; // APIから取得したレコードを設定
-                    resolve(renderHtml); // レコードをレンダリング
+                    resolve(this.render()); // レコードをレンダリング
                 })
                 .catch(error => {
                     console.error('Error syncing Record with API:', error); // API同期エラーをログ出力
                     reject(error); // エラーを拒否
                 });
         });
-        return Promise.all([renderHtml, renderIndexedDB, renderAPI]) // 全てのレンダリングを待つ
+        return Promise.all([this.render(), renderIndexedDB, renderAPI]) // 全てのレンダリングを待つ
     }
     /**
      * レコードを開く

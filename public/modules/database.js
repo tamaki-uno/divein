@@ -47,9 +47,9 @@ export async function saveRecordToIndexedDB(record) {
     }
     const db = await initIndexedDB();
     return new Promise((resolve, reject) => {
-        const tx = db.transaction('records', 'readwrite');
-        const store = tx.objectStore('records');
-        const req = store.put(record);
+        const tx = db.transaction('records', 'readwrite'); // 'readwrite'トランザクションを使用
+        const store = tx.objectStore('records'); // オブジェクトストアを取得
+        const req = store.put(record); // putメソッドを使用してレコードを保存または更新
         req.onsuccess = () => {
             console.log('[database] Record saved successfully:', record.uuid);
             resolve();

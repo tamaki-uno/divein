@@ -9,8 +9,14 @@ export default class Line extends Record {
     }
     initHtml() {
         console.log('[line] Initializing HTML for Line module'); // LineモジュールのHTML初期化ログ
-        super.initHtml(); // 親クラスのHTML初期化を呼び出す
-        this.html.classList.add('level-' + this.level); // レベルに応じたクラスを追加
+        super.initHtml()
+            .then(html => {
+                this.recordContainer.classList.add('line'); // レコードコンテナにlineクラスを追加
+            })
+            .catch(error => {
+                console.error('[line] Error initializing HTML:', error); // HTML初期化エラーログ
+            });
+        return this.recordContainer; // レコードコンテナを返す
     }
     addChild(event) {
         console.log('[line] Adding child to Line module'); // 子要素追加ログ
@@ -20,7 +26,7 @@ export default class Line extends Record {
         this.child.push(
             new Record(
                 childUuid,
-                this.html.querySelector('.children-container'),
+                this.querySelector('.children-container'),
                 this.level + 1 // 子要素のレベルを親のレベル+1に設定
             ) // 子要素を追加
         )
