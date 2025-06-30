@@ -4,9 +4,14 @@
  * - レコードの保存・取得・同期処理を提供
  */
 
-// IndexedDBの初期化
-// データベースとオブジェクトストア(records)を作成
-export async function initIndexedDB() {
+const API_URL = '/api/v0/sync';
+
+/**
+ * IndexedDBの初期化
+ * データベースとオブジェクトストア(records)を作成
+ * @returns {Promise<IDBDatabase>}
+ */
+export function initIndexedDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open('diveinDB', 1);
         request.onupgradeneeded = function (event) {
@@ -24,21 +29,30 @@ export async function initIndexedDB() {
     });
 }
 
-// IndexedDBにレコードを保存
-// @param {Object} record - 保存するレコードオブジェクト
+/**
+ * IndexedDBにレコードを保存
+ * @param {Object} record - 保存するレコードオブジェクト
+ * @returns {Promise<void>}
+ */
 export async function saveRecordToIndexedDB(record) {
+    if (!record || !record.uuid) {
+        throw new Error('saveRecordToIndexedDB: recordまたはuuidが未指定です');
+    }
     const db = await initIndexedDB();
     return new Promise((resolve, reject) => {
         const tx = db.transaction('records', 'readwrite');
         const store = tx.objectStore('records');
         const req = store.put(record);
-        req.onsuccess = () => resolve(record);
+        req.onsuccess = () => resolve();
         req.onerror = (e) => reject(e.target.error);
     });
 }
 
-// IndexedDBからレコードを取得
-// @param {string} uuid - レコードのUUID
+/**
+ * IndexedDBからレコードを取得し、なければ新規作成
+ * @param {string} uuid - レコードのUUID
+ * @returns {Promise<Object>} - 取得または新規作成したレコード
+ */
 export async function getRecordFromIndexedDB(uuid) {
     if (!uuid) {
         throw new Error('getRecordFromIndexedDB: uuidが未指定です');
@@ -66,9 +80,11 @@ export async function getRecordFromIndexedDB(uuid) {
     });
 }
 
-// IndexedDBからレコードを削除
-// @param {string} uuid - 削除するレコードのUUID
-// @returns {Promise<boolean>} - 削除成功時はtrueを返す
+/**
+ * IndexedDBからレコードを削除
+ * @param {string} uuid - 削除するレコードのUUID
+ * @returns {Promise<void>}
+ */
 export async function deleteRecordFromIndexedDB(uuid) {
     if (!uuid) {
         throw new Error('deleteRecordFromIndexedDB: uuidが未指定です');
@@ -78,17 +94,22 @@ export async function deleteRecordFromIndexedDB(uuid) {
         const tx = db.transaction('records', 'readwrite');
         const store = tx.objectStore('records');
         const req = store.delete(uuid);
-        req.onsuccess = () => resolve(true);
+        req.onsuccess = () => resolve();
         req.onerror = (e) => reject(e.target.error);
     });
 }
 
-// APIと同期
-// @param {Object} record - 同期するレコード
-// @returns {Promise<Object>} - 同期後のレコード
-export async function syncWithAPI(record) {
+/**
+ * APIと同期してレコードを更新
+ * この関数は、IndexedDBからレコードを取得し、APIに送信して同期します。
+ * APIからのレスポンスをIndexedDBに保存します。
+ * @param {string} uuid - 同期するレコードのUUID
+ * @returns {Promise<Object>} - 同期後のレコードオブジェクト
+ */
+export async function syncWithAPI(uuid) {
     try {
-        const response = await fetch('/api/v0/sync', {
+        const record = await getRecordFromIndexedDB(uuid);
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(record)
@@ -96,75 +117,15 @@ export async function syncWithAPI(record) {
         if (!response.ok) {
             throw new Error(`API sync failed: ${response.status}`);
         }
-        const data = await response.json();
-        if (data.success) {
-            return data.record;
-        } else {
-            throw new Error(data.message || 'Unknown API sync error');
+        const syncedRecord = await response.json();
+        // レスポンスがレコードオブジェクトであることを確認
+        if (!syncedRecord || !syncedRecord.uuid) {
+            throw new Error('APIから不正なレコードデータが返されました');
         }
+        await saveRecordToIndexedDB(syncedRecord);
+        return syncedRecord;
     } catch (error) {
         console.error('API sync error:', error);
         throw error;
-    }
-}
-
-// // IndexedDBと同期
-// // @param {Object} record - 同期するレコード
-// export async function syncWithIndexedDB(record) {
-//     if (!record || !record.uuid) {
-//         throw new Error('syncWithIndexedDB: record or record.uuid is missing');
-//     }
-//     const db = await initIndexedDB();
-//     try {
-//         const 
-//         return record;
-//     } catch (error) {
-//         console.error('IndexedDB sync error:', error);
-//         throw error;
-//     }
-// }
-
-// データベースの同期を行う関数
-// @param {string} uuid - 同期対象レコードのUUID
-export async function syncDB(uuid) {
-    try {
-        const record = await getRecordFromIndexedDB(uuid);
-        if (!record) {
-            throw new Error(`Record with UUID ${uuid} not found in IndexedDB`);
-        }
-        const syncedRecord = await syncWithAPI(record);
-        // await syncWithIndexedDB(syncedRecord);
-        return syncedRecord;
-    } catch (error) {
-        console.error('Database sync error:', error);
-        throw error;
-    }
-}
-
-// 全てのレコードを同期する関数
-// IndexedDB内の全レコードをAPIと同期
-export async function syncDBAll() {
-    try {
-        const db = await initIndexedDB();
-        const tx = db.transaction('records', 'readonly');
-        const store = tx.objectStore('records');
-        const req = store.getAll();
-        req.onsuccess = async () => {
-            const records = req.result;
-            for (const record of records) {
-                try {
-                    const syncedRecord = await syncWithAPI(record);
-                    await syncWithIndexedDB(syncedRecord);
-                } catch (error) {
-                    console.error('Error syncing record:', error);
-                }
-            }
-            console.log('All records synced successfully');
-        };
-        req.onerror = (e) => {
-            console.error('Error syncing all records:', e.target.error);
-        };
-    } catch (error) {
-        console.error('Error syncing all records:', error);
     }
 }
