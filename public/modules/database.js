@@ -125,6 +125,40 @@ export async function deleteRecordFromIndexedDB(uuid) {
     });
 }
 
+/** * APIを呼び出してレコードを取得または更新
+ * @param {Object} record - 送信するレコードオブジェクト
+ * @param {string} [API_URL='/api/v0/sync'] - APIのURL
+ * @param {string} [method='POST'] - HTTPメソッド（'POST'または'PUT'）
+ * @returns {Promise<Object>} - APIからのレスポンスレコード
+ * @throws {Error} - API呼び出しに失敗した場合
+ */
+export async function fetchAPI(record, API_URL='/api/v0/sync', method='POST') {
+    console.log('[database] Fetching API:', record);
+    try {
+        const response = await fetch(API_URL, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(record)
+        });
+        if (!response.ok) {
+            if (response.status === 401) {
+                // 認証エラーの場合はログインページにリダイレクト
+                const loginUrl = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
+                route(loginUrl, { reload: true, overwrite: true });
+                throw new Error('認証エラー: ログインが必要です');
+            } else {
+                throw new Error(`API fetch failed: ${response.status}`);
+            }
+        }
+        console.log('[database] API fetch successful:', response);
+        const json = await response.json();
+        return json.record;
+    } catch (error) {
+        console.error('API fetch error:', error);
+        throw error;
+    }
+}
+
 /**
  * APIと同期してレコードを更新
  * この関数は、IndexedDBからレコードを取得し、APIに送信して同期します。
@@ -132,40 +166,36 @@ export async function deleteRecordFromIndexedDB(uuid) {
  * @param {string} uuid - 同期するレコードのUUID
  * @returns {Promise<Object>} - 同期後のレコードオブジェクト
  */
-export async function syncWithAPI(uuid) {
+export async function getRecordFromAPI(uuid) {
     console.log('[database] Syncing record with API:', uuid);
     try {
-        const record = await getRecordFromIndexedDB(uuid);
-        console.log('[database] Fetching record for sync:', record);
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(record)
-        });
-        if (!response.ok) {
-            // throw new Error(`API sync failed: ${response.status}`);
-            if (response.status === 401) {
-                route('/login', { reload: true, overwrite: true });
-                throw new Error('認証エラー: ログインが必要です');
-            } else {
-                throw new Error(`API sync failed: ${response.status}`);
-            }
-        }
-        console.log('[database] API sync successful:', response);
-        // const syncedRecord = await response.json();
-        // const syncedRecord = await response.json();
-        const json = await response.json();
-        console.log('[database] response.json():', json);
-        const syncedRecord = json.record;
-        console.log('[database] Synced record:', syncedRecord);
-        if (!syncedRecord || !syncedRecord.uuid) {
-            throw new Error('APIから不正なレコードデータが返されました', syncedRecord);
-        }
-        await saveRecordToIndexedDB(syncedRecord);
+        const indexedDBRecord = await getRecordFromIndexedDB(uuid);
+        const apiRecord = await fetchAPI(indexedDBRecord, API_URL);
+        const syncedRecord = await saveRecordToIndexedDB(apiRecord);
         console.log('[database] Record synced successfully:', syncedRecord);
         return syncedRecord;
     } catch (error) {
-        console.error('API sync error:', error);
+        console.error('Error getting record from API:', error);
+        throw error;
+    }
+}
+
+/**
+ * 引数/戻り値とIndexedDBとAPIの同期を行う関数
+ * @param {Object} record - 同期するレコードオブジェクト
+ * @returns {Promise<Object>} - 取得したレコードオブジェクト
+ */
+
+export async function syncRecord(record) {
+    console.log('[database] Syncing record:', record);
+    try {
+        const indexedDBRecord = await saveRecordToIndexedDB(record);
+        const apiRecord = await fetchAPI(indexedDBRecord, API_URL);
+        const syncedRecord = await saveRecordToIndexedDB(apiRecord);
+        console.log('[database] Record synced successfully:', syncedRecord);
+        return syncedRecord;
+    } catch (error) {
+        console.error('Error syncing record:', error);
         throw error;
     }
 }
