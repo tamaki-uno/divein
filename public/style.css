@@ -203,18 +203,19 @@ main .level6 {
 
 /* Record styles */
 div.record-container {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
+    display: flex;
+    background-color: #ddd;
     padding: 10px;
     margin: 10px 0;
-    position: relative; /* For positioning child elements */
+    /* position: relative; For positioning child elements */
 }
 div.record-container img.toggle-icon {
     width: 24px;
     height: 24px;
-    position: absolute;
+    /* position: absolute; */
+    /* position: relative; */
     top: 10px;
-    right: 10px;
+    left: 10px;
     cursor: pointer;
 }
 div.record-container p.record-content {
@@ -222,10 +223,11 @@ div.record-container p.record-content {
     font-size: 16px;
     color: #333;
 }
-div.record-container img.close-icon {
+div.record-container img.delete-icon {
     width: 24px;
     height: 24px;
-    position: absolute;
+    /* position: absolute; */
+    /* position: relative; */
     top: 10px;
     right: 40px; /* Adjusted to avoid overlap with toggle icon */
     cursor: pointer;

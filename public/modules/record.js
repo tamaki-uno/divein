@@ -19,6 +19,8 @@ export default class Record {
         console.log('[record] Record module initialized'); // レコードモジュール初期化ログ
         this.uuid = uuid; // ユーザーのUUIDを設定
         this.HTML_URL = '/modules/ui/html/record.html'; // レコードHTMLのURL
+        this.isOpen = false; // レコードの開閉状態を管理)
+        this.child = []; // 子要素を管理する配列
         this.init(parentNode).then(() => this.render()); // 初期化とレンダリングを実行
         syncWithAPI(uuid).then(() => this.rerender()); // レコードの同期後に再レンダリング
     }
@@ -53,12 +55,10 @@ export default class Record {
                 return response.text();
             })
             .then(html => {
-                // const parser = new DOMParser(); // DOMParserを使用してHTMLをパース
-                // // this.html = DOMParser.parseFromString(html, 'text/html');
-                // this.html = parser.parseFromString(html, 'text/html');
                 const doc = new DOMParser().parseFromString(html, 'text/html'); // HTMLをパース
                 this.html = doc.querySelector('.record-container'); // レコードコンテナを取得
-                console.log(this.html); // HTMLの内容をログ出力
+                // console.log(this.html); // HTMLの内容をログ出力
+                console.log('[record] HTML fetched successfully:', this.html); // HTML取得成功ログ
                 return this.html; // レコードのHTML要素を返す
             })
             .catch(error => {
@@ -75,6 +75,14 @@ export default class Record {
         console.log('[record] Initializing HTML for Record module'); // HTML初期化ログ
         if (!this.html) this.fetchHtml(); // HTMLが未取得の場合は取得を試みる
         this.html.id = this.uuid; // HTMLにUUIDを設定
+        // イベントリスナーを設定
+        this.html.querySelector('.toggle-icon').addEventListener('click', (e) => this.toggle(e)); // トグルアイコンのクリックイベントを設定
+        this.html.querySelector('.toggle-icon').addEventListener('contextmenu', (e) => this.menu(e)); // トグルアイコンの右クリックイベントを設定
+        this.html.querySelector('.record-content').addEventListener('click', (e) => this.edit(e)); // レコード内容のクリックイベントを設定
+        this.html.querySelector('.record-content').addEventListener('contextmenu', (e) => this.menu(e)); // レコード内容の右クリックイベントを設定
+        this.html.querySelector('.delete-icon').addEventListener('click', (e) => this.delete(e)); // 削除アイコンのクリックイベントを設定
+        this.html.querySelector('.add-icon').addEventListener('click', (e) => this.addChild(e)); // 子要素追加アイコンのクリックイベントを設定
+        console.log('[record] HTML initialized:', this.html); // 初期化されたHTMLの内容をログ出力
         return this.html; // HTMLを返す
     }
     /**
@@ -87,7 +95,8 @@ export default class Record {
         console.log('[record] Rendering Record module'); // レンダリングログ
         if (!this.html) this.fetchHtml(); // HTMLが未取得の場合は取得を試みる
         if (document.getElementById(this.uuid)) this.rerender(); // 既にレンダリング済みの場合は再レンダリング
-        return this.parentNode.insertAdjacentHTML('beforeend', this.html); // HTMLを親ノードに挿入
+        // return this.parentNode.insertAdjacentHTML('beforeend', this.html); // HTMLを親ノードに挿入
+        return this.parentNode.appendChild(this.html); // HTMLを親ノードに追加
     }
     /**
      * レコードを再レンダリング
@@ -101,28 +110,54 @@ export default class Record {
         if (!document.getElementById(this.uuid)) this.render(); // レコードが未レンダリングの場合はレンダリングを実行
         return document.getElementById(this.uuid).innerHTML = this.html.innerHTML; // HTMLの内容を更新
     }
-    /**
-     * レコードモジュールを開く
-     * - レコードモジュールの初期化とレンダリングを実行
-     * @returns {void}
-     */
-    open() {
-        console.log('[record] Opening Record module'); // レコードモジュールを開くログ
+    toggle(event) {
+        console.log('[record] Toggling Record module'); // トグルログ
+        event.preventDefault(); // デフォルトの動作を防ぐ
+        if (this.isOpen) {
+            this.isOpen = false; // 開閉状態を更新
+            this.html.querySelector('.toggle-icon').src = '/icon/closed.svg'; // トグルアイコンを閉じた状態に更新
+            this.html.querySelector('.children-container').style.display = 'none'; // 子要素を非表示にする
+        } else {
+            this.isOpen = true; // 開閉状態を更新
+            this.html.querySelector('.toggle-icon').src = '/icon/open.svg'; // トグルアイコンを開いた状態に更新
+            this.html.querySelector('.children-container').style.display = 'flex'; // 子要素を表示する
+        }
+        this.rerender(); // レコードを再レンダリング
     }
     /**
-     * レコードモジュールを閉じる
-     * - レコードモジュールのHTMLを削除
+     * レコードを削除
+     * - HTML要素を親ノードから削除
+     * - インスタンス
+     * 
+     * @param {Event} event - クリックイベント
      * @returns {void}
      */
-    close() {
-        console.log('[record] Closing Record module'); // レコードモジュールを閉じるログ
+    delete(event) {
+        console.log('[record] Deleting Record module'); // 削除ログ
+        event.preventDefault(); // デフォルトの動作を防ぐ
+        this.parentNode.removeChild(this.html); // HTML要素を親ノードから削除
     }
     /**
      * レコードモジュールに子要素を追加
      * - 子要素を追加するためのメソッド
      * @returns {void}
      */
-    addChild() {
+    addChild(event) {
         console.log('[record] Adding child to Record module'); // レコードモジュールに子要素を追加するログ
+        event.preventDefault(); // デフォルトの動作を防ぐ
+        this.child.push(new Record(this.uuid, this.html.querySelector('.children-container'))); // 子要素を追加
+    }
+    /**
+     * レコードモジュールから子要素を削除
+     * - 指定されたインデックスの子要素を削除するためのメソッド
+     * @param {number} index - 削除する子要素のインデックス
+     * @returns {void}
+     */
+    deleteChild(index) {
+        console.log('[record] Deleting child from Record module'); // レコードモジュールから子要素を削除するログ
+        // 子要素を削除するためのメソッド
+        this.child[index].delete(); // 指定されたインデックスの子要素を削除
+        this.child.splice(index, 1); // 指定されたインデックスの子要素を削除
+        this.rerender(); // レコードを再レンダリング
     }
 }
