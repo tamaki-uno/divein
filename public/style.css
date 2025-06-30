@@ -78,6 +78,7 @@ div.loading img.loading-icon {
 /* Popup styles */
 div.popup {
     /* ポップアップを中央に配置 */
+    display: flex;
     position: fixed;
     top: 50%;
     left: 50%;
@@ -224,8 +225,8 @@ main .level6 {
 }
 
 
-/* Record styles */
-div.record-container {
+/* Line styles */
+div.line-container {
     /* レコードコンテナのスタイル */
     display: flex;
     flex-direction: column;
@@ -233,7 +234,7 @@ div.record-container {
     align-items: stretch;
     background-color: #eee;
 }
-div.record-container div.record-line {
+div.line-container div.record-line {
     /* レコード行のスタイル */
     display: flex;
     flex-direction: row;
@@ -244,24 +245,24 @@ div.record-container div.record-line {
     border: #ddd solid 1px;
     padding: 10px;
 }
-div.record-container div.record-line img {
+div.line-container div.record-line img {
     /* トグルアイコンのスタイル */
     width: 2em;
     cursor: pointer;
 }
-div.record-container div.record-line span.record-content {
+div.line-container div.record-line record-content {
     /* レコード内容のスタイル */
     flex: 1;
     margin: 0;
     color: #333;
 }
-div.record-container div.children-container {
+div.line-container div.children-container {
     margin-top: 10px;
     display: flex;
     flex-direction: column;
     width: 100%; /* Full width of the container */
 }
-div.record-container img.add-icon {
+div.line-container img.add-icon {
     width: 24px;
     height: 24px;
     cursor: pointer;
