@@ -57,7 +57,6 @@ export default class Record {
             .then(html => {
                 const doc = new DOMParser().parseFromString(html, 'text/html'); // HTMLをパース
                 this.html = doc.querySelector('.record-container'); // レコードコンテナを取得
-                // console.log(this.html); // HTMLの内容をログ出力
                 console.log('[record] HTML fetched successfully:', this.html); // HTML取得成功ログ
                 return this.html; // レコードのHTML要素を返す
             })
@@ -108,12 +107,18 @@ export default class Record {
         console.log('[record] Re-rendering Record module'); // 再レンダリングログ
         if (!this.html) this.fetchHtml(); // HTMLが未取得の場合は取得を試みる
         if (!document.getElementById(this.uuid)) this.render(); // レコードが未レンダリングの場合はレンダリングを実行
-        // return document.getElementById(this.uuid).innerHTML = this.html.innerHTML; // HTMLの内容を更新
-        // return document.getElementById(this.uuid).
         const targetDiv = document.getElementById(this.uuid); // レコードのHTML要素を取得
         const target = targetDiv.querySelector('.record-content'); // レコード内容の要素を取得
         return target.innerHTML = this.html.querySelector('.record-content').innerHTML; // レコード内容を更新
     }
+    /**
+     * レコードを開く
+     * - 開閉状態を更新
+     * - トグルアイコンを開いた状態に更新
+     * - 子要素を表示する
+     * - 子要素をレンダリング
+     * @returns {void}
+     * */
     open() {
         console.log('[record] Opening Record module'); // 開くログ
         this.isOpen = true; // 開閉状態を更新
@@ -124,6 +129,13 @@ export default class Record {
         }); // 子要素をレンダリング
         return
     }
+    /**
+     * レコードを閉じる
+     * - 開閉状態を更新
+     * - トグルアイコンを閉じた状態に更新
+     * - 子要素を非表示にする
+     * @returns {void}
+     */
     close() {
         console.log('[record] Closing Record module'); // 閉じるログ
         this.isOpen = false; // 開閉状態を更新
@@ -140,17 +152,31 @@ export default class Record {
     toggle(event) {
         console.log('[record] Toggling Record module'); // トグルログ
         event.preventDefault(); // デフォルトの動作を防ぐ
-        // if (this.isOpen) {
-        //     this.isOpen = false; // 開閉状態を更新
-        //     this.html.querySelector('.toggle-icon').src = '/icon/closed.svg'; // トグルアイコンを閉じた状態に更新
-        //     this.html.querySelector('.children-container').style.display = 'none'; // 子要素を非表示にする
-        // } else {
-        //     this.isOpen = true; // 開閉状態を更新
-        //     this.html.querySelector('.toggle-icon').src = '/icon/open.svg'; // トグルアイコンを開いた状態に更新
-        //     this.html.querySelector('.children-container').style.display = 'flex'; // 子要素を表示する
-        // }
         this.isOpen ? this.close() : this.open(); // 開閉状態に応じて開く/閉じる
         this.rerender(); // レコードを再レンダリング
+    }
+    /**
+     * レコードのコンテキストメニュー
+     * - 右クリックでメニューを表示
+     * @param {Event} event - 右クリックイベント
+     * @returns {void}
+     */
+    menu(event) {
+        console.log('[record] Opening context menu for Record module'); // コンテキストメニューログ
+        event.preventDefault(); // デフォルトの動作を防ぐ
+        // コンテキストメニューの表示処理を実装する
+        // ここでは簡単なアラートを表示する
+        alert('Context menu is not implemented yet.'); // コンテキストメニュー未実装のアラート
+    }
+    /**
+     * レコードの編集
+     * - レコード内容をクリックしたときに編集モードにする
+     * @param {Event} event - クリックイベント
+     * @returns {void}
+     */
+    edit(event) {
+        console.log('[record] Editing Record module'); // 編集ログ
+        event.preventDefault(); // デフォルトの動作を防ぐ
     }
     /**
      * レコードを削除
@@ -175,7 +201,6 @@ export default class Record {
         event.preventDefault(); // デフォルトの動作を防ぐ
         // 子要素のUUIDを生成
         const childUuid = crypto.randomUUID(); // 子要素のUUIDを生成
-        // this.child.push(new Record(this.uuid, this.html.querySelector('.children-container'))); // 子要素を追加
         this.child.push(
             new Record(
                 childUuid,
