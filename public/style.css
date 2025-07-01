@@ -202,37 +202,61 @@ main div.content {
     vertical-align: middle;
 }
 
-main .level0 {
+main .level-0 {
     font-size: 32px;
 }
-main .level1 {
+main .level-1 {
     font-size: 24px;
 }
-main .level2 {
+main .level-2 {
     font-size: 20px;
 }
-main .level3 {
+main .level-3 {
+    font-size: 18px;
+}
+main .level-4 {
     font-size: 16px;
 }
-main .level4 {
+main .level-5 {
     font-size: 14px;
 }
-main .level5 {
+main .level-6 {
     font-size: 12px;
 }
-main .level6 {
+main .level-7 {
     font-size: 10px;
 }
+
 
 
 /* Line styles */
 div.line-container {
     /* レコードコンテナのスタイル */
+    flex: 1 1 auto; /* Allow the container to grow and shrink */
+    min-width: 0;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
-    width: 100%;
+    /* width: 100%; */
     align-items: stretch;
     background-color: #eee;
+    border: #aaa solid 1px;
+    /* margin: 0.5em; */
+    gap: 0;
+}
+div.line-container img {
+    /* トグルアイコンのスタイル */
+    flex: 0 0 auto; /* Prevent flex-grow and flex-shrink */
+    width: 2em;
+    cursor: pointer;
+    /* margin:0.5em; */
+    padding: 0.5em;
+    background-color: #fff;
+}
+div.line-container img:hover {
+    /* トグルアイコンのホバー時のスタイル */
+    background-color: #ddd;
+    transform: background-color 1s; /* 背景色の変化にアニメーションを追加 */
 }
 div.line-container div.record-line {
     /* レコード行のスタイル */
@@ -243,36 +267,44 @@ div.line-container div.record-line {
     box-sizing: border-box;
     width: 100%;
     background-color: #fff;
-    border: #ddd solid 1px;
-    padding: 0.5em 1em;
+    /* border: #ddd solid 1px; */
+    padding: 0.5em;
 }
-div.line-container div.record-line img {
-    /* トグルアイコンのスタイル */
-    flex: 0 0 auto; /* Prevent flex-grow and flex-shrink */
-    width: 2em;
-    cursor: pointer;
-}
-div.line-container div.record-line .record-content {
+div.line-container .record-content {
     /* レコード内容のスタイル */
     flex: 1 1 auto;
-    margin: 0 1em;
+    /* margin: 0 0.5em; */
+    padding: 0.5em;
     font-size: 1.2em;
     color: #333;
-    overflow: hidden;         /* はみ出しを隠す */
-    text-overflow: ellipsis;  /* 省略記号を表示 */
-    white-space: nowrap;      /* 折り返さない */
-    min-width: 0;             /* flexアイテムのはみ出し防止 */
-    max-width: 100%;          /* 親幅を超えない */
+    overflow-wrap: break-word;   /* 長い単語やURLも折り返す */
+    word-break: break-all;       /* 必要なら途中で折り返す */
+    white-space: normal;         /* 折り返しを許可 */
+    min-width: 0;
+    max-width: 100%;
+}
+div.line-container .record-content:hover {
+    /* レコード内容のホバー時のスタイル */
+    background-color: #ddd; /* 背景色を薄くする */
+    transform: background-color 0.2s; /* 背景色の変化にアニメーションを追加 */
 }
 div.line-container div.children-container {
+    flex: 1 1 auto; /* Allow the container to grow and shrink */
+    min-width: 0;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
-    width: 100%; /* Full width of the container */
-    padding-left: 3em;
+    /* width: 100%; Full width of the container */
+    background-color: #bbb;
+    /* padding-left: 3em; */
+    /* margin: 0.5em; */
+    margin-left: 3em;
+    /* gap: 0.5em; Space between child records */
 }
 div.line-container img.add-icon {
     width: 1em;
-    height: 1em;;
-    cursor: pointer;
-    /* align-self: flex-start; Align to the start of the container */
+    height: 1em;
+    /* margin-left: 1.5em; */
+    margin-left: 3em;
+    margin-bottom: 0.5em;
 }
