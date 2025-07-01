@@ -1,9 +1,8 @@
 'use strict';
 
 import sqlite3 from 'sqlite3';
-import 'dotenv/config';
 
-const DB_PATH = process.env.DB_PATH || './database.sqlite';
+const DB_PATH = './database.db'; // データベースのパスを環境変数から取得、デフォルトはカレントディレクトリのdatabase.db
 
 // テンプレート用のカラム定義
 const columns = {
