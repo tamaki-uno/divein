@@ -2,6 +2,11 @@
 
 import route from '/modules/router.js'; // ルーティング用モジュール
 import { syncRecord } from '../database.js';
+import Html from './html.js'; // HTML操作用モジュール
+import { hideLoading, showLoading } from './loading.js';
+
+const popupHtml = new Html('/modules/ui/html/popup.html'); // ポップアップHTMLを管理するインスタンス
+
 
 /**
  * ポップアップを初期化する
@@ -13,28 +18,38 @@ import { syncRecord } from '../database.js';
  */
 async function initPopup() {
     console.log('[ui] Initializing popup'); // ポップアップ初期化ログ
-    return fetch('/modules/ui/html/popup.html') // ポップアップHTMLを取得
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to load popup HTML');
-            return response.text();
-        })
-        .then(html => {
-            document.body.insertAdjacentHTML('beforeend', html.trim());
-            const popup = document.querySelector('.popup');
-            if (!popup) {
-                console.error('[ui] Popup element not found after initialization'); // ポップアップ要素が見つからない場合のエラーログ
-                return null;
-            }
-            popup.querySelector('.close-popup-button').addEventListener('click', (e) => closePopup(e)); // 閉じるボタンのイベントリスナーを設定
-            console.log('[ui] Popup initialized successfully'); // ポップアップ初期化成功ログ
-            return popup; // 初期化されたポップアップを返す
-        })
-        .catch(error => {
-            console.error('Error loading popup HTML:', error); // エラーログ
-            const existingPopup = document.querySelector('.popup');
-            if (existingPopup) existingPopup.remove(); // 既存のポップアップを削除
-        });
+    const popup = await (await popupHtml.getNode()).querySelector('.popup'); // ポップアップHTMLを取得
+    if (!popup) {
+        console.error('[ui] Popup HTML not found'); // ポップアップHTMLが見つからない場合のエラーログ
+        return null; // ポップアップHTMLが取得できない場合はnullを返す
+    }
+    popup.querySelector('.close-popup-icon').addEventListener('click', (e) => closePopup(e)); // 閉じるボタンのイベントリスナーを設定
+    // document.body.insertAdjacentHTML('beforeend', popup.documentElement.outerHTML.trim()); // ポップアップHTMLをドキュメントに挿入
+    document.body.appendChild(popup); // ポップアップ要素をドキュメントに追加
+    return popup; // 初期化されたポップアップを返す
 }
+
+    // return fetch('/modules/ui/html/popup.html') // ポップアップHTMLを取得
+    //     .then(response => {
+    //         if (!response.ok) throw new Error('Failed to load popup HTML');
+    //         return response.text();
+    //     })
+    //     .then(html => {
+    //         document.body.insertAdjacentHTML('beforeend', html.trim());
+    //         const popup = document.querySelector('.popup');
+    //         if (!popup) {
+    //             console.error('[ui] Popup element not found after initialization'); // ポップアップ要素が見つからない場合のエラーログ
+    //             return null;
+    //         }
+    //         popup.querySelector('.close-popup-button').addEventListener('click', (e) => closePopup(e)); // 閉じるボタンのイベントリスナーを設定
+    //         console.log('[ui] Popup initialized successfully'); // ポップアップ初期化成功ログ
+    //         return popup; // 初期化されたポップアップを返す
+    //     })
+    //     .catch(error => {
+    //         console.error('Error loading popup HTML:', error); // エラーログ
+    //         const existingPopup = document.querySelector('.popup');
+    //         if (existingPopup) existingPopup.remove(); // 既存のポップアップを削除
+    //     });
 
 /** * ポップアップを閉じる
  * - デフォルトの動作を防ぐ
@@ -64,6 +79,8 @@ export async function showPopup() {
         console.error('[ui] Popup element not found'); // ポップアップ要素が見つからない場合のエラーログ
         return;
     }
+    console.log('[ui] Popup element found:', popup); // ポップアップ要素が見つかった場合のログ
+
     popup.style.display = 'flex';
     showFormForCurrentPath(); // 現在のパスに応じてフォームを表示
 }
@@ -75,8 +92,10 @@ export async function showPopup() {
  */
 function showFormForCurrentPath() {
     console.log('Showing form for current path');
+
     const popup = document.querySelector('.popup');
     popup.querySelectorAll('form').forEach(f => f.style.display = 'none');
+
     const path = window.location.pathname;
     const form = popup.querySelector(`form.${path.slice(1)}-form`);
     if (!form) return;
@@ -87,6 +106,7 @@ function showFormForCurrentPath() {
         const href = event.target.getAttribute('href');
         route(href, { reload: false, replace: false }); // リンククリックでルーティング
     });
+    hideLoading(); // ローディングUIを非表示にする
 }
 
 /** * フォームのバリデーションを行う
@@ -151,6 +171,7 @@ function validateForm(form) {
 function submitForm(event) {
     console.log('Submitting form', event.target);
     event?.preventDefault(); // デフォルトの送信を防ぐ
+    showLoading(); // ローディングUIを表示
     const form = event.target; // 送信されたフォームを取得
     form.querySelector('button[type="submit"]').disabled = true; // 送信ボタンを無効化
     if (validateForm(form)) { // バリデーションを実行
@@ -180,7 +201,7 @@ function submitForm(event) {
             const syncedRecord = syncRecord(json.user);
             if (json.user !== syncedRecord) {
                 console.warn('User data from API differs from action response, updating sessionStorage');
-                // sessionStorage.setItem('user', JSON.stringify(syncedRecord)); // セッションストレージを更新
+                sessionStorage.setItem('user', JSON.stringify(syncedRecord)); // セッションストレージを更新
             }
             route('/', { reload: true, replace: false }); // ホームページへリダイレクト
         })
@@ -191,6 +212,7 @@ function submitForm(event) {
             errorMessage.textContent = error.message || 'エラーが発生しました。';
             errorMessage.classList.add('error-message');
             form.appendChild(errorMessage);
+            showFormForCurrentPath(); // 現在のパスに応じてフォームを再表示
         });
     }
 }
