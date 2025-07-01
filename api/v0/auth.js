@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 
-// アクセストークンを生成
+/**
+ * アクセストークン（JWT）を生成する
+ * @param {Object} payload - JWTのペイロード
+ * @returns {string} - 生成されたJWT
+ */
 export function generateAccessToken(payload) {
     if (!process.env.JWT_SECRET || !process.env.JWT_ACCESS_TOKEN_EXPIRATION) {
         throw new Error('JWT環境変数が未設定です');
@@ -10,7 +14,12 @@ export function generateAccessToken(payload) {
     });
 }
 
-// リクエストヘッダーのトークンを検証するミドルウェア（Cookieのみ対応）
+/**
+ * JWTトークンを検証する認証ミドルウェア
+ * @param {import('express').Request} req - リクエストオブジェクト
+ * @param {import('express').Response} res - レスポンスオブジェクト
+ * @param {Function} next - 次のミドルウェア関数
+ */
 export function authenticateToken(req, res, next) {
     try {
         // リクエストヘッダーにCookieが存在するか確認

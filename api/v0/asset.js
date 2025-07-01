@@ -2,6 +2,12 @@ import { join } from 'path';
 import fs from 'fs';
 import syncHandler from './sync.js';
 
+/**
+ * アセット（ファイル）を同期するAPIハンドラ
+ * @param {import('express').Request} req - リクエストオブジェクト
+ * @param {import('express').Response} res - レスポンスオブジェクト
+ * @returns {Promise<void>}
+ */
 export async function assetHandler(req, res) {
     try {
         const record = await syncHandler(req, res);

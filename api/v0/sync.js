@@ -1,13 +1,11 @@
 //  import
 import { syncRecord } from "#database";
 
-// レコード同期ハンドラ
-/** * レコード同期ハンドラ
- * - POSTリクエストを受け取り、レコードを同期
- * * @param {Object} req - リクエストオブジェクト
- * @param {Object} res - レスポンスオブジェクト
- * * @returns {Promise<void>} - 非同期処理の完了を示すPromise
- * @async
+/**
+ * レコード同期ハンドラ
+ * @param {import('express').Request} req - リクエストオブジェクト
+ * @param {import('express').Response} res - レスポンスオブジェクト
+ * @returns {Promise<void>}
  */
 export default async function syncHandler(req, res) {
     if (req.method !== 'POST') {
@@ -38,4 +36,3 @@ export default async function syncHandler(req, res) {
         return res.status(500).json({ message: 'Internal Server Error', error: error.message || 'Unknown error' });
     }
 }
-
