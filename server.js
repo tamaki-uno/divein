@@ -106,5 +106,10 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
+} catch (error) {
+    console.error('トップレベルのエラー:', error);
+    process.exit(1);
+}
+
 // --- モジュールのエクスポート ---
 export default app;
