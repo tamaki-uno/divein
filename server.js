@@ -23,7 +23,7 @@ import syncHandler from '#api/v0/sync.js';
 
 // --- 認証ミドルウェアの読み込み ---
 import { authenticateToken } from '#api/v0/auth.js';
-import { log } from 'console';
+
 
 try {
 
@@ -68,20 +68,18 @@ app.get(/(.*)/, (req, res) => {
                 console.error(logMessage, ' - エラー:', err.message);
                 res.status(err.status).end();
             } else {
-                console.log(logMessage, ' - ファイルを返しました');
+                // console.log(logMessage, ' - ファイルを返しました');
             }
         });
     } else {
         // その他のリクエストはindex.htmlを返す
         res.sendFile(join(publicDir, 'index.html'), (err) => {
             if (err) {
-                // console.error('index.htmlの配信中にエラーが発生:', err);
                 // console.error(`リクエストされたパス: ${req.path} - エラー: ${err.message}`);
                 console.error(logMessage, ' - index.htmlの配信中にエラーが発生:', err.message);
                 res.status(err.status).end();
             } else {
                 // console.log(`リクエストされたパス: ${req.path} - index.htmlを返しました`);
-                console.log(logMessage, ' - index.htmlを返しました');
             }
         });
     }
