@@ -178,6 +178,68 @@ div.popup {
     font-weight: bold;
 }
 
+/* Settings styles */
+div.settings-container {
+    /* 設定UIのコンテナ */
+    position: fixed;
+    /* position: absolute; Use absolute positioning for sliding effect */
+    top: 0;
+    /* right: 0; */
+    /* right: -300px; */
+    /* width: 300px; */
+
+    /* height: 100vh; */
+    height: 100%;
+    z-index: 1000; /* Ensure settings UI is above other content */
+    /* box-shadow: #bbb -10px 0 20px; */
+    background-color: #fff;
+    box-sizing: border-box;
+    padding: 20px;
+    /* transition: right 0.5s ease; スライドインアニメーション */
+    /* transition: width 0.5s ease,  box-shadow 0.5s ease; */
+    transition: right 0.5s ease, box-shadow 0.5s ease;
+}
+/* div.settings-container.close-icon { */
+div.settings-container .close-icon {
+    /* 設定UIの閉じるアイコン */
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 24px;
+    height: 24px;
+    padding: 5px;
+    cursor: pointer;
+}
+div.settings-container .close-icon:hover {
+    /* ホバー時のスタイル */
+    background-color: #ddd; /* 背景色を薄くする */
+    transform: background-color 0.2s; /* 背景色の変化にアニメーションを追加 */
+}
+.settings-container h2 {
+    /* 設定UIのタイトル */
+    margin: 20px 0;
+    /* text-align: center; */
+    font-size: 24px;
+    color: #333;
+}
+.settings-container p {
+    /* 設定UIの説明 */
+    /* text-align: center; */
+    font-size: 16px;
+    color: #666;
+}
+.settings-container ul {
+    /* 設定UIのリンクリスト */
+    /* list-style: none; */
+    padding: 0;
+    /* margin: 20px 0; */
+    margin: 30px;
+}
+.settings-container ul li {
+    /* リストアイテムのスタイル */
+    margin: 10px 0;
+}
+
 /* main  */
 main {
     padding: 20px;
