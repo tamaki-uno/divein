@@ -44,13 +44,12 @@ export default async function route(path, options = {reload: false, overwrite: f
         }
     }
 
-    initHeader(); // ヘッダーを初期化
     showLoading(); // ローディングUIを表示
+    initHeader(); // ヘッダーを初期化
 
     if (sessionStorage.getItem('user')) {
         // ユーザーが認証済みの場合はメインUIを初期化
         console.log(`[router] User authenticated, initializing main UI for path: ${path}`); // 認証済みユーザーログ
-        // initMain(); // メインUIを初期化
         switch (path) {
             case '/':
                 initMain(); // ホームページを初期化
@@ -60,7 +59,6 @@ export default async function route(path, options = {reload: false, overwrite: f
                 break;
             case '/login':
             case '/signup':
-                // route('/'); // ログイン/サインアップページはホームへリダイレクト
             case '/logout':
                 showPopup(); // ログアウトポップアップを表示
                 break;
