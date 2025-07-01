@@ -16,7 +16,7 @@ export async function showSettings() {
     const settingsContainer = document.querySelector('.settings-container') || await initSettings(); // 設定コンテナを取得、存在しない場合は初期化関数を呼び出す
     settingsContainer.style.width = '300px'; // 設定コンテナの幅を300pxに設定
     settingsContainer.style.right = '0'; // 設定コンテナの表示位置を右に設定
-    settingsContainer.style.boxShadow = '-10px 0px 10px rgba(0, 0, 0, 0.1)'; // ボックスシャドウを設定
+    // settingsContainer.style.boxShadow = '-10px 0px 10px rgba(0, 0, 0, 0.1)'; // ボックスシャドウを設定
     hideLoading(); // ローディングUIを非表示にする
 }
 
@@ -30,7 +30,7 @@ export function hideSettings() {
     const settingsContainer = document.querySelector('.settings-container'); // 設定コンテナを取得
     settingsContainer.style.right = '-300px'; // 設定コンテナの表示位置を非表示に設定
     // settingsContainer.style.width = '0'; // 設定コンテナの幅を0に設定
-    settingsContainer.style.boxShadow = 'none'; // ボックスシャドウを削除
+    // settingsContainer.style.boxShadow = 'none'; // ボックスシャドウを削除
     route('/'); // ホームページへルーティング
 }
 
@@ -47,6 +47,20 @@ async function initSettings() {
         console.log('[ui] Settings UI loaded successfully'); // 成功ログ
         const settingsContainer = node.querySelector('.settings-container'); // 設定コンテナ要素を取得
         settingsContainer.querySelector('.close-icon').addEventListener('click', () => hideSettings()); // 閉じるアイコンのクリックイベントを設定
+        settingsContainer.querySelector('.close-icon').addEventListener('mouseover', (e) => {
+            e.preventDefault(); // デフォルトのリンク動作を防ぐ
+            settingsContainer.querySelector('.close-icon').title = 'Close settings'; // ツールチップを設定
+        });
+        // settingsContainer.addEventListener('mouseover', (e) => {
+        //     e.preventDefault(); // デフォルトのリンク動作を防ぐ
+        //     settingsContainer.style.boxShadow = '-10px 0px 10px rgba(0, 0, 0, 0.1)'; // ボックスシャドウを設定
+        // });
+        // // settingsContainer.addEventListener('mouseout', (e) => {
+        // settingsContainer.addEventListener('mouseout', (e) => {
+        //     e.preventDefault(); // デフォルトのリンク動作を防ぐ
+        //     // settingsContainer.querySelector('.close-icon').title = ''; // ツールチップをクリア
+        //     settingsContainer.style.boxShadow = 'none'; // ボックスシャドウを削除
+        // });
         // document.body.insertAdjacentElement
         return document.body.appendChild(settingsContainer); // bodyに設定コンテナを挿入
     }).catch(error => {

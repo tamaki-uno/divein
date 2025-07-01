@@ -11,6 +11,7 @@ export default function initHeader() {
     const header = document.querySelector('header'); // ヘッダー要素を取得
     // clickイベントリスナーを設定
     header.querySelector('.user-icon').addEventListener('click', (e) => {
+    // header.querySelector('.user-icon').addEventListener('hover', (e) => {
         e.preventDefault(); // デフォルトのリンク動作を防ぐ
         console.log('[ui] User icon clicked'); // ユーザーアイコンクリックログ
         if (user) {
@@ -19,5 +20,17 @@ export default function initHeader() {
             route('/login'); // ログインページへ遷移
         }
     });
+    header.querySelector('.user-icon').addEventListener('mouseover', (e) => {
+        e.preventDefault(); // デフォルトのリンク動作を防ぐ
+        console.log('[ui] User icon hovered'); // ユーザーアイコンホバー時のログ
+        if (user) {
+            header.querySelector('.user-icon').title = 'Open settings'; // ツールチップを設定
+            // route('/settings'); // 設定ページへ遷移
+        } else {
+            header.querySelector('.user-icon').title = 'Login'; // ツールチップを設定
+        }
+    });
+
+    header.querySelector('.user-icon').alt = user ? 'Open settings' : 'Login'; // アイコンのalt属性を設定
     header.querySelector('.user-icon').src = user ? '/icon/open.svg' : '/icon/closed.svg'; // アイコンの切り替え
 }
