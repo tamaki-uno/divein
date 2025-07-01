@@ -239,32 +239,40 @@ div.line-container div.record-line {
     display: flex;
     flex-direction: row;
     align-items: center;
+    /* align-items: stretch; */
     box-sizing: border-box;
     width: 100%;
     background-color: #fff;
     border: #ddd solid 1px;
-    padding: 10px;
+    padding: 0.5em 1em;
 }
 div.line-container div.record-line img {
     /* トグルアイコンのスタイル */
+    flex: 0 0 auto; /* Prevent flex-grow and flex-shrink */
     width: 2em;
     cursor: pointer;
 }
-div.line-container div.record-line record-content {
+div.line-container div.record-line .record-content {
     /* レコード内容のスタイル */
-    flex: 1;
-    margin: 0;
+    flex: 1 1 auto;
+    margin: 0 1em;
+    font-size: 1.2em;
     color: #333;
+    overflow: hidden;         /* はみ出しを隠す */
+    text-overflow: ellipsis;  /* 省略記号を表示 */
+    white-space: nowrap;      /* 折り返さない */
+    min-width: 0;             /* flexアイテムのはみ出し防止 */
+    max-width: 100%;          /* 親幅を超えない */
 }
 div.line-container div.children-container {
-    margin-top: 10px;
     display: flex;
     flex-direction: column;
     width: 100%; /* Full width of the container */
+    padding-left: 3em;
 }
 div.line-container img.add-icon {
-    width: 24px;
-    height: 24px;
+    width: 1em;
+    height: 1em;;
     cursor: pointer;
     /* align-self: flex-start; Align to the start of the container */
 }
