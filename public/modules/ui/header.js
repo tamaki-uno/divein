@@ -10,7 +10,7 @@ export default function initHeader() {
     const user = sessionStorage.getItem('user'); // セッションストレージからユーザーデータを取得
     const header = document.querySelector('header'); // ヘッダー要素を取得
     // clickイベントリスナーを設定
-    header.querySelector('.user-icon-container').addEventListener('click', (e) => {
+    header.querySelector('.user-icon').addEventListener('click', (e) => {
         e.preventDefault(); // デフォルトのリンク動作を防ぐ
         console.log('[ui] User icon clicked'); // ユーザーアイコンクリックログ
         if (user) {
