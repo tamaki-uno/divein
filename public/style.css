@@ -1,31 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500;700;900&display=swap');
 
+/* 基本設定 */
 html, body {
     margin: 0;
     padding: 0;
     font-family: "Zen Maru Gothic", sans-serif;
-    font-size: 16px; /* Base font size */
-    font-weight: 500; /* Default font weight */
-    color: #333; /* Default text color */
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
     background-color: #f0f0f0;
 }
 
-/* General styles */
-.accent-color {
-    color: #1976d2; /* Primary color */
-}
-.large-border-radius {
-    border-radius: 20px; /* Large border radius */
-}
-.small-border-radius {
-    border-radius: 10px; /* Small border radius */
-}
+/* 汎用クラス */
+.theme-color { color: #333; }
+.theme-background-color { background-color: #333; }
+.sub-color { color: #ddd; }
+.sub-background-color { background-color: #ddd; }
+.accent-color { color: #37d; }
+.accent-background-color { background-color: #37d; }
 
-/* Header styles */
+.large-border-radius { border-radius: 20px; }
+.small-border-radius { border-radius: 10px; }
+
+/* ヘッダー */
 header {
-    /* background-color: #1976d2; */
-    background-color: #37d;
-    color: white;
     padding: 0.5em 1em;
     display: flex;
     justify-content: space-between;
@@ -39,7 +37,6 @@ header h1.logo {
     font-weight: 500;
 }
 header h1.logo a {
-    /* vertical-align: middle; */
     color: inherit;
     text-decoration: none;
 }
@@ -52,162 +49,119 @@ header .logo a img {
     vertical-align: -30%;
 }
 header img.user-icon {
-    /* ユーザーアイコンのスタイル */
     width: 32px;
     height: 32px;
     background-color: #fff;
     padding: 10px;
-    border-radius: 50%; /* Circle shape */
+    border-radius: 50%;
     cursor: pointer;
 }
 
-/* Loading styles */
+/* ローディング画面 */
 div.loading {
-    /* ローディング画面のスタイル */
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 255, 255, 0.5); /* 半透明の背景 */
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(255,255,255,0.3);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    z-index: 999; /* Ensure loading screen is above other content */
+    z-index: 999;
 }
 div.loading img.loading-icon {
-    /* ローディングアイコンのスタイル */
     position: relative;
-    transform: translate(-50%, -50%); /* 中央に配置 */
+    transform: translate(-50%, -50%);
     width: 64px;
     height: 64px;
 }
 
-/* Popup styles */
+/* ポップアップ */
 div.popup {
-    /* ポップアップを中央に配置 */
     display: flex;
     position: fixed;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 1000; /* Ensure popup is above other content */
-    background-color: white;
-    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1);
-    width: 400px; /* Set a fixed width for the popup */
-    max-width: 90%; /* Ensure it doesn't exceed viewport width */
-    max-height: 80%; /* Limit height to prevent overflow */
+    z-index: 1000;
+    background-color: #fff;
+    box-shadow: 4px 4px 10px rgba(0,0,0,0.1);
+    width: 400px;
+    max-width: 90%;
+    max-height: 80%;
     padding: 20px;
 }
-.popup button.close-popup-button {
-    /* 右上に配置 */
+.popup img.close-popup-icon {
     position: absolute;
-    top: 16px;
-    right: 16px;
-    background: none;
-    border: none;
+    top: 16px; right: 16px;
+    width: 24px; height: 24px;
+    padding: 5px;
     cursor: pointer;
 }
+.popup img.close-popup-icon:hover {
+    background-color: #ddd;
+}
+.popup form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 30px;
+    width: 100%;
+    height: 100%;
+}
 .popup h2.popup-title {
-    /* タイトルのスタイル */
     margin: 20px 0;
     text-align: center;
     font-size: 24px;
     color: #333;
 }
-.popup button.close-popup-button img {
-    /* アイコンのサイズを調整 */
-    width: 24px;
-    height: 24px;
-}
-.popup form {
-    /* フォームのスタイル JavaScriptで表示・非表示を制御 */
-    /* display: none; Initially hidden */
-    display: flex; /* Use flexbox for layout */
-    flex-direction: column;
-    /* align-items: center; */
-    gap: 10px; /* Space between form elements */
-    /* padding: 20px 30px; */
-    margin: 10px 30px;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-}
-.popup form h2 {
-    /* フォームのタイトル */
-    margin: 0 0 20px;
-    text-align: center;
-    font-size: 20px;
-    color: #333;
-}
-.popup form h2 img {
-    /* アイコンのサイズを調整 */
-    width: 32px;
-    height: 32px;
-    vertical-align: middle;
+.popup h2.popup-title img {
+    width: 1em;
+    height: 1em;
 }
 .popup form label {
-    /* margin-bottom: 5px; */
     font-weight: bold;
 }
 .popup form input {
-    width: 100%; /* Full width */
-    height: inherit;
+    width: 100%;
     padding: 10px;
     margin-bottom: 10px;
     border: 1px solid #ccc;
 }
 .popup form input.invalid {
-    border-color: red; /* Invalid input border color */
+    border-color: red;
 }
 .popup form button {
     padding: 10px;
-    background-color: #1976d2;
-    color: white;
+    color: #fff;
     border: none;
     cursor: pointer;
 }
 .popup form button:hover {
-    background-color: #155a8a; /* Darker shade on hover */
+    background-color: #26a;
 }
 .popup form p {
     margin: 10px 20px;
     font-size: 14px;
 }
 .popup form p.error-message {
-    color: red; /* Error message color */
+    color: #f00;
     font-weight: bold;
 }
 
-/* Settings styles */
+/* 設定UI */
 div.settings-container {
-    /* 設定UIのコンテナ */
     position: fixed;
-    /* position: absolute; Use absolute positioning for sliding effect */
     top: 0;
-    /* right: 0; */
-    /* right: -300px; */
-    /* width: 300px; */
-
-    /* height: 100vh; */
     height: 100%;
-    z-index: 1000; /* Ensure settings UI is above other content */
-    /* box-shadow: #bbb -10px 0 20px; */
+    z-index: 1000;
     background-color: #fff;
     box-sizing: border-box;
     padding: 20px;
-    /* transition: right 0.5s ease; スライドインアニメーション */
-    /* transition: width 0.5s ease,  box-shadow 0.5s ease; */
-    transition: right 0.5s ease,box-shadow 0.5s ease; /* スライドインアニメーションとボックスシャドウの変化にアニメーションを追加 */
+    transition: right 0.5s ease-in-out, box-shadow 0.5s;
 }
 div.settings-container:hover {
-    /* ホバー時のスタイル */
-    box-shadow: -10px 0px 10px rgba(0, 0, 0, 0.1);
-    transition: box-shadow 0.5s ease; /* ボックスシャドウの変化にアニメーションを追加 */
+    box-shadow: -10px 0px 10px rgba(0,0,0,0.1);
 }
-/* div.settings-container.close-icon { */
 div.settings-container .close-icon {
-    /* 設定UIの閉じるアイコン */
     position: absolute;
     top: 20px;
     right: 20px;
@@ -217,188 +171,102 @@ div.settings-container .close-icon {
     cursor: pointer;
 }
 div.settings-container .close-icon:hover {
-    /* ホバー時のスタイル */
-    background-color: #ddd; /* 背景色を薄くする */
-    transform: background-color 0.2s; /* 背景色の変化にアニメーションを追加 */
+    background-color: #ddd;
 }
 .settings-container h2 {
-    /* 設定UIのタイトル */
     margin: 20px 0;
-    /* text-align: center; */
     font-size: 24px;
     color: #333;
 }
 .settings-container p {
-    /* 設定UIの説明 */
-    /* text-align: center; */
     font-size: 16px;
     color: #666;
 }
 .settings-container ul {
-    /* 設定UIのリンクリスト */
-    /* list-style: none; */
     padding: 0;
-    /* margin: 20px 0; */
     margin: 30px;
 }
 .settings-container ul li {
-    /* リストアイテムのスタイル */
     margin: 10px 0;
 }
 
-/* main  */
+/* メイン */
 main {
     padding: 20px;
     background-color: #fff;
 }
-main div.container {
-    margin-left: 40px;
-    border: 1px solid #ddd;
-}
-main div.line {
-    background-color: #eee;
-    padding: 8px;
-}
-main div button {
-    display: inline-block;
-    background-color: transparent;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-}
-main div img {
-    /* width: 32px;
-    height: 32px; */
-    /* width: 1rem; */
-    height: 2em;
-    vertical-align: middle;
-}
-main div.content {
-    display: inline-block;
-    vertical-align: middle;
-}
-
-main .level-0 {
-    font-size: 24px;
-}
-main .level-1 {
-    font-size: 18px;
-}
-main .level-2 {
-    font-size: 16px;
-}
-main .level-3 {
-    font-size: 14px;
-}
-main .level-4 {
-    font-size: 12
-}
-main .level-5 {
-    font-size: 10px;
-}
-main .level-6 {
-    font-size: 8px;
-}
-main .level-7 {
-    font-size: 6px;
-}
-main .level-8 {
-    font-size: 4px;
-}
-main .level-9 {
-    font-size: 2px;
-}
 
 
+main .level-0 { font-size: 24px; }
+main .level-1 { font-size: 18px; }
+main .level-2 { font-size: 16px; }
+main .level-3 { font-size: 14px; }
+main .level-4 { font-size: 12px; }
+main .level-5 { font-size: 10px; }
+main .level-6 { font-size: 8px; }
+main .level-7 { font-size: 6px; }
+main .level-8 { font-size: 4px; }
+main .level-9 { font-size: 2px; }
 
-
-/* Line styles */
+/* レコード行 */
 div.line-container {
-    /* レコードコンテナのスタイル */
-    flex: 1 1 auto; /* Allow the container to grow and shrink */
+    flex: 1 1 auto;
     min-width: 0;
     max-width: 100%;
     display: flex;
     flex-direction: column;
-    /* width: 100%; */
     align-items: stretch;
     background-color: #eee;
-    /* border: #aaa solid 1px; */
-    /* box-shadow: #bbb 0.5em 0.5em 1em; */
-    /* box-shadow: #ddd 0.5em 0.5em 1em; */
-    /* margin: 0.5em; */
     gap: 0;
 }
 div.line-container:hover {
     box-shadow: #ddd 0.5em 0.5em 1em;
-    transition: box-shadow 0.5s; /* Add transition for box-shadow */
+    transition: box-shadow 0.5s;
 }
 div.line-container img {
-    /* トグルアイコンのスタイル */
-    flex: 0 0 auto; /* Prevent flex-grow and flex-shrink */
+    flex: 0 0 auto;
     width: 2em;
     cursor: pointer;
-    /* margin:0.5em; */
     padding: 0.5em;
     background-color: #fff;
 }
 div.line-container img:hover {
-    /* トグルアイコンのホバー時のスタイル */
     background-color: #ddd;
-    transform: background-color 1s; /* 背景色の変化にアニメーションを追加 */
 }
 div.line-container div.record-line {
-    /* レコード行のスタイル */
     display: flex;
     flex-direction: row;
     align-items: center;
-    /* align-items: stretch; */
     box-sizing: border-box;
     width: 100%;
     background-color: #fff;
-    /* border: #ddd solid 1px; */
     padding: 0.5em;
 }
 div.line-container .record-content {
-    /* レコード内容のスタイル */
     flex: 1 1 auto;
-    /* margin: 0 0.5em; */
     padding: 0.5em;
     font-size: 1.2em;
     color: #333;
-    overflow-wrap: break-word;   /* 長い単語やURLも折り返す */
-    word-break: break-all;       /* 必要なら途中で折り返す */
-    white-space: normal;         /* 折り返しを許可 */
+    overflow-wrap: break-word;
+    word-break: break-all;
+    white-space: normal;
     min-width: 0;
     max-width: 100%;
 }
 div.line-container .record-content:hover {
-    /* レコード内容のホバー時のスタイル */
-    background-color: #ddd; /* 背景色を薄くする */
-    transform: background-color 0.2s; /* 背景色の変化にアニメーションを追加 */
+    background-color: #ddd;
 }
 div.line-container .children-container {
-    flex: 1 1 auto; /* Allow the container to grow and shrink */
+    flex: 1 1 auto;
     min-width: 0;
     max-width: 100%;
     display: none;
     flex-direction: column;
     background-color: #ddd;
-    /* width: 100%; Full width of the container */
-    /* background-color: #bbb; */
-    /* padding-left: 3em; */
-    /* margin: 0.5em; */
     margin-left: 3em;
-    /* margin-bottom: 0.5em; */
-    /* gap: 0.5em; Space between child records */
 }
 div.line-container img.add-icon {
     width: 0.5em;
     height: 0.5em;
-    /* width: 1em;
-    height: 1em; */
-    border-radius: ;
-    /* margin-left: 1.5em; */
     margin-left: 3.5em;
-    /* margin-bottom: 0.5em; */
 }
