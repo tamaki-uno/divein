@@ -20,7 +20,7 @@ export default async function signupHandler(req, res) {
         return res.status(400).json({ message: 'ユーザー名、メールアドレス、パスワードは必須です。' });
     }
 
-    // 既存ユーザーのチェック（厳密一致）
+    // 既存ユーザーのチェック
     const users = await findRecords({
         type: 'user',
         content: username
