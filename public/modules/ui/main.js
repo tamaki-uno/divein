@@ -20,7 +20,7 @@ export default async function initMain() {
 
         lineHtml.getHtml().then(html => {
             // console.log('[ui] Line HTML loaded successfully', html); // Line HTMLの読み込み成功ログ
-            const line = new Line(user, { html, parentNode: main, delete: null }); // Lineのインスタンスを作成
+            const line = new Line(user, { html, parentNode: main, delete: null, level: 0 }); // Lineのインスタンスを作成
             hideLoading(); // ローディングUIを非表示
         }).catch(error => {
             console.error('[ui] Error initializing Line:', error); // エラーが発生した場合のログ

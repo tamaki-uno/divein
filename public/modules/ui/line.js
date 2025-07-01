@@ -17,33 +17,30 @@ export default class Line extends Record {
     constructor(record, params) {
         console.log('[line] Initializing Line module'); // Lineモジュール初期化ログ
         super(record, {html: params.html, parentNode: params.parentNode, delete: params.delete}); // 親クラスRecordのコンストラクタを呼び出す
-        this.level = params.level; // レベルを設定、デフォルトは0
-    }
-    /**
-     * HTMLを初期化して返す
-     * - レコードコンテナにレベルクラスを追加
-     * @returns {HTMLElement} - レコードのHTML要素
-     */
-    initHtml() {
-        console.log('[line] Initializing HTML for Line module'); // LineモジュールのHTML初期化ログ
-        super.initHtml();
+        this.level = params.level;
+        console.log('[line] Record level:', this.level); // レコードのレベルログ
         this.recordContainer.classList.add('level-' + this.level); // レコードコンテナにレベルクラスを追加
-        return this.recordContainer; // レコードコンテナを返す
+        console.log('[line] Record container initialized with level class'); // レコードコンテナ初期化ログ
     }
     /**
-     * 子要素のパラメータを作成
-     * - 親ノードはchildren-container
-     * - レベルは1つ上げる
-     * @returns {Object} - 子要素のパラメータ
+     * レコードモジュールに子要素を追加
+     * - 子要素を追加するためのメソッド
+     * @param {Object} record - 子要素のレコードデータ
+     * @returns {Line} - 作成された子要素のインスタンス
      */
-    createChildParams() {
-        console.log('[line] Creating child parameters for Line module'); // 子要素のパラメータ作成ログ
-        return {
-            html: this.html, // HTMLを継承
+    addChildInstance(record) {
+        console.log('[line] Adding child instance to Line module'); // Lineモジュールの子要素追加ログ
+        console.log('[line] Child record data:', record); // 子要素のレコードデータログ
+        const params = {
+            html: this.html, // 親レコードのHTMLを継承
             parentNode: this.querySelector('.children-container'), // 子要素を挿入する親ノード
-            delete: this.delete, // 削除機能を継承
-            level: this.level + 1 // レベルを1つ上げて子要素のレベルを設定
+            delete: this.deleteChild.bind(this), // 子要素削除メソッドをバインド
+            level: this.level + 1 // レベルを1つ上げる
         };
+        console.log('[line] Creating child instance with params:', params); // 子要素のインスタンス作成パラメータログ
+        const childInstance = new Line(record, params); // 子要素のインスタンス
+        this.childInstances.push(childInstance); // 子要素のインスタンスを配列に追加
+        return childInstance; // 作成された子要素のインスタンスを返す
     }
     edit(event) {
         console.log('[line] Editing Line module'); // Lineモジュールの編集ログ

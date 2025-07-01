@@ -216,13 +216,22 @@ export default class Record {
             updatedAt: new Date().toISOString(), // 更新日時をISO形式で設定
         };
     }
-    createChildParams() {
-        console.log('[record] Creating child params for Record module'); // 子要素のパラメータ作成ログ
-        return {
+    /**
+     * 子要素のインスタンスを追加
+     * - 子要素のレコードを受け取り、子要素のインスタンスを作成する
+     * @param {Object} record - 子要素のレコード
+     * @returns {Record} - 作成された子要素のインスタンス
+     */
+    addChildInstance(record) {
+        console.log('[record] Adding child instance to this.childInstances'); // 子要素のインスタンス追加ログ
+        const params = {
             html: this.html, // 親レコードのHTMLを継承
             parentNode: this.querySelector('.children-container'), // 子要素を挿入する親ノード
             delete: this.deleteChild.bind(this) // 子要素削除メソッドをバインド
-        };
+        }
+        const childInstance = new Record(record, params); // 子要素のインスタンスを作成
+        this.childInstances.push(childInstance); // 子要素のインスタンスを配列に追加
+        return childInstance; // 作成された子要素のインスタンスを返す
     }
     /**
      * レコードモジュールに子要素を追加
@@ -236,7 +245,7 @@ export default class Record {
         this.open(); // レコードを開く
         const childRecord = this.createChildRecord(); // 子要素のレコードを作成
         console.log('[record] Child record created:', childRecord); // 子要素のレコード作成ログ
-        this.childInstances.push(new Record(childRecord, this.createChildParams())); // 子要素のインスタンスを作成して配列に追加
+        this.addChildInstance(childRecord); // 子要素のインスタンスを追加
         this.record.children.push(childRecord.uuid); // 親レコードの子要素配列に子要素のUUIDを追加
         return await syncRecord(this.record) // 親レコードをAPIと同期
             .then((syncedRecord) => {
