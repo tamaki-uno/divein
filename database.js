@@ -1,9 +1,8 @@
 'use strict';
 
 import sqlite3 from 'sqlite3';
-import 'dotenv/config';
 
-const DB_PATH = process.env.DB_PATH || './database.sqlite';
+const DB_PATH = './database.db'; // データベースのパスを環境変数から取得、デフォルトはカレントディレクトリのdatabase.db
 
 // テンプレート用のカラム定義
 const columns = {
@@ -201,18 +200,18 @@ async function updateRecord(record) {
     const db = getDatabaseConnection();
     return new Promise((resolve, reject) => {
         const preparedRecord = prepareRecord(record);
+        // preparedRecord.valuesにuuidを追加してバインド値を作成
+        const values = [...preparedRecord.values, record.uuid];
         const sql = `UPDATE records SET ${preparedRecord.setClause} WHERE uuid = ?`;
-        values.push(record.uuid);
         db.run(
             sql,
-            preparedRecord.values,
+            values,
             function (err) {
                 db.close();
                 if (err) {
                     console.error('レコード更新エラー:', err.message);
                     reject(err);
                 } else {
-                    // resolve({ changes: this.changes });
                     resolve(record); // 更新したレコードを返す
                 }
             }

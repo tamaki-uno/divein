@@ -1,16 +1,18 @@
-// サーバプログラム
+/**
+ * メインサーバープログラム
+ * - ExpressによるAPIサーバー
+ * - 静的ファイル配信
+ * - APIエンドポイントの設定
+ * - エラーハンドリング
+ */
 
 import express from 'express';
-import { join } from 'path';
+import { join, extname } from 'path';
 import 'dotenv/config';
-import morgan from 'morgan';
 
 // --- 初期設定 ---
 const app = express();
 const port = process.env.PORT || 3000;
-
-// --- アクセスログの出力 ---
-// app.use(morgan('combined'));
 
 // --- データベースの初期化 ---
 import { createTable } from '#database';
@@ -23,14 +25,18 @@ import syncHandler from '#api/v0/sync.js';
 
 // --- 認証ミドルウェアの読み込み ---
 import { authenticateToken } from '#api/v0/auth.js';
-import { log } from 'console';
 
-try {
 
 // --- ミドルウェアの設定 ---
 app.use(express.json());
 
-// JSONパースエラー時のハンドリング
+/**
+ * JSONパースエラー時のハンドリングミドルウェア
+ * @param {Error} err
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {Function} next
+ */
 app.use((err, req, res, next) => {
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
         return res.status(400).json({ message: 'リクエストボディが不正です。' });
@@ -53,53 +59,53 @@ app.post('/api/v0/sync', authenticateToken, syncHandler);
 
 console.log('APIエンドポイントの設定完了');
 
-// // --- 静的ファイルの配信設定 ---
+// --- 静的ファイルの配信設定 ---
 const publicDir = join(process.cwd(), 'public');
 console.log(`静的ファイルの配信ディレクトリ: ${publicDir}`);
-const allowedExtensions = ['.html','.js', '.css', '.json', 'svg'];
+const allowedExtensions = ['.html', '.js', '.css', '.json', '.svg'];
 
-// 
+/**
+ * 静的ファイルまたはindex.htmlを返すルート
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 app.get(/(.*)/, (req, res) => {
     const logMessage = `${new Date().toISOString()} - ${req.method} ${req.path}`;
-    if (allowedExtensions.some(ext => req.path.endsWith(ext))) {
+    const ext = extname(req.path);
+    if (allowedExtensions.includes(ext)) {
         // 静的ファイルの配信
         res.sendFile(join(publicDir, req.path), (err) => {
             if (err) {
                 console.error(logMessage, ' - エラー:', err.message);
-                res.status(err.status).end();
-            } else {
-                console.log(logMessage, ' - ファイルを返しました');
+                res.status(err.status || 500).end();
             }
         });
     } else {
         // その他のリクエストはindex.htmlを返す
         res.sendFile(join(publicDir, 'index.html'), (err) => {
             if (err) {
-                // console.error('index.htmlの配信中にエラーが発生:', err);
-                // console.error(`リクエストされたパス: ${req.path} - エラー: ${err.message}`);
                 console.error(logMessage, ' - index.htmlの配信中にエラーが発生:', err.message);
-                res.status(err.status).end();
-            } else {
-                // console.log(`リクエストされたパス: ${req.path} - index.htmlを返しました`);
-                console.log(logMessage, ' - index.htmlを返しました');
+                res.status(err.status || 500).end();
             }
         });
     }
 });
 
+(async () => {
+    try {
+        // --- データベースの初期化 ---
+        await createTable();
+        // --- サーバーの起動 ---
+        app.listen(port, () => {
+            console.log(`サーバーがポート${port}で起動しました: http://localhost:${port}`);
+        });
+    } catch (error) {
+        console.error('サーバーの初期化中にエラーが発生しました:', error);
+        process.exit(1);
+    }
+})();
 
-} catch (error) {
-    console.error('サーバーの初期化中にエラーが発生しました:', error);
-    process.exit(1); // エラーが発生した場合はプロセスを終了
-}
-
-// --- サーバーの起動 ---
-await createTable();
-app.listen(port, () => {
-    console.log(`サーバーがポート${port}で起動しました: http://localhost:${port}`);
-});
-
-// エラーハンドリング
+// --- エラーハンドリング ---
 process.on('uncaughtException', (err) => {
     console.error('未処理の例外:', err);
 });

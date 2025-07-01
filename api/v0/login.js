@@ -8,9 +8,9 @@ import { generateAccessToken } from './auth.js'; // JWT生成関数のインポ�
 
 /**
  * ユーザーログイン処理
- * - POSTメソッドのみ許可
- * - ユーザー名とパスワードをチェック
- * - 成功時はユーザー情報を返す
+ * @param {import('express').Request} req - リクエストオブジェクト
+ * @param {import('express').Response} res - レスポンスオブジェクト
+ * @returns {Promise<void>}
  */
 export default async function loginHandler(req, res) {
     try {

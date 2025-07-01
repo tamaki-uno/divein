@@ -10,9 +10,9 @@ const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
 
 /**
  * ユーザー登録処理
- * - POSTメソッドのみ許可
- * - ユーザー名とパスワードをチェック
- * - 成功時は新規ユーザー情報を返す
+ * @param {import('express').Request} req - リクエストオブジェクト
+ * @param {import('express').Response} res - レスポンスオブジェクト
+ * @returns {Promise<void>}
  */
 export default async function signupHandler(req, res) {
     const { username, email, password } = req.body;
@@ -20,7 +20,7 @@ export default async function signupHandler(req, res) {
         return res.status(400).json({ message: 'ユーザー名、メールアドレス、パスワードは必須です。' });
     }
 
-    // 既存ユーザーのチェック（厳密一致）
+    // 既存ユーザーのチェック
     const users = await findRecords({
         type: 'user',
         content: username
