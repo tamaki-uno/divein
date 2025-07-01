@@ -50,6 +50,7 @@ export default async function route(path, options = {reload: false, overwrite: f
     if (sessionStorage.getItem('user')) {
         // ユーザーが認証済みの場合はメインUIを初期化
         console.log(`[router] User authenticated, initializing main UI for path: ${path}`); // 認証済みユーザーログ
+        // initMain(); // メインUIを初期化
         switch (path) {
             case '/':
                 initMain(); // ホームページを初期化
@@ -59,11 +60,12 @@ export default async function route(path, options = {reload: false, overwrite: f
                 break;
             case '/login':
             case '/signup':
+                // route('/'); // ログイン/サインアップページはホームへリダイレクト
             case '/logout':
                 showPopup(); // ログアウトポップアップを表示
                 break;
             default:
-                initMain(); // その他のページはメインUIを初期化
+                console.warn(`[router] Unhandled path for authenticated user: ${path}`); // 未処理のパスログ
                 break;
         }
         return;
