@@ -19,19 +19,21 @@ html, body {
 .accent-color { color: #37d; }
 .accent-background-color { background-color: #37d; }
 
+.white-background-color { background-color: #fff; }
+
 .shadow-on-hover:hover {
     box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2);
     transition: box-shadow 0.3s ease-in-out;
+}
+.background-on-hover:hover {
+    background-color: #ddd;
+    transition: background-color 0.3s ease-in-out;
 }
 
 .large-border-radius { border-radius: 20px; }
 .small-border-radius { border-radius: 10px; }
 
 /* ヘッダー */
-header {
-    display: flex;
-    background-color: #f00;
-}
 h1#logo-type {
     position: fixed;
     top: 20px; left: 20px;
@@ -96,9 +98,6 @@ div.popup {
     width: 24px; height: 24px;
     padding: 5px;
     cursor: pointer;
-}
-.popup img.close-popup-icon:hover {
-    background-color: #ddd;
 }
 .popup form {
     display: flex;
@@ -194,6 +193,7 @@ div.settings-container .close-icon:hover {
 /* メイン */
 main {
     padding: 20px;
+    padding-top: 100px;
     background-color: #fff;
 }
 
