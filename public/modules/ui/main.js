@@ -1,31 +1,49 @@
-
-
-import { showLoading, hideLoading } from './loading.js';
+import { hideLoading } from './loading.js';
 import Line from './line.js';
 import Html from './html.js';
 
+/**
+ * メインUIの初期化処理
+ */
 export default async function initMain() {
-    console.log('[ui] Initializing main UI'); // メインUI初期化ログ
-    const main = document.querySelector('main'); // メイン要素を取得
-
-    const lineHtml = new Html('/modules/ui/html/line.html'); // Line HTMLのインスタンスを作成
-
-    // ユーザーデータを取得
-    const user = JSON.parse(sessionStorage.getItem('user'));
-    if (user) {
-        console.log('[ui] User data found:', user); // ユーザーデータが見つかった場合のログ
-
-        // const userRecord = await syncWithAPI(user.uuid); // ユーザーのレコードをAPIから同期
-        // console.log('[ui] User record synced with API:', userRecord); // ユーザーレコード同期成功ログ
-
-        lineHtml.getHtml().then(html => {
-            // console.log('[ui] Line HTML loaded successfully', html); // Line HTMLの読み込み成功ログ
-            const line = new Line(user, { html, parentNode: main, delete: null, level: 0 }); // Lineのインスタンスを作成
-            hideLoading(); // ローディングUIを非表示
-        }).catch(error => {
-            console.error('[ui] Error initializing Line:', error); // エラーが発生した場合のログ
-        });
-        
-        // hideLoading(); // ローディングUIを非表示
+    console.log('[ui] Initializing main UI');
+    const main = document.querySelector('main');
+    if (!main) {
+        console.error('[ui] <main> element not found');
+        return;
     }
+
+    const user = getUserFromSession();
+
+    try {
+        const html = await loadLineHtml();
+        const line = new Line(user, { html, parentNode: main, delete: null, level: 0 });
+        hideLoading();
+    } catch (error) {
+        console.error('[ui] Error initializing Line:', error);
+    }
+}
+
+/**
+ * セッションストレージからユーザーデータを取得
+ * @returns {Object|null}
+ */
+function getUserFromSession() {
+    const userStr = sessionStorage.getItem('user');
+    if (!userStr) return null;
+    try {
+        return JSON.parse(userStr);
+    } catch (e) {
+        console.error('[ui] Failed to parse user data:', e);
+        return null;
+    }
+}
+
+/**
+ * Line HTMLを非同期で取得
+ * @returns {Promise<string>}
+ */
+function loadLineHtml() {
+    const lineHtml = new Html('/modules/ui/html/line.html');
+    return lineHtml.getHtml();
 }
