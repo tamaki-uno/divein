@@ -3,7 +3,8 @@ import jwt from 'jsonwebtoken';
 /**
  * アクセストークン（JWT）を生成する
  * @param {Object} payload - JWTのペイロード
- * @returns {string} - 生成されたJWT
+ * @returns {string} 生成されたJWT
+ * @throws {Error} JWT環境変数が未設定の場合
  */
 function generateAccessToken(payload) {
     if (!process.env.JWT_SECRET || !process.env.JWT_ACCESS_TOKEN_EXPIRATION) {
@@ -13,11 +14,13 @@ function generateAccessToken(payload) {
         expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION
     });
 }
+
 /**
  * 認証成功時のレスポンスを生成する
+ * @async
  * @param {import('express').Response} res - レスポンスオブジェクト
  * @param {Object} record - ユーザーレコード
- * @returns {Promise<import('express').Response>} - レスポンスオブジェクト
+ * @returns {Promise<import('express').Response>} レスポンスオブジェクト
  */
 export async function respondAuth(res, record) {
     try {
@@ -44,6 +47,7 @@ export async function respondAuth(res, record) {
  * @param {import('express').Request} req - リクエストオブジェクト
  * @param {import('express').Response} res - レスポンスオブジェクト
  * @param {Function} next - 次のミドルウェア関数
+ * @returns {void}
  */
 export function authenticateToken(req, res, next) {
     try {

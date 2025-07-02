@@ -1,12 +1,12 @@
 import bcrypt from 'bcrypt';
 import 'dotenv/config';
 
-import { findRecords } from '#database'; // データベース操作関数
-import { respondAuth } from '#api/v0/auth'; // 認証レスポンス生成関数
-
+import { findRecords } from '#database';
+import { respondAuth } from '#api/v0/auth';
 
 /**
  * ユーザーログイン処理
+ * @async
  * @param {import('express').Request} req - リクエストオブジェクト
  * @param {import('express').Response} res - レスポンスオブジェクト
  * @returns {Promise<void>}

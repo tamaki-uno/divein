@@ -4,17 +4,31 @@ import syncHandler from './sync.js';
 
 /**
  * アセット（ファイル）を同期するAPIハンドラ
+ * @async
  * @param {import('express').Request} req - リクエストオブジェクト
  * @param {import('express').Response} res - レスポンスオブジェクト
  * @returns {Promise<void>}
  */
 export async function assetHandler(req, res) {
     try {
-        const record = await syncHandler(req, res);
-        const uploadedFile = req.file; // アップロードされたファイル
-        const assetPath = join(process.cwd(), 'assets', record.createdBy, record.uuid);
+        // レコード同期
+        let syncedRecord;
+        // syncHandlerがresを返す場合は終了するため、ここで同期レコードのみ取得
+        const resJson = res.json;
+        let recordResult;
+        res.json = (data) => { recordResult = data; return data; };
+        await syncHandler(req, res);
+        res.json = resJson;
+        if (!recordResult || !recordResult.record) {
+            // syncHandlerがエラー応答を返した場合
+            return;
+        }
+        syncedRecord = recordResult.record;
 
-        // ディレクトリがなければ作成
+        const uploadedFile = req.file;
+        const assetPath = join(process.cwd(), 'assets', syncedRecord.createdBy, syncedRecord.uuid);
+
+        // ディレクトリ作成
         if (!fs.existsSync(assetPath)) {
             fs.mkdirSync(assetPath, { recursive: true });
         }
@@ -43,7 +57,7 @@ export async function assetHandler(req, res) {
 
         res.status(200).json({
             message: 'Assets synced successfully',
-            record: record,
+            record: syncedRecord,
             files: files
         });
     } catch (err) {

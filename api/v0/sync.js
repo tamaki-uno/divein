@@ -3,6 +3,7 @@ import { syncRecord } from "#database";
 
 /**
  * レコード同期ハンドラ
+ * @async
  * @param {import('express').Request} req - リクエストオブジェクト
  * @param {import('express').Response} res - レスポンスオブジェクト
  * @returns {Promise<void>}

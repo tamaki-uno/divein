@@ -1,3 +1,10 @@
+/**
+ * ログアウト処理
+ * @async
+ * @param {import('express').Request} req - リクエストオブジェクト
+ * @param {import('express').Response} res - レスポンスオブジェクト
+ * @returns {Promise<void>}
+ */
 export default async function logoutHandler(req, res) {
     try {
         // POSTメソッド以外は許可しない

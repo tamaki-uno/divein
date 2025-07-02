@@ -5,13 +5,11 @@ import fs from 'fs';
 import path from 'path';
 
 import { findRecords, insertRecord } from '#database';
-import { respondAuth } from '#api/v0/auth'; // 認証レスポンス生成関数
-
-// テンプレートJSONを同期的に読み込む
-const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
+import { respondAuth } from '#api/v0/auth';
 
 /**
  * ユーザー登録処理
+ * @async
  * @param {import('express').Request} req - リクエストオブジェクト
  * @param {import('express').Response} res - レスポンスオブジェクト
  * @returns {Promise<void>}
@@ -39,11 +37,6 @@ export default async function signupHandler(req, res) {
         return res.status(409).json({ message: 'そのユーザー名またはメールアドレスは既に使用されています。' });
     }
 
-    // テンプレートファイル存在チェック
-    if (!fs.existsSync(recordTemplatePath)) {
-        return res.status(500).json({ message: 'テンプレートファイルが見つかりません。' });
-    }
-
     // ユーザーデータ作成
     const now = new Date().toISOString();
     const uuid = crypto.randomUUID();
@@ -51,22 +44,22 @@ export default async function signupHandler(req, res) {
     if (!passwordHash) {
         return res.status(500).json({ message: 'パスワードのハッシュ化に失敗しました。' });
     }
-    const template = JSON.parse(fs.readFileSync(recordTemplatePath, 'utf8'));
-    const userData = { ...template };
-    userData.uuid = uuid;
-    userData.type = 'user';
-    userData.content = JSON.stringify({
-        username: username,
-        email: email,
-        password_hash: passwordHash
-    });
-    userData.children = [];
-    userData.permissionsRead = ['*'];
-    userData.permissionsWrite = [uuid];
-    userData.createdBy = uuid;
-    userData.updatedBy = uuid;
-    userData.createdAt = now;
-    userData.updatedAt = now;
+    const userData = {
+        uuid,
+        type: 'user',
+        content: JSON.stringify({
+            username,
+            email,
+            password_hash: passwordHash
+        }),
+        children: [],
+        permissionsRead: ['*'],
+        permissionsWrite: [uuid],
+        createdBy: uuid,
+        updatedBy: uuid,
+        createdAt: now,
+        updatedAt: now
+    };
 
     try {
         const newUser = await insertRecord(userData);
