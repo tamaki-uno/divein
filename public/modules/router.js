@@ -13,25 +13,29 @@ import { showSettings } from './ui/setting.js';
 const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
 
 /**
+ * クエリパラメータ文字列を生成
+ * @param {Object} options
+ * @returns {string}
+ */
+function buildQueryParams(options) {
+    const params = [];
+    if (options.redirect) params.push(`redirect=${encodeURIComponent(options.redirect)}`);
+    if (options.uuid) params.push(`uuid=${encodeURIComponent(options.uuid)}`);
+    return params.length ? `?${params.join('&')}` : '';
+}
+
+/**
  * ページ遷移時の履歴操作を行う
  * @param {string} path - 遷移先パス
  * @param {Object} options - オプション設定
  */
 function updateHistory(path, options) {
-    const queryParams = '?'
-    //  = options.redirect ? `redirect=${encodeURIComponent(options.redirect)}` : '';
-    if (options.redirect) {
-        queryParams += `redirect=${encodeURIComponent(options.redirect)}`;
-    }
-    if (options.uuid) {
-        queryParams += `uuid=${options.uuid}`;
-    }
-    path += queryParams;
-    
+    const query = buildQueryParams(options);
+    const fullPath = path + query;
     if (options.overwrite) {
-        window.history.replaceState({}, '', path + queryParams);
+        window.history.replaceState({}, '', fullPath);
     } else {
-        window.history.pushState({}, '', path + queryParams);
+        window.history.pushState({}, '', fullPath);
     }
     if (options.reload) {
         window.location.reload();
@@ -41,8 +45,10 @@ function updateHistory(path, options) {
 /**
  * ユーザー認証済み時のルーティング処理
  * @param {string} path
+ * @param {Object} user
+ * @param {Object} options
  */
-function handleAuthenticatedRoute(path) {
+function handleAuthenticatedRoute(path, user, options) {
     console.log(`[router] User authenticated, initializing main UI for path: ${path}`);
     switch (path) {
         case '/':
@@ -73,7 +79,6 @@ function handlePublicRoute(path) {
 function redirectToLogin(path) {
     console.warn(`[router] User not authenticated, redirecting to login for path: ${path}`);
     route('/login', { reload: false, overwrite: true, redirect: path });
-
 }
 
 /**
@@ -91,11 +96,26 @@ export default async function route(path, options = { redirect: '', uuid: '', ov
         handlePublicRoute(path);
         return;
     }
-    const user = JSON.parse(sessionStorage.getItem('user'));
+    const user = getUserFromSession();
     if (user && user.uuid) {
-        console.log(`[router] User is authenticated: ${user}`);
-        handleAuthenticatedRoute(path);
+        console.log(`[router] User is authenticated:`, user);
+        handleAuthenticatedRoute(path, user, options);
         return;
     }
     redirectToLogin(path);
+}
+
+/**
+ * セッションストレージからユーザーデータを取得
+ * @returns {Object|null}
+ */
+function getUserFromSession() {
+    const userStr = sessionStorage.getItem('user');
+    if (!userStr) return null;
+    try {
+        return JSON.parse(userStr);
+    } catch (e) {
+        console.error('[router] Failed to parse user data:', e);
+        return null;
+    }
 }
