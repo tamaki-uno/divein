@@ -3,13 +3,11 @@
  * - ページパスに応じてUI初期化や認証チェックを行う
  */
 
-console.log('[router] module loaded'); // モジュール読み込みログ
-;
-import setUserIcon from './ui/userIcon.js';
 import { showLoading } from './ui/loading.js';
+import setUserIcon from './ui/userIcon.js';
+import initMain from './ui/main.js';
 import { showPopup } from './ui/popup.js';
 import { showSettings } from './ui/setting.js';
-import initMain from './ui/main.js';
 
 // 認証不要ページのパス一覧
 const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
@@ -17,32 +15,21 @@ const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
 /**
  * 指定パスに応じてUIや認証状態を制御する
  * @param {string} path - 遷移先パス
- * @param {Object} options - オプション設定
- * @param {boolean} options.reload - trueの場合はページをリロード
- * @param {boolean} options.overwrite - trueの場合は履歴を上書き
+ * @param {Object} [options={overwrite: false, reload: false}] - オプション設定
+ * @param {boolean} [options.overwrite=false] - trueなら履歴を上書き、falseなら新規履歴を追加
+ * @param {boolean} [options.reload=false] - trueならページをリロード、falseならリロードしない
  * @returns {Promise<void>} - 非同期処理の完了を示すPromise
- * * @async
+ * @async
  * @description
  * - ページパスに応じてヘッダーやメインUIを初期化
  * - 認証状態に応じて適切なUIを表示
  */
-export default async function route(path, options = {reload: false, overwrite: false}) {
-    console.log(`[router] route called. path: ${path}`); // ルーティング開始ログ
+export default async function route(path, options = {overwrite: false, reload: false}) {
+    console.log(`[router] route called. path: ${path}`);
 
-    // リロードフラグが立っている場合はページをリロード
-    if (options.reload) {
-        console.log('[router] Reloading page due to reload flag'); // リロードフラグログ
-        window.location.pathname = path; // パスを更新してリロード
-        return;
-    } else {
-        if (options.overwrite) {
-            // overwriteがtrueの場合は履歴を上書き
-            window.history.replaceState({}, '', path);
-        } else {
-            // 通常の履歴追加
-            window.history.pushState({}, '', path);
-        }
-    }
+    if (options.overwrite) window.history.replaceState({}, '', path);
+    else window.history.pushState({}, '', path);
+    if (options.reload)  window.location.reload();
 
     showLoading(); // ローディングUIを表示
     setUserIcon(); // ヘッダーを初期化
@@ -52,15 +39,15 @@ export default async function route(path, options = {reload: false, overwrite: f
         console.log(`[router] User authenticated, initializing main UI for path: ${path}`); // 認証済みユーザーログ
         switch (path) {
             case '/':
-                initMain(); // ホームページを初期化
-                break; // ホームページは特に何もしない
-            case '/settings':
-                showSettings(); // 設定ページを表示
+                initMain();
                 break;
             case '/login':
             case '/signup':
             case '/logout':
-                showPopup(); // ログアウトポップアップを表示
+                showPopup();
+                break;
+            case '/settings':
+                showSettings();
                 break;
             default:
                 console.warn(`[router] Unhandled path for authenticated user: ${path}`); // 未処理のパスログ
