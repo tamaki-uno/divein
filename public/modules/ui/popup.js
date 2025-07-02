@@ -70,10 +70,23 @@ export async function showPopup() {
     hideLoading();
 }
 
+/**
+ * 入力フィールドの無効状態をアラートする
+ * @param {HTMLInputElement} input - 無効な入力フィールド
+ * @param {string} message - エラーメッセージ
+ */
+function alertInvalidInput(input, message) {
+    input.classList.add('invalid');
+    const errorMessage = document.createElement('p');
+    errorMessage.textContent = message;
+    errorMessage.classList.add('error-message');
+    input.parentNode.insertBefore(errorMessage, input.nextSibling);
+}
 
-/** * フォームのバリデーションを行う
- * @param {HTMLFormElement} form - バリデーション対象のフォーム
- * @returns {boolean} - フォームが有効な場合はtrue、無効な場合はfalse
+/**
+ * フォームのバリデーションを行う
+ * @param {HTMLFormElement} form
+ * @returns {boolean}
  */
 function validateForm(form) {
     console.log('Validating form', form);
@@ -87,117 +100,102 @@ function validateForm(form) {
     form.querySelectorAll('input').forEach(input => {
         if (!input.checkValidity()) {
             isValid = false;
-            input.classList.add('invalid');
-            const p = document.createElement('p');
-            p.textContent = input.validationMessage;
-            p.classList.add('error-message');
-            input.parentNode.insertBefore(p, input.nextSibling);
+            alertInvalidInput(input, input.validationMessage);
         }
     });
     // パスワード確認
-    const password = form.querySelector('input[name="password"]');
-    const confirm = form.querySelector('input[name="confirm-password"]');
-    if (password && confirm && password.value !== confirm.value) {
-        isValid = false;
-        confirm.classList.add('invalid');
-        const p = document.createElement('p');
-        p.textContent = 'パスワードが一致しません。';
-        p.classList.add('error-message');
-        confirm.parentNode.insertBefore(p, confirm.nextSibling);
+    if (form.classList.contains('signup-form')) {
+        const password = form.querySelector('input[name="password"]');
+        const confirm = form.querySelector('input[name="confirm-password"]');
+        if (password.value !== confirm.value) {
+            isValid = false;
+            alertInvalidInput(confirm, 'パスワードが一致しません。');
+        }
     }
-    form.querySelector('button[type="submit"]').disabled = !isValid; // 送信ボタンの有効/無効を設定
     return isValid;
 }
 
 /**
- * APIのPOSTリクエストを処理する関数
- * - 指定されたエンドポイントに対してJSONデータをPOSTリクエスト
- * - レスポンスをJSONとして処理
- * * @param {Object} jsonData - 送信するJSONデータ
- * @param {string} endpointType - エンドポイントのタイプ（例: 'signup', 'login'）
- * @param {string} [API_BASE_PATH='/api/v0'] - APIのベースパス
- * @param {string} [method='POST'] - HTTPメソッド（デフォルトは'POST'）
- * @returns {Promise<Object>} - レスポンスのJSONデータ
- * @async
+ * APIのPOSTリクエストを送信
+ * @param {Object} jsonData - 送信するJSONデータ
+ * @param {string} endpointType - エンドポイント名（例: 'signup', 'login'）
+ * @param {string} [API_BASE_PATH='/api/v0']
+ * @param {string} [method='POST']
+ * @returns {Promise<Object>}
  */
 async function postAPIHandler(jsonData, endpointType, API_BASE_PATH = '/api/v0', method = 'POST') {
-    console.log('Handling API POST request');
     return fetch(`${API_BASE_PATH}/${endpointType}`, {
-        method: method,
+        method,
         body: JSON.stringify(jsonData),
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        credentials: 'include' // セッション維持
+        credentials: 'include'
     })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTPエラー: ${response.status}`);
-            }
-            return response.json();
-        });
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTPエラー: ${response.status}`);
+        return response.json();
+    });
 }
 
+/**
+ * フォーム送信共通処理
+ * @param {HTMLFormElement} form
+ * @param {string} endpointType
+ * @returns {Promise<Object>}
+ */
 async function submitForm(form, endpointType) {
-    console.log(`Submitting form for ${endpointType}`);
-    const dataObj = Object.fromEntries(new FormData(form).entries()); // フォームデータをオブジェクトに変換
-    delete dataObj['confirm-password']; // confirm-passwordは送信しない
-    const jsonData = JSON.stringify(dataObj); // オブジェクトをJSON文字列に変換
-    return postAPIHandler(jsonData, endpointType, API_BASE_PATH) // APIのPOSTリクエストを送信
+    const dataObj = Object.fromEntries(new FormData(form).entries());
+    delete dataObj['confirm-password'];
+    const jsonData = JSON.stringify(dataObj);
+    return postAPIHandler(jsonData, endpointType, API_BASE_PATH)
         .then((json) => {
-            console.log(`${endpointType} successful:`, json);
-            sessionStorage.setItem('user', JSON.stringify(json.user)); // ユーザーデータをセッションストレージに保存
-            closePopup(); // ポップアップを閉じる
-            return json; // レスポンスのJSONデータを返す
+            sessionStorage.setItem('user', JSON.stringify(json.user));
+            closePopup();
+            return json;
         });
 }
 
-/** * サインアップフォームの送信を処理する関数
- * * @param {Event} event - フォーム送信イベント
- * @returns {void}
- * @async
- * @throws {Error} - APIリクエストの失敗時にエラーをスロー
+/**
+ * サインアップフォーム送信ハンドラ
+ * @param {Event} event
  */
 async function signupHandler(event) {
-    console.log('Handling signup form submission');
-    event.preventDefault(); // デフォルトの送信を防ぐ
-    const form = event.target;
-    form.querySelector('button[type="submit"]').disabled = true; // 送信ボタンを無効化
-    if (validateForm(form)) await submitForm(form, 'signup') // バリデーションを実行し、サインアップを処理
-}
-
-/** * ログインフォームの送信を処理する関数
- * - デフォルトの送信を防ぐ
- * - バリデーションを実行
- * - フォームデータをオブジェクトに変換
- * - オブジェクトをJSON文字列に変換
- * - APIのPOSTリクエストを送信
- * - レスポンスをJSONとして処理
- * * @param {Event} event - フォーム送信イベント
- * @returns {void}
- * @async
- */
-async function loginHandler(event) {
-    console.log('Handling login form submission');
     event.preventDefault();
     const form = event.target;
     form.querySelector('button[type="submit"]').disabled = true;
-    if (validateForm(form)) await submitForm(form, 'login'); // バリデーションを実行し、ログインを処理
+    if (validateForm(form)) {
+        await submitForm(form, 'signup');
+        closePopup(event);
+    } else {
+        form.querySelector('button[type="submit"]').disabled = false;
+    }
 }
 
-/** * ログアウトフォームの送信を処理する関数
- * - デフォルトの送信を防ぐ
- * - セッションストレージからユーザーデータを削除
- * - クッキーからトークンを削除
- * - ホームページへリダイレクト
- * * @param {Event} event - フォーム送信イベント
- * @returns {void}
+/**
+ * ログインフォーム送信ハンドラ
+ * @param {Event} event
+ */
+async function loginHandler(event) {
+    event.preventDefault();
+    const form = event.target;
+    form.querySelector('button[type="submit"]').disabled = true;
+    if (validateForm(form)) {
+        await submitForm(form, 'login');
+        closePopup(event);
+    } else {
+        form.querySelector('button[type="submit"]').disabled = false;
+    }
+}
+
+/**
+ * ログアウトハンドラ
+ * @param {Event} event
  */
 function logoutHandler(event) {
-    console.log('Handling logout form submission');
-    event.preventDefault(); // デフォルトの送信を防ぐ
-    sessionStorage.removeItem('user'); // セッションストレージからユーザーデータを削除
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'; // クッキーからトークンを削除
-    closePopup(event); // ポップアップを閉じる
+    event.preventDefault();
+    sessionStorage.removeItem('user');
+    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    closePopup(event);
 }
