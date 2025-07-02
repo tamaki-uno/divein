@@ -147,9 +147,9 @@ export async function fetchAPI(record, API_URL='/api/v0/sync', method='POST') {
             if (response.status === 401) {
                 // // 認証エラーの場合はログインページにリダイレクト
                 // const loginUrl = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
-                const loginUrl = '/login';
                 console.warn('[database] Authentication error, redirecting to login:', loginUrl);
-                route(loginUrl, { reload: true, overwrite: true });
+                // route(loginUrl, { reload: true, overwrite: true });
+                route('/login', { reload: true, overwrite: true, redirect: window.location.pathname + window.location.search });
             } else {
                 throw new Error(`API fetch failed: ${response.status}`);
             }

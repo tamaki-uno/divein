@@ -18,10 +18,20 @@ const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
  * @param {Object} options - オプション設定
  */
 function updateHistory(path, options) {
+    const queryParams = '?'
+    //  = options.redirect ? `redirect=${encodeURIComponent(options.redirect)}` : '';
+    if (options.redirect) {
+        queryParams += `redirect=${encodeURIComponent(options.redirect)}`;
+    }
+    if (options.uuid) {
+        queryParams += `uuid=${options.uuid}`;
+    }
+    path += queryParams;
+    
     if (options.overwrite) {
-        window.history.replaceState({}, '', path);
+        window.history.replaceState({}, '', path + queryParams);
     } else {
-        window.history.pushState({}, '', path);
+        window.history.pushState({}, '', path + queryParams);
     }
     if (options.reload) {
         window.location.reload();
@@ -36,7 +46,7 @@ function handleAuthenticatedRoute(path) {
     console.log(`[router] User authenticated, initializing main UI for path: ${path}`);
     switch (path) {
         case '/':
-            initMain();
+            initMain(options.uuid || user.uuid);
             break;
         case '/settings':
             showSettings();
@@ -62,16 +72,16 @@ function handlePublicRoute(path) {
  */
 function redirectToLogin(path) {
     console.warn(`[router] User not authenticated, redirecting to login for path: ${path}`);
-    route('/login', { reload: false, overwrite: true });
+    route('/login', { reload: false, overwrite: true, redirect: path });
+
 }
 
 /**
  * 指定パスに応じてUIや認証状態を制御する
  * @param {string} path - 遷移先パス
- * @param {Object} [options={overwrite: false, reload: false}] - オプション設定
- * @returns {Promise<void>}
+ * @param {Object} [options={ redirect: '', uuid: '', overwrite: false, reload: false }] - オプション設定
  */
-export default async function route(path, options = { overwrite: false, reload: false }) {
+export default async function route(path, options = { redirect: '', uuid: '', overwrite: false, reload: false }) {
     console.log(`[router] route called. path: ${path}`);
     updateHistory(path, options);
     showLoading();
@@ -81,8 +91,9 @@ export default async function route(path, options = { overwrite: false, reload: 
         handlePublicRoute(path);
         return;
     }
-    const user = sessionStorage.getItem('user');
-    if (user) {
+    const user = JSON.parse(sessionStorage.getItem('user'));
+    if (user && user.uuid) {
+        console.log(`[router] User is authenticated: ${user}`);
         handleAuthenticatedRoute(path);
         return;
     }

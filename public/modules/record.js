@@ -18,6 +18,7 @@ export default class Record {
      * @constructor
      */
     constructor(record, { html = '', parentNode, delete: deleteCallback }) {
+        console.log('[record] Initializing Record module.\n with record:', record, '\nand params:', { html, parentNode, delete: deleteCallback });
         this.setRecord(record);
         this.html = html;
         this.parentNode = parentNode;
@@ -25,6 +26,10 @@ export default class Record {
         this.isOpen = false;
         this.getRender();
     }
+    /**
+     * レコードのデータを設定
+     * @param {Object} record - レコードデータ
+     */
     setRecord(record) {
         this.record = {
             ...record,

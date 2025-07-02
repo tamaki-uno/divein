@@ -8,7 +8,6 @@ import route from '../router.js'; // ルーティング関数をインポート
  * @returns {void}
  */
 export default function setUserIcon() {
-    console.log('[ui] Initializing header'); // ヘッダー初期化ログ
     const user = sessionStorage.getItem('user'); // セッションストレージからユーザーデータを取得
     // clickイベントリスナーを設定
     const userIcon = document.getElementById('user-icon'); // ユーザーアイコン要素を取得

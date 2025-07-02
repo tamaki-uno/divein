@@ -1,11 +1,12 @@
 import { hideLoading } from './loading.js';
 import Line from './line.js';
 import Html from './html.js';
+import { getRecordFromAPI } from '../database.js';
 
 /**
  * メインUIの初期化処理
  */
-export default async function initMain() {
+export default async function initMain(uuid) {
     console.log('[ui] Initializing main UI');
     const main = document.querySelector('main');
     if (!main) {
@@ -13,37 +14,18 @@ export default async function initMain() {
         return;
     }
 
-    const user = getUserFromSession();
+    const lineHtml = new Html('/modules/ui/html/line.html');
 
     try {
-        const html = await loadLineHtml();
-        const line = new Line(user, { html, parentNode: main, delete: null, level: 0 });
+        const record = await getRecordFromAPI(uuid);
+        if (!record) {
+            console.error('[ui] No record found for UUID:', uuid);
+            return;
+        }
+        const html = await lineHtml.getNode();
+        const line = new Line(record, { html, parentNode: main, delete: null, level: 0 });
         hideLoading();
     } catch (error) {
         console.error('[ui] Error initializing Line:', error);
     }
-}
-
-/**
- * セッションストレージからユーザーデータを取得
- * @returns {Object|null}
- */
-function getUserFromSession() {
-    const userStr = sessionStorage.getItem('user');
-    if (!userStr) return null;
-    try {
-        return JSON.parse(userStr);
-    } catch (e) {
-        console.error('[ui] Failed to parse user data:', e);
-        return null;
-    }
-}
-
-/**
- * Line HTMLを非同期で取得
- * @returns {Promise<string>}
- */
-function loadLineHtml() {
-    const lineHtml = new Html('/modules/ui/html/line.html');
-    return lineHtml.getHtml();
 }

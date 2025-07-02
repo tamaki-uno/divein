@@ -15,12 +15,10 @@ export default class Line extends Record {
      * @param {number} level - レコードのレベル
      */
     constructor(record, params) {
-        console.log('[line] Initializing Line module'); // Lineモジュール初期化ログ
+        console.log('[line] Initializing Line module with record:', record, 'and params:', params); // Lineモジュールの初期化ログ
         super(record, {html: params.html, parentNode: params.parentNode, delete: params.delete}); // 親クラスRecordのコンストラクタを呼び出す
         this.level = params.level;
-        console.log('[line] Record level:', this.level); // レコードのレベルログ
         this.recordContainer.classList.add('level-' + this.level); // レコードコンテナにレベルクラスを追加
-        console.log('[line] Record container initialized with level class'); // レコードコンテナ初期化ログ
     }
     /**
      * レコードモジュールに子要素を追加
@@ -29,8 +27,6 @@ export default class Line extends Record {
      * @returns {Line} - 作成された子要素のインスタンス
      */
     addChildInstance(record) {
-        console.log('[line] Adding child instance to Line module'); // Lineモジュールの子要素追加ログ
-        console.log('[line] Child record data:', record); // 子要素のレコードデータログ
         const params = {
             html: this.html, // 親レコードのHTMLを継承
             parentNode: this.querySelector('.children-container'), // 子要素を挿入する親ノード
