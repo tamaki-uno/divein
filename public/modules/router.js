@@ -5,7 +5,7 @@
 
 console.log('[router] module loaded'); // モジュール読み込みログ
 ;
-import initHeader from './ui/header.js';
+import setUserIcon from './ui/userIcon.js';
 import { showLoading } from './ui/loading.js';
 import { showPopup } from './ui/popup.js';
 import { showSettings } from './ui/setting.js';
@@ -45,7 +45,7 @@ export default async function route(path, options = {reload: false, overwrite: f
     }
 
     showLoading(); // ローディングUIを表示
-    initHeader(); // ヘッダーを初期化
+    setUserIcon(); // ヘッダーを初期化
 
     if (sessionStorage.getItem('user')) {
         // ユーザーが認証済みの場合はメインUIを初期化

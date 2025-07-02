@@ -1,17 +1,18 @@
 import route from '../router.js'; // ルーティング関数をインポート
 
-/** * ヘッダーの初期化
- * - ユーザーのログイン状態に応じてアイコンを切り替え
- * - アイコンクリックでログイン/設定ページへ遷移
- * * @returns {void}
+/** * ユーザーアイコンを設定する関数
+ * - ユーザーアイコンのクリックイベントを設定
+ * - ユーザーがログインしているかどうかでアイコンを切り替え
+ * - ユーザーがログインしている場合は設定ページへ、そうでない場合はログインページへ遷移
+ * - ホバー時にツールチップを表示
+ * @returns {void}
  */
-export default function initHeader() {
+export default function setUserIcon() {
     console.log('[ui] Initializing header'); // ヘッダー初期化ログ
     const user = sessionStorage.getItem('user'); // セッションストレージからユーザーデータを取得
-    const header = document.querySelector('header'); // ヘッダー要素を取得
     // clickイベントリスナーを設定
-    header.querySelector('.user-icon').addEventListener('click', (e) => {
-    // header.querySelector('.user-icon').addEventListener('hover', (e) => {
+    const userIcon = document.getElementById('user-icon'); // ユーザーアイコン要素を取得
+    userIcon.addEventListener('click', (e) => {
         e.preventDefault(); // デフォルトのリンク動作を防ぐ
         console.log('[ui] User icon clicked'); // ユーザーアイコンクリックログ
         if (user) {
@@ -20,7 +21,7 @@ export default function initHeader() {
             route('/login'); // ログインページへ遷移
         }
     });
-    header.querySelector('.user-icon').addEventListener('mouseover', (e) => {
+    userIcon.addEventListener('mouseover', (e) => {
         e.preventDefault(); // デフォルトのリンク動作を防ぐ
         console.log('[ui] User icon hovered'); // ユーザーアイコンホバー時のログ
         if (user) {
@@ -30,7 +31,6 @@ export default function initHeader() {
             header.querySelector('.user-icon').title = 'Login'; // ツールチップを設定
         }
     });
-
-    header.querySelector('.user-icon').alt = user ? 'Open settings' : 'Login'; // アイコンのalt属性を設定
-    header.querySelector('.user-icon').src = user ? '/icon/open.svg' : '/icon/closed.svg'; // アイコンの切り替え
+    userIcon.alt = user ? 'Open settings' : 'Login'; // アイコンのalt属性を設定
+    userIcon.src = user ? '/icon/open.svg' : '/icon/closed.svg'; // アイコンの切り替え
 }
