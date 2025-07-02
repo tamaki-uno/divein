@@ -167,7 +167,6 @@ async function signupHandler(event) {
     form.querySelector('button[type="submit"]').disabled = true;
     if (validateForm(form)) {
         await submitForm(form, 'signup');
-        closePopup(event);
     } else {
         form.querySelector('button[type="submit"]').disabled = false;
     }
@@ -183,7 +182,6 @@ async function loginHandler(event) {
     form.querySelector('button[type="submit"]').disabled = true;
     if (validateForm(form)) {
         await submitForm(form, 'login');
-        closePopup(event);
     } else {
         form.querySelector('button[type="submit"]').disabled = false;
     }
