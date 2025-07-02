@@ -20,6 +20,7 @@ import { createTable } from '#database';
 // --- APIハンドラの読み込み ---
 import { assetHandler } from '#api/v0/asset.js';
 import loginHandler from '#api/v0/login.js';
+import logoutHandler from '#api/v0/logout.js';
 import signupHandler from '#api/v0/signup.js';
 import syncHandler from '#api/v0/sync.js';
 
@@ -54,6 +55,7 @@ app.use((err, req, res, next) => {
 // --- APIエンドポイントの設定 ---
 app.post('/api/v0/asset', authenticateToken, assetHandler);
 app.post('/api/v0/login', loginHandler);
+app.post('/api/v0/logout', authenticateToken, logoutHandler);
 app.post('/api/v0/signup', signupHandler);
 app.post('/api/v0/sync', authenticateToken, syncHandler);
 
