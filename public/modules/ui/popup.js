@@ -88,7 +88,6 @@ function alertInvalidInput(input, message) {
  * @returns {boolean}
  */
 function validateForm(form) {
-    console.log('Validating form', form);
     if (!form) return false; // フォームが存在しない場合は無効
     // エラーメッセージと無効クラスをリセット
     form.querySelectorAll('.error-message').forEach(el => el.remove());
@@ -119,13 +118,12 @@ function validateForm(form) {
  * @param {Object} jsonData - 送信するJSONデータ
  * @param {string} endpointType - エンドポイント名（例: 'signup', 'login'）
  * @param {string} [API_BASE_PATH='/api/v0']
- * @param {string} [method='POST']
  * @returns {Promise<Object>}
  */
-async function postAPIHandler(jsonData, endpointType, API_BASE_PATH = '/api/v0', method = 'POST') {
+async function postAPIHandler(jsonData, endpointType, API_BASE_PATH = '/api/v0') {
     return fetch(`${API_BASE_PATH}/${endpointType}`, {
-        method,
-        body: JSON.stringify(jsonData),
+        method: 'POST',
+        body: jsonData,
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
@@ -133,7 +131,12 @@ async function postAPIHandler(jsonData, endpointType, API_BASE_PATH = '/api/v0',
         credentials: 'include'
     })
     .then(response => {
-        if (!response.ok) throw new Error(`HTTPエラー: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTPエラー: ${response.status} ${response.statusText} ${response.message}`);
+        if (response.status === 401) {
+            console.warn('[ui] Unauthorized access, redirecting to login');
+            route('/login', { reload: true, overwrite: true, redirect: window.location.pathname + window.location.search });
+            return Promise.reject(new Error('Unauthorized'));
+        }
         return response.json();
     });
 }
@@ -165,7 +168,15 @@ async function signupHandler(event) {
     const form = event.target;
     form.querySelector('button[type="submit"]').disabled = true;
     if (validateForm(form)) {
-        await submitForm(form, 'signup');
+        await submitForm(form, 'signup')
+            .then(() => {
+                // サインアップ成功後の処理
+                console.log('[ui] Signup successful, user data stored in sessionStorage');
+            })
+            .catch(error => {
+                console.error('Signup error:', error);
+                form.querySelector('button[type="submit"]').disabled = false;
+            });
     } else {
         form.querySelector('button[type="submit"]').disabled = false;
     }
@@ -180,7 +191,15 @@ async function loginHandler(event) {
     const form = event.target;
     form.querySelector('button[type="submit"]').disabled = true;
     if (validateForm(form)) {
-        await submitForm(form, 'login');
+        await submitForm(form, 'login')
+            .then(() => {
+                // ログイン成功後の処理
+                console.log('[ui] Login successful, user data stored in sessionStorage');
+            })
+            .catch(error => {
+                console.error('Login error:', error);
+                form.querySelector('button[type="submit"]').disabled = false;
+            });
     } else {
         form.querySelector('button[type="submit"]').disabled = false;
     }
