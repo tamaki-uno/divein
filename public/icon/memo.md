@@ -10,7 +10,7 @@
 * stroke-linejoin round
 * fill none
 
-```
+```svg
   <polygon
     points="20,10 20,90 89.282032302755,50"
     stroke="#333" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"
@@ -23,4 +23,3 @@
 * theme color #333
 * background #eee
 * accent color #27d
-
