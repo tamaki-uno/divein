@@ -1,9 +1,8 @@
 'use strict';
 
 import route from '/modules/router.js'; // ルーティング用モジュール
-import { syncRecord } from '../database.js';
 import Html from './html.js'; // HTML操作用モジュール
-import { hideLoading, showLoading } from './loading.js';
+import { hideLoading } from './loading.js';
 
 const popupHtml = new Html('/modules/ui/html/popup.html'); // ポップアップHTMLを管理するインスタンス
 
@@ -191,9 +190,17 @@ async function loginHandler(event) {
  * ログアウトハンドラ
  * @param {Event} event
  */
-function logoutHandler(event) {
+async function logoutHandler(event) {
     event.preventDefault();
-    sessionStorage.removeItem('user');
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-    closePopup(event);
+    const form = event.target;
+    form.querySelector('button[type="submit"]').disabled = true;
+    await postAPIHandler({}, 'logout', API_BASE_PATH)
+        .then(() => {
+            sessionStorage.removeItem('user');
+            closePopup();
+        })
+        .catch(error => {
+            console.error('Logout error:', error);
+            form.querySelector('button[type="submit"]').disabled = false;
+        });
 }
