@@ -62,7 +62,7 @@ console.log('APIエンドポイントの設定完了');
 // --- 静的ファイルの配信設定 ---
 const publicDir = join(process.cwd(), 'public');
 console.log(`静的ファイルの配信ディレクトリ: ${publicDir}`);
-const allowedExtensions = ['.html', '.js', '.css', '.json', '.svg'];
+const allowedExtensions = ['.html', '.js', '.css', '.json', '.webmanifest', '.svg'];
 
 /**
  * 静的ファイルまたはindex.htmlを返すルート

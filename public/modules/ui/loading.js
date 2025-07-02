@@ -15,14 +15,14 @@ export function showLoading() {
         loadingElement.style.display = 'flex'; // ローディング要素を表示
         // document.querySelector('header').style.filter = 'blur(5px)'; // ヘッダーにぼかし効果を適用
         // document.querySelector('main').style.filter = 'blur(5px)'; // メインにぼかし効果を適用
-        if (!document.querySelector('.popup') || document.querySelector('.popup').style.display !== 'flex') {
-            setTimeout(() => {
-                if (loadingElement.style.display === 'flex') {
-                    console.warn('[ui] Reloading page due to loading UI'); // ローディングUI表示中にリロード
-                    route(window.location.pathname, { reload: true, overwrite: true }); // ページをリロード
-                }
-                }, 5000); // 5秒後にリロード
-            }
+        // if ((!document.querySelector('.popup')) || (document.querySelector('.popup').style.display === 'none')) {
+            // setTimeout(() => {
+            //     if (loadingElement.style.display === 'flex') {
+            //         console.warn('[ui] Reloading page due to loading UI'); // ローディングUI表示中にリロード
+            //         route(window.location.pathname, { reload: true, overwrite: true }); // ページをリロード
+            //     }
+            //     }, 5000); // 5秒後にリロード
+            // }
 
     } else {
         console.warn('[ui] Loading element not found'); // ローディング要素が見つからない場合の警告
