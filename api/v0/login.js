@@ -1,9 +1,8 @@
 import bcrypt from 'bcrypt';
 import 'dotenv/config';
-import cookie from 'cookie'; // クッキー操作用ライブラリ
 
 import { findRecords } from '#database'; // データベース操作関数
-import { generateAccessToken } from './auth.js'; // JWT生成関数のインポート
+import { respondAuth } from '#api/v0/auth'; // 認証レスポンス生成関数
 
 
 /**
@@ -55,31 +54,11 @@ export default async function loginHandler(req, res) {
             return res.status(401).json({ message: 'ユーザー名またはパスワードが正しくありません。' });
         }
 
-        // 認証成功時の処理
-        const payload = {
-            uuid: userRecordData.uuid, // ユーザーUUID
-            // username: parsedContent.username, // ユーザー名
-            // email: parsedContent.email // メールアドレス
-        };
-
-        const token = generateAccessToken(payload); // ペイロードを渡してトークンを生成
-
-        // クッキーにトークンをセット
-        res.setHeader('Set-Cookie', cookie.serialize('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Lax',
-            maxAge: 60 * 60 // 1時間
-        }));
-
-        res.status(200).json({
-            message: 'ログイン成功',
-            success: true,
-            payload: payload,
-            user: userRecordData
-        });
+        // 認証成功時のレスポンスを生成
+        return respondAuth(res, userRecordData);
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'サーバーエラーが発生しました。' });
     }
 }
+

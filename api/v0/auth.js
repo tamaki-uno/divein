@@ -5,13 +5,38 @@ import jwt from 'jsonwebtoken';
  * @param {Object} payload - JWTのペイロード
  * @returns {string} - 生成されたJWT
  */
-export function generateAccessToken(payload) {
+function generateAccessToken(payload) {
     if (!process.env.JWT_SECRET || !process.env.JWT_ACCESS_TOKEN_EXPIRATION) {
         throw new Error('JWT環境変数が未設定です');
     }
     return jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRATION
     });
+}
+/**
+ * 認証成功時のレスポンスを生成する
+ * @param {import('express').Response} res - レスポンスオブジェクト
+ * @param {Object} record - ユーザーレコード
+ * @returns {Promise<import('express').Response>} - レスポンスオブジェクト
+ */
+export async function respondAuth(res, record) {
+    try {
+        const payload = { uuid: record.uuid };
+        const accessToken = generateAccessToken(payload);
+        res.cookie('token', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: parseInt(process.env.JWT_ACCESS_TOKEN_EXPIRATION) * 1000
+        });
+        return res.status(200).json({
+            message: '認証成功',
+            user: record
+        });
+    } catch (error) {
+        console.error('認証エラー:', error);
+        return res.status(500).json({ message: 'サーバー内部でエラーが発生しました。' });
+    }
 }
 
 /**

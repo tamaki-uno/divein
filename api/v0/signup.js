@@ -1,9 +1,11 @@
 import bcrypt from 'bcrypt';
 import 'dotenv/config';
 import crypto from 'crypto';
-import { findRecords, insertRecord } from '#database';
 import fs from 'fs';
 import path from 'path';
+
+import { findRecords, insertRecord } from '#database';
+import { respondAuth } from '#api/v0/auth'; // 認証レスポンス生成関数
 
 // テンプレートJSONを同期的に読み込む
 const recordTemplatePath = path.join(process.cwd(), 'public', 'record.json');
@@ -68,7 +70,11 @@ export default async function signupHandler(req, res) {
 
     try {
         const newUser = await insertRecord(userData);
-        res.status(201).json({ message: 'ユーザー登録が成功しました。', user: newUser, success: true });
+        if (newUser) {
+            return respondAuth(res, newUser);
+        } else {
+            return res.status(500).json({ message: 'ユーザー登録に失敗しました。' });
+        }
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'サーバーエラーが発生しました。' });
