@@ -25,7 +25,7 @@ import signupHandler from '#api/v0/signup.js';
 import syncHandler from '#api/v0/sync.js';
 
 // --- 認証ミドルウェアの読み込み ---
-import { authenticateToken } from '#api/v0/auth.js';
+import { authenticateToken } from './auth.js';
 
 
 // --- ミドルウェアの設定 ---
