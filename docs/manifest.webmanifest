@@ -8,7 +8,7 @@
   "description": "Dive into",
   "icons": [
     {
-      "src": "/icon/open.svg",
+      "src": "./icon/open.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }

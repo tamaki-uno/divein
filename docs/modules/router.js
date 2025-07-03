@@ -12,6 +12,44 @@ import { showSettings } from './ui/setting.js';
 // 認証不要ページのパス一覧
 const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
 
+const AUTHENTICATION_PATHS = ['/signup', '/login', '/logout'];
+
+
+/**
+ * 指定パスに応じてUIや認証状態を制御する
+ * @param {string} path - 遷移先パス
+ * @param {Object} [options={ redirect: '', uuid: '', overwrite: false, reload: false }] - オプション設定
+ */
+export default async function route(url = new URL(window.location.href)) {
+    const url
+    
+    // if (url.search.includes('page=')) route(new URL(url.searchParams.get('page'), url.origin));
+    // if (url.searchParams.get('overwrite') ==
+    // if (url.search.includes('reload=true')) {
+    // }
+    // switch (url.pathname) {
+        
+    }
+    // console.log(`[router] route called. path: ${path}`);
+    // updateHistory(path, options);
+    // showLoading();
+    // setUserIcon();
+
+    // if (PUBLIC_PATHS.includes(path)) {
+    //     handlePublicRoute(path);
+    //     return;
+    // }
+    // const user = getUserFromSession();
+    // if (user && user.uuid) {
+    //     console.log(`[router] User is authenticated:`, user);
+    //     handleAuthenticatedRoute(path, user, options);
+    //     return;
+    // }
+    // redirectToLogin(path);
+}
+
+// export function urlGenerate(path = '/', redirect = '',)
+
 /**
  * クエリパラメータ文字列を生成
  * @param {Object} options
@@ -28,6 +66,15 @@ function buildQueryParams(options) {
  * ページ遷移時の履歴操作を行う
  * @param {string} path - 遷移先パス
  * @param {Object} options - オプション設定
+ * * /
+//  * * /404: 
+//  * * /settings
+//  * * /signup
+//  * * /login
+//  * * /logout
+ * * ?page=path: すぐにPathに遷移
+//  * * ?redirect=path: 
+ * * ?uuid=uuid: UUIDでInitMain
  */
 function updateHistory(path, options) {
     const query = buildQueryParams(options);
@@ -79,30 +126,6 @@ function handlePublicRoute(path) {
 function redirectToLogin(path) {
     console.warn(`[router] User not authenticated, redirecting to login for path: ${path}`);
     route('/login', { reload: false, overwrite: true, redirect: path });
-}
-
-/**
- * 指定パスに応じてUIや認証状態を制御する
- * @param {string} path - 遷移先パス
- * @param {Object} [options={ redirect: '', uuid: '', overwrite: false, reload: false }] - オプション設定
- */
-export default async function route(path, options = { redirect: '', uuid: '', overwrite: false, reload: false }) {
-    console.log(`[router] route called. path: ${path}`);
-    updateHistory(path, options);
-    showLoading();
-    setUserIcon();
-
-    if (PUBLIC_PATHS.includes(path)) {
-        handlePublicRoute(path);
-        return;
-    }
-    const user = getUserFromSession();
-    if (user && user.uuid) {
-        console.log(`[router] User is authenticated:`, user);
-        handleAuthenticatedRoute(path, user, options);
-        return;
-    }
-    redirectToLogin(path);
 }
 
 /**
