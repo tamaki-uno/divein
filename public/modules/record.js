@@ -49,6 +49,10 @@ export default class Record {
         const parser = new DOMParser();
         this.node = parser.parseFromString(this.html, 'text/html');
         this.recordContainer = document.getElementById(this.record.uuid) || this.node.querySelector('.record-container');
+        if (!this.recordContainer) {
+            console.error('[record] .record-container not found in HTML');
+            return null;
+        }
         this.parentNode.appendChild(this.recordContainer);
         this.recordContainer.id = this.record.uuid;
         this.querySelector = (selector) => this.recordContainer.querySelector(selector);
