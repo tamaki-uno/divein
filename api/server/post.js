@@ -121,3 +121,25 @@ process.on('SIGINT', () => {
 
 // --- モジュールのエクスポート ---
 export default app;
+
+
+// --- APIハンドラの読み込み ---
+import assetHandler from './post/v0/asset.js';
+import loginHandler from './post/v0/login.js';
+import logoutHandler from './post/v0/logout.js';
+import signupHandler from './post/v0/signup.js';
+import syncHandler from './post/v0/sync.js';
+
+import { authenticateToken } from './server/auth.js';
+
+
+async function postHandler(req, res) {
+    try {
+        const record = req.body;
+
+        return res.status(201).json({ message: '投稿が作成されました。', data: postData });
+    } catch (error) {
+        console.error('Post handler error:', error);
+        return res.status(500).json({ message: 'サーバーエラーが発生しました。' });
+    }
+}

@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import 'dotenv/config';
 
 import { findRecords } from '#database';
-import { respondAuth } from '../auth.js';
+import { respondAuth } from '../../auth.js';
 
 /**
  * ユーザーログイン処理
