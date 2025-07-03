@@ -6,8 +6,8 @@
     </linearGradient>
   </defs>
   <path
-    d="M90 50a40 40 0 1 1-50 -40"
-    stroke="url(#gray-gradient)"
+    d="M50 20 A30 30 0 1 1 20 50"
+    stroke="#333"
     stroke-width="12"
     fill="none"
     stroke-linecap="round"
