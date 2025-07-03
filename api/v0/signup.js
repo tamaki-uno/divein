@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { findRecords, insertRecord } from '#database';
-import { respondAuth } from '../../auth.js';
+import { respondAuth } from '../auth.js';
 
 /**
  * ユーザー登録処理
