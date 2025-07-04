@@ -1,8 +1,45 @@
-import Html from './html.js'; // HTMLモジュールのインポート
-import route from '../router.js'; // ルーティング関数をインポート
-import { hideLoading } from './loading.js';
+import Html from '../html.js'; // HTMLモジュールのインポート
+import route from '../../router.js'; // ルーティング関数をインポート
+import { hideLoading } from '../loading.js';
 
 const settingsHtml = new Html('/modules/ui/html/setting.html'); // 設定UIのHTMLファイルパスを指定
+
+export function setSettingIcon() {
+    const settingIcon = document.getElementById('setting-icon'); // 設定アイコン要素を取得
+    settingIcon.addEventListener('click', (e) => {
+        e.preventDefault(); // デフォルトのリンク動作を防ぐ
+        showSettings();
+        e.target.src = '/icon/close.svg'; // アイコンを閉じるアイコンに変更
+        e.target.alt = 'Close settings'; // アイコンのalt属性を更新
+        e.target.id = 'close-icon'; // アイコンのIDを更新
+        const url = new URL(window.location.href); // 現在のURLを取得
+        // url.pathname = '/settings'; // パスを設定ページに変更
+        url.hash = '#settings';
+        history.pushState({}, '', url); // 履歴に新しい状態を追加
+        
+        // url.searchParams.set('overwrite', 'false'); // オーバーライトフラグを設定
+        // url.searchParams.set('reload', 'false'); // リロードフラグを設定
+    });
+    settingIcon.addEventListener('mouseover', (e) => {
+        e.preventDefault(); // デフォルトのリンク動作を防ぐ
+        settingIcon.title = 'Open settings'; // ツールチップを設定
+    });
+    const closeIcon = document.getElementById('close-icon'); // 閉じるアイコン要素を取得
+    closeIcon.addEventListener('click', (e) => {
+        e.preventDefault(); // デフォルトのリンク動作を防ぐ
+        hideSettings();
+        e.target.src = '/icon/setting.svg'; // アイコンを設定アイコンに変更
+        e.target.alt = 'Open settings'; // アイコンのalt属性を更新
+        e.target.id = 'setting-icon'; // アイコンのIDを更新
+        const url = new URL(window.location.href); // 現在のURLを取得
+        url.hash = ''; // ハッシュをクリア
+        history.pushState({}, '', url); // 履歴に新しい状態を追加
+    });
+    closeIcon.addEventListener('mouseover', (e) => {
+        e.preventDefault(); // デフォルトのリンク動作を防ぐ
+        closeIcon.title = 'Close settings'; // ツールチップを設定
+    });
+}
 
 /**
  * 設定UIの表示をする関数
@@ -13,7 +50,8 @@ const settingsHtml = new Html('/modules/ui/html/setting.html'); // 設定UIのHT
  */
 export async function showSettings() {
     console.log('[ui] Initializing settings UI'); // 設定UI初期化ログ
-    const settingsContainer = document.querySelector('.settings-container') || await initSettings(); // 設定コンテナを取得、存在しない場合は初期化関数を呼び出す
+    // const settingsContainer = document.querySelector('.settings-container') || await initSettings(); // 設定コンテナを取得、存在しない場合は初期化関数を呼び出す
+    const settingsContainer = document.getElementById('settings-container');
     settingsContainer.style.width = '300px'; // 設定コンテナの幅を300pxに設定
     settingsContainer.style.right = '0'; // 設定コンテナの表示位置を右に設定
     // settingsContainer.style.boxShadow = '-10px 0px 10px rgba(0, 0, 0, 0.1)'; // ボックスシャドウを設定
@@ -27,11 +65,12 @@ export async function showSettings() {
  */
 export function hideSettings() {
     console.log('[ui] Hiding settings UI'); // 設定UI非表示ログ
-    const settingsContainer = document.querySelector('.settings-container'); // 設定コンテナを取得
+    // const settingsContainer = document.querySelector('.settings-container'); // 設定コンテナを取得
+    const settingsContainer = document.getElementById('settings-container'); // 設定コンテナを取得
     settingsContainer.style.right = '-300px'; // 設定コンテナの表示位置を非表示に設定
     // settingsContainer.style.width = '0'; // 設定コンテナの幅を0に設定
     // settingsContainer.style.boxShadow = 'none'; // ボックスシャドウを削除
-    route('/'); // ホームページへルーティング
+    // route('/'); // ホームページへルーティング
 }
 
 /**

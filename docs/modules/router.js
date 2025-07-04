@@ -3,11 +3,11 @@
  * - ページパスに応じてUI初期化や認証チェックを行う
  */
 
-import { showLoading } from './ui/loading.js';
-import setUserIcon from './ui/userIcon.js';
-import initMain from './ui/main.js';
-import { showPopup } from './ui/popup.js';
-import { showSettings } from './ui/setting.js';
+// import { showLoading } from './ui/loading.js';
+// import setUserIcon from './ui/userIcon.js';
+// import initMain from './ui/main.js';
+// import { showPopup } from './ui/popup.js';
+// import { showSettings } from './ui/setting.js';
 
 // 認証不要ページのパス一覧
 const PUBLIC_PATHS = ['/login', '/signup', '/logout'];
@@ -20,8 +20,20 @@ const AUTHENTICATION_PATHS = ['/signup', '/login', '/logout'];
  * @param {string} path - 遷移先パス
  * @param {Object} [options={ redirect: '', uuid: '', overwrite: false, reload: false }] - オプション設定
  */
-export default async function route(url = new URL(window.location.href)) {
-    const url
+export default async function route(path = '/') {
+    showLoading();
+    const currentUrl = location.href;
+    const url = new URL(location.href);
+    url.pathname = url.searchParams.get('page') || url.pathname;
+    switch (path) {
+        case 'settings':
+            showSettings();
+            return;
+        default:
+            initUI();
+            break;
+    }
+    // const url
     
     // if (url.search.includes('page=')) route(new URL(url.searchParams.get('page'), url.origin));
     // if (url.searchParams.get('overwrite') ==
@@ -29,7 +41,7 @@ export default async function route(url = new URL(window.location.href)) {
     // }
     // switch (url.pathname) {
         
-    }
+    // }
     // console.log(`[router] route called. path: ${path}`);
     // updateHistory(path, options);
     // showLoading();
@@ -48,7 +60,13 @@ export default async function route(url = new URL(window.location.href)) {
     // redirectToLogin(path);
 }
 
-// export function urlGenerate(path = '/', redirect = '',)
+export function generateUrl(path = '/', redirect = '',) {
+    const url = new URL(path, window.location.origin);
+    if (redirect) {
+        url.searchParams.set('redirect', redirect);
+    }
+    return url.toString();
+}
 
 /**
  * クエリパラメータ文字列を生成
@@ -67,14 +85,15 @@ function buildQueryParams(options) {
  * @param {string} path - 遷移先パス
  * @param {Object} options - オプション設定
  * * /
-//  * * /404: 
-//  * * /settings
-//  * * /signup
-//  * * /login
-//  * * /logout
+ * * /{uuid}
+ * * /404: 
+ * * /settings
+ * * /signup
+ * * /login
+ * * /logout
  * * ?page=path: すぐにPathに遷移
-//  * * ?redirect=path: 
- * * ?uuid=uuid: UUIDでInitMain
+ * * ?redirect=path: 
+//  * * ?uuid=uuid: UUIDでInitMain
  */
 function updateHistory(path, options) {
     const query = buildQueryParams(options);
