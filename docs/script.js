@@ -21,11 +21,23 @@ import Line from './modules/ui/line.js'; // Lineクラスのインポート
 document.addEventListener('DOMContentLoaded', () => {
     const url = new URL(location.href);
     url.pathname = url.searchParams.get('page') || url.pathname;
-    if (url.hash == '#settings') showSettings();
-    setSettingIcon();
+    // if (url.hash == '#settings') showSettings();
+    // setSettingIcon();
     // const line = new Line(url.pathname.replace(/^\//, ''));
     // initUI(); // UIの初期化
     // route();
+    const settingIcon = document.getElementById('setting-icon');
+    const settingContainer = document.getElementById('settings-container');
+    const closeIcon = document.getElementById('close-icon');
+    settingIcon.addEventListener('click', (e) => {
+        e.preventDefault();
+        settingContainer.classList.remove('hidden'); // 設定コンテナを表示
+    });
+    closeIcon.addEventListener('click', (e) => {
+        e.preventDefault();
+        settingContainer.classList.add('hidden'); // 設定コンテナを非表示
+    });
+
 });
 
 initIndexedDB(); // IndexedDBの初期化
