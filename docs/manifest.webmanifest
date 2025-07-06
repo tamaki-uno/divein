@@ -1,0 +1,16 @@
+{
+  "name": "divein",
+  "short_name": "divein",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#eee",
+  "theme_color": "#37d",
+  "description": "Dive into",
+  "icons": [
+    {
+      "src": "./icon/open.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

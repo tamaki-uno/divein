@@ -1,0 +1,34 @@
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login divein</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="shortcut icon" href="./icon/open.svg" type="image/svg+xml">
+    <link rel="icon" href="./icon/open.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./icon/open.svg">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <meta name="description" content="Dive into your coding projects with ease.">
+</head>
+
+<body class="light-theme">
+    <img src="./icon/loading.svg" alt="Loading..." id="loading-icon">
+    <main class="children-container">
+    </main>
+    <img src="./icon/setting.svg" alt="menu button" class="shadow-on-hover circle-border-radius button" id="setting-icon" tabindex="0">
+    <div id="settings-container" class="large-border-radius shadow-on-hover settings-container hidden">
+        <img src="./icon/close-button.svg" alt="close" class="shadow-on-hover circle-border-radius button" id="close-icon" tabindex="0">
+        <h2>Settings</h2>
+        <p>Manage your preferences here.</p>
+        <ul>
+            <li><a href="/signup">Sign Up</a></li>
+            <li><a href="/login">Login</a></li>
+            <li><a href="/logout">Logout</a></li>
+            <li><a href="/delete-account">Delete Account</a></li>
+            <li><a href="/privacy-policy">Privacy Policy</a></li>
+            <li><a href="/terms-of-service">Terms of Service</a></li>
+        </ul>
+    </div>
+    <script type="module" src="./script.js"></script>
+</body>
+</html>
