@@ -28,6 +28,10 @@ img#loading {
     align-items: center; /* 縦方向中央揃え */
     width: 100%;
 }
+.container .contentLine:focus{
+    outline: none; /* フォーカス時のアウトラインを消す */
+    border: none;
+}
 .container .contentLine img.icon {
     display: inline-block;
     width: 1em;

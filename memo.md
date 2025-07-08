@@ -146,3 +146,10 @@
 * theme color #333
 * background #eee
 * accent color #27d
+
+
+
+## 構成
+
+* UUID-content: kontent
+* UUID-children: children

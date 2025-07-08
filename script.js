@@ -1,3 +1,5 @@
+import Line from './scripts/line.js';
+
 window.addEventListener('DOMContentLoaded', () => {
     const url = new URL(window.location);
     route(url);
@@ -9,30 +11,10 @@ export default function route(url) {
     window.history.replaceState({}, '', url.pathname);
     // const line = initLine(url.pathname.replace('/divein', '').replace(/^\//, ''));
     // const line = initLine();
-    initLocalStorage();
+    // initLocalStorage();
     const line = initContainer(url.pathname.replace('/divein', '').replace(/^\//, ''));
     document.body.appendChild(line);
     document.getElementById('loading').style.display = 'none';
-}
-
-// export function showLoading() {
-//     const loading = document.getElementById('loading');
-//     loading.style.display = 'block';
-// }
-// export function hideLoading() {
-//     const loading = document.getElementById('loading');
-//     loading.style.display = 'none';
-// }
-
-export function initLocalStorage() {
-    if (!localStorage.getItem('menu')) {
-        localStorage.setItem('menu', 'Menu');
-        localStorage.setItem('childrenOfMenu', JSON.stringify([
-            'sort',
-            'filter',
-            'style',
-        ]));
-    }
 }
 
 export function initContainer(uuid) {
@@ -50,6 +32,8 @@ export function initContainer(uuid) {
 }
 
 export function initLine(uuid) {
+    const line = new Line(uuid);
+
     const contentLine = document.createElement('div');
     contentLine.className = 'contentLine';
 
@@ -62,19 +46,51 @@ export function initLine(uuid) {
 
     const content = document.createElement('div');
     content.className = 'content';
-    const contentText = localStorage.getItem(uuid) || 'Type your content here...';
-    if (contentText.startsWith('http://') || contentText.startsWith('https://')) {
-    } else if (contentText.startsWith('#') || contentText.startsWith('＃')) {
-    } else if (contentText.startsWith('!') || contentText.startsWith('！')) {
-    } else {
-        content.innerText = contentText;
-    }
+    // content.contentEditable = true;
+    content.setAttribute('contenteditable', 'true');
+    // const contentText = localStorage.getItem(uuid) || 'Type your content here...';
+    const contentText = line.getContent() || 'Type your content here...';
+    formatContent(content);
     // content.innerText = window.localStorage.getItem(uuid) || 'Type your content here...';
-    content.addEventListener('input', () => {
-        window.localStorage.setItem(uuid, content.innerText);
+    // content.addEventListener('input', () => {
+    content.addEventListener('change', () => {
+        // line.setContent(content.innerText);
+        formatContent(content);
+        line.setContent(content.innerHTML);
     });
+    content.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Prevents the default action of adding a new line
+            addNewLine(contentLine, line);
+        // } else if (event.key === 'Tab') {
+        } else if (event.key === 'Tab' || event.key === '　') {
+            event.preventDefault(); // Prevents the default action of adding a tab character
+            becomeChild(contentLine, line);
+        }
+    });
+
     contentLine.appendChild(content);
     return contentLine;
+}
+
+async function formatContent(div) {
+    const contentText = div.innerText.trim();
+    // localStorage.setItem(div.closest('.container').id + '-content', contentText);
+    if (contentText.startsWith('http://') || contentText.startsWith('https://')) {
+        const previewedTitle = await fetch(contentText)
+            .then(response => response.text())
+            .then(text => new DOMParser().parseFromString(text, 'text/html'))
+            .then(doc => doc.querySelector('title').innerText)
+            .catch(() => 'Link Preview');
+        div.innerHTML = `<a href="${contentText}" target="_blank">${previewedTitle}</a>`;
+    } else if (contentText.startsWith('#') || contentText.startsWith('＃')) {
+        // const previewedTitle = contentText.slice(1).trim() || 'Hashtag Preview';
+        div.innerHTML = `<span class="hashtag">${contentText}</span>`;
+    } else if (contentText.startsWith('!') || contentText.startsWith('！')) {
+        div.innerHTML = `<span class="command">${contentText}</span>`;
+    } else {
+        div.innerHTML = contentText; // Just plain text
+    }
 }
 
 export function initContent(uuid) {}
