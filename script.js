@@ -9,6 +9,7 @@ export default function route(url) {
     window.history.replaceState({}, '', url.pathname);
     // const line = initLine(url.pathname.replace('/divein', '').replace(/^\//, ''));
     // const line = initLine();
+    initLocalStorage();
     const line = initContainer(url.pathname.replace('/divein', '').replace(/^\//, ''));
     document.body.appendChild(line);
     document.getElementById('loading').style.display = 'none';
@@ -23,6 +24,17 @@ export default function route(url) {
 //     loading.style.display = 'none';
 // }
 
+export function initLocalStorage() {
+    if (!localStorage.getItem('menu')) {
+        localStorage.setItem('menu', 'Menu');
+        localStorage.setItem('childrenOfMenu', JSON.stringify([
+            'sort',
+            'filter',
+            'style',
+        ]));
+    }
+}
+
 export function initContainer(uuid) {
     if (!uuid) uuid = crypto.randomUUID();
     const container = document.createElement('div');
@@ -31,6 +43,9 @@ export function initContainer(uuid) {
 
     container.appendChild(initLine(uuid));
     container.appendChild(initChildren());
+    if (uuid === 'menu') {
+        container.appendChild(initMenu());
+    }
     return container;
 }
 
@@ -39,6 +54,7 @@ export function initLine(uuid) {
     contentLine.className = 'contentLine';
 
     const icon = document.createElement('img');
+    icon.className = 'icon';
     icon.src = './icons/closed.svg';
     contentLine.appendChild(icon);
     icon.addEventListener('click', toggleOpen);
@@ -46,13 +62,22 @@ export function initLine(uuid) {
 
     const content = document.createElement('div');
     content.className = 'content';
-    content.innerText = window.localStorage.getItem(uuid) || 'Type your content here...';
+    const contentText = localStorage.getItem(uuid) || 'Type your content here...';
+    if (contentText.startsWith('http://') || contentText.startsWith('https://')) {
+    } else if (contentText.startsWith('#') || contentText.startsWith('＃')) {
+    } else if (contentText.startsWith('!') || contentText.startsWith('！')) {
+    } else {
+        content.innerText = contentText;
+    }
+    // content.innerText = window.localStorage.getItem(uuid) || 'Type your content here...';
     content.addEventListener('input', () => {
         window.localStorage.setItem(uuid, content.innerText);
     });
     contentLine.appendChild(content);
     return contentLine;
 }
+
+export function initContent(uuid) {}
 
 /**
  * Generates a div element containing the props for the current line.
@@ -71,13 +96,27 @@ export function initChildren() {
     const childrenDiv = document.createElement('div');
     childrenDiv.className = 'children';
 
-    const propDiv = document.createElement('div');
-    propDiv.className = 'props';
-    propDiv.innerText = 'Props';
-    childrenDiv.appendChild(propDiv);
+    // childrenDiv.appendChild(initContainer('menu'));
+    // if (!.closest('.container').classList.contains('menu')) {
+    //     childrenDiv.appendChild(initMenu());
+    // }
+
+    // const propDiv = document.createElement('div');
+    // propDiv.className = 'props';
+    // propDiv.innerText = 'Props';
+    // childrenDiv.appendChild(propDiv);
 
     return childrenDiv;
 }
+
+export function initMenu() {
+    for (const child of JSON.parse(localStorage.getItem('childrenOfMenu'))) {
+        const childContainer = initContainer(child);
+        document.getElementById('menu').appendChild(childContainer);
+    }
+    return initContainer('menu');
+}
+
 /**
  * Toggles the open/closed state of a container.
  * @param {Event} event - The click event that triggered the toggle

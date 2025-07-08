@@ -32,9 +32,21 @@ img#loading {
     display: inline-block;
     width: 1em;
     height: 1em;
+    padding: 0.2em;
+    border-radius: 0.5em;
+}
+.container .contentLine img.icon:hover {
+    cursor: pointer;
+    background-color: #ddd;
 }
 .container .contentLine .content {
     flex: 1;
+    padding: 0.2em;
+    border-radius: 0.5em;
+}
+.container .contentLine .content:hover {
+    background-color: #ddd;
+    /* cursor: */
 }
 .container .children {
     display: flex;
