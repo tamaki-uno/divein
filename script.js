@@ -42,6 +42,8 @@ export function initLine(uuid) {
     icon.src = './icons/closed.svg';
     contentLine.appendChild(icon);
     icon.addEventListener('click', toggleOpen);
+    icon.addEventListener('contextmenu', showMenu);
+    icon.addEventListener('mouseover', showMenu);
     contentLine.appendChild(icon);
 
     const content = document.createElement('div');
@@ -58,19 +60,16 @@ export function initLine(uuid) {
         formatContent(content);
         line.setContent(content.innerHTML);
     });
-    content.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            event.preventDefault(); // Prevents the default action of adding a new line
-            addNewLine(contentLine, line);
-        // } else if (event.key === 'Tab') {
-        } else if (event.key === 'Tab' || event.key === '　') {
-            event.preventDefault(); // Prevents the default action of adding a tab character
-            becomeChild(contentLine, line);
-        }
-    });
+    // content.addEventListener('keypress', (event) => onKeyPress(event));
+    content.addEventListener('keydown', (event) => onKeyDown(event));
 
     contentLine.appendChild(content);
     return contentLine;
+}
+
+function showMenu(event) {
+    console.log('Show menu');
+    event.preventDefault();
 }
 
 async function formatContent(div) {
@@ -92,6 +91,26 @@ async function formatContent(div) {
         div.innerHTML = contentText; // Just plain text
     }
 }
+
+// function onKeyPress(event) {
+function onKeyDown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault(); // Prevents the default action of adding a new line
+        addNewLine(event.currentTarget);
+    } else if (event.key === 'Tab' || event.key === '　') {
+        event.preventDefault(); // Prevents the default action of adding a tab character
+        becomeChild(event.currentTarget);
+    }
+}
+
+function addNewLine(target) {
+    console.log('Adding new line in', target);
+}
+function becomeChild(target, line) {
+    console.log('Becoming child of', target, 'with line', line);
+}
+
+
 
 export function initContent(uuid) {}
 

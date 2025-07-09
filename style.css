@@ -28,10 +28,6 @@ img#loading {
     align-items: center; /* 縦方向中央揃え */
     width: 100%;
 }
-.container .contentLine:focus{
-    outline: none; /* フォーカス時のアウトラインを消す */
-    border: none;
-}
 .container .contentLine img.icon {
     display: inline-block;
     width: 1em;
@@ -51,6 +47,10 @@ img#loading {
 .container .contentLine .content:hover {
     background-color: #ddd;
     /* cursor: */
+}
+.container .contentLine .content:focus {
+    outline: none;
+    border: none;
 }
 .container .children {
     display: flex;
