@@ -85,6 +85,22 @@ Access the [DIVEIN](https://tamaki-uno.github.io/divein/) to use this.
 * **README.md**: This file.
 * **LICENSE**: The license file.
 
+## Design
+
+* Dark theme and light theme will be supported.
+* Theme colors
+  * Background: #111 (dark) or #fff (light)
+  * Text & Icons: #eee (dark) or #111 (light)
+  * Accent: #f90 (dark) or #f60 (light)
+* Font: "Zen Maru Gothic", sans-serif
+* Icons: SVG icon
+  * Size: 100px x 100px
+  * Color: #f90 (dark) or #f60 (light)
+  * Stroke: 12px rounded
+  * Fill: none
+* Animations & Transitions
+* Others
+
 ## How to contribute?
 
 You can contribute by opening issues or pull requests on the [GitHub repository](https://github.com/tamaki-uno/divein).
