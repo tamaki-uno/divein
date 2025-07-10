@@ -62,8 +62,8 @@ Access the [DIVEIN](https://tamaki-uno.github.io/divein/) to use this.
 * Use **Ctrl + Shift + S** to sort the children of the current line.
 * Use **Ctrl + Shift + F** to filter the children of the current line.
 * Use **Ctrl + Shift + C** to copy the current line and its children.
-  * **Ctrl + C** will copy the text of the current line only. This is a function of your browser System.
-  * Also **Ctrl + A** and **Ctrl + V** will work as expected.
+  * **Ctrl + C** will copy the text of the current line only. This is a function of your browser.
+* Also **Ctrl + A** and **Ctrl + V** will work as expected.
 * Use **Ctrl + ?** to show the help dialog with all the controls.
 
 ## Structure
@@ -74,12 +74,12 @@ Access the [DIVEIN](https://tamaki-uno.github.io/divein/) to use this.
 * **script.js**: The main JavaScript
 * **scripts/**: Contains additional JavaScript files.
 * **icons/**: Contains icons used in the app.
-  * **add.svg**: **+** icon. <img src="icons/add.svg" alt="add.svg" width="16" height="16">
-  * **close.svg**: **X** icon <img src="icons/close.svg" alt="close.svg" width="16" height="16">
-  * **closed.svg**: **** icon <img src="icons/closed.svg" alt="closed.svg" width="16" height="16">
+  * **add.svg**: **+** icon <img src="icons/add.svg" alt="add.svg" width="16" height="16">
+  * **close.svg**: **×** icon <img src="icons/close.svg" alt="close.svg" width="16" height="16">
+  * **closed.svg**: **▶** (collapsed) icon <img src="icons/closed.svg" alt="closed.svg" width="16" height="16">
+  * **open.svg**: **▼** (expanded) icon <img src="icons/open.svg" alt="open.svg" width="16" height="16">
   * **filter.svg**: **Filter** icon <img src="icons/filter.svg" alt="filter.svg" width="16" height="16">
   * **loading.svg**: **Loading** icon <img src="icons/loading.svg" alt="loading.svg" width="16" height="16">
-  * **open.svg**: **** icon <img src="icons/open.svg" alt="open.svg" width="16" height="16">
   * **sort.svg**: **Sort** icon <img src="icons/sort.svg" alt="sort.svg" width="16" height="16">
 * **manifest.webmanifest**: The web manifest for the app to be used as a PWA.
 * **README.md**: This file.
