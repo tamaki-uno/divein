@@ -15,6 +15,14 @@
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
 
+//   ctx.fillStyle = '#13d';
+    // ctx.fillStyle = '#1562ab';
+    ctx.fillStyle = '#149';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    /*
+    #183fa1
+    */
+
   const rectNumX = 16 * 3;
   const rectNumY = 16 * 2;
   const unitSize = Math.min(canvas.width / rectNumX, canvas.height / rectNumY);
@@ -43,45 +51,73 @@
         // let red = 0, green = 0, blue = 0;
         let red = green = blue = y > 16 ? y - 16 : 0;
         // let red = green = blue = y > 16 ? (y - 16) * 16 : 0; // 0〜240
-        const targetY = y < 16 ? y/16 : 1;
+        // const targetY = y < 16 ? y/16 : 1;
+        // const targetY = y < 16 ? y
 
-        // const otherY = y / 2;
-        if (x < 16) {
-            // red = (16 - x) * y;
-            // green = x * y;
-            // blue = 0;
-            // red = (16 - x) * targetY;
-            // green = x * targetY;
-            // red = Math.max(0, (16 - x) * targetY);
-            // green = Math.max(0, x * targetY);
-            // blue = 0;
-            // red = Math.floor(255 * (x / 15)); // 0〜255
-            // green = Math.floor(255 * (targetY / 15)); // 0〜255
-            // red = (16 - x) * targetY;
-            // red = Math.max((16 - x) * red / 16);
-            red = Math.max(red, (16 - x) * targetY);
-            green = Math.max(green, x * targetY);
-            // blue = 0;
-        } else if (x < 32) {
-            // red = 0;
-            // green = (x - 16) * y;
-            // blue = (32 - x) * y;
-            // red = 0;
-            // green = Math.floor(255 * ((x - 16) / 15));
-            // blue = Math.floor(255 * (targetY / 15));
-            // red = 0;
-            green = Math.max(green, (32 - x) * targetY);
-            blue = Math.max(blue, (x - 16) * targetY);
+        if (y < 16) {
+            if (x < 16) {
+                red = (16 - x) * y / 16;
+                green = x * y / 16;
+                blue = 0;
+            } else if (x < 32) {
+                red = 0;
+                green = (32 - x) * y / 16;
+                blue = (x - 16) * y / 16;
+            } else {
+                red = (x - 32) * y / 16;
+                green = 0;
+                blue = (48 - x) * y / 16;
+            }
         } else {
-            // red = (x - 32) * y;
-            // green = (32 - x) * y;
-            // blue = 0;
-            // red = Math.floor(255 * ((x - 32) / 15));
-            // green = 0;
-            // blue = Math.floor(255 * (targetY / 15));
-            red = Math.max(red, (x - 32) * targetY);
-            blue = Math.max(blue, (48 - x) * targetY);
+            if (x < 16) {
+                red = Math.max(red, (16 - x));
+                green = Math.max(green, x);
+            } else if (x < 32) {
+                green = Math.max(green, (32 - x));
+                blue = Math.max(blue, (x - 16));
+            } else {
+                red = Math.max(red, (x - 32));
+                blue = Math.max(blue, (48 - x));
+            }
         }
+
+        // // const otherY = y / 2;
+        // if (x < 16) {
+        //     // red = (16 - x) * y;
+        //     // green = x * y;
+        //     // blue = 0;
+        //     // red = (16 - x) * targetY;
+        //     // green = x * targetY;
+        //     // red = Math.max(0, (16 - x) * targetY);
+        //     // green = Math.max(0, x * targetY);
+        //     // blue = 0;
+        //     // red = Math.floor(255 * (x / 15)); // 0〜255
+        //     // green = Math.floor(255 * (targetY / 15)); // 0〜255
+        //     // red = (16 - x) * targetY;
+        //     // red = Math.max((16 - x) * red / 16);
+        //     red = Math.max(red, (16 - x) * targetY);
+        //     green = Math.max(green, x * targetY);
+        //     // blue = 0;
+        // } else if (x < 32) {
+        //     // red = 0;
+        //     // green = (x - 16) * y;
+        //     // blue = (32 - x) * y;
+        //     // red = 0;
+        //     // green = Math.floor(255 * ((x - 16) / 15));
+        //     // blue = Math.floor(255 * (targetY / 15));
+        //     // red = 0;
+        //     green = Math.max(green, (32 - x) * targetY);
+        //     blue = Math.max(blue, (x - 16) * targetY);
+        // } else {
+        //     // red = (x - 32) * y;
+        //     // green = (32 - x) * y;
+        //     // blue = 0;
+        //     // red = Math.floor(255 * ((x - 32) / 15));
+        //     // green = 0;
+        //     // blue = Math.floor(255 * (targetY / 15));
+        //     red = Math.max(red, (x - 32) * targetY);
+        //     blue = Math.max(blue, (48 - x) * targetY);
+        // }
         // red = red.toString(16).padStart(2, '0');
         // green = green.toString(16).padStart(2, '0');
         // blue = blue.toString(16).padStart(2, '0');
@@ -103,4 +139,39 @@
         ctx.fillRect(xCoord, yCoord, unitSize, unitSize);
     }
   }
+
+    // show code on mouse hover in the canvas
+    // window.addEventListener('mousemove', (e) => {
+    //     const x = e.clientX;
+    //     const y = e.clientY;
+    //     // console.log(`x: ${x}, y: ${y}`);
+    //     // ctx.fillStyle = `#${red}${green}${blue}`;
+    //     // ctx.fillRect(x, y, 100, 100);
+    // });
+    ctx.font = '16px monospace';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Click to show color', canvas.width / 2, canvas.height - 20);
+    ctx.fillText('Hover over a color to see its code', canvas.width / 2, canvas.height - 40);
+
+
+
+    // show color at rest of the canvas on click
+    // window.addEventListener('click', (e) => {
+    //     const x = e.clientX;
+    //     const y = e.clientY;
+    //     // console.log(`x: ${x}, y: ${y}`);
+    //     // ctx.fillStyle = `#${red}${green}${blue}`;
+    //     // ctx.fillRect(x, y, 100, 100);
+    //     const color = ctx.getImageData(x, y, 1, 1).data;
+    //     alert(`Color at (${x}, ${y}): rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`);
+    // });
+    ctx.canvas.addEventListener('click', (e) => {
+        const x = e.clientX;
+        const y = e.clientY;
+        const color = ctx.getImageData(x, y, 1, 1).data;
+        alert(`Color at (${x}, ${y}): rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`);
+    });
+
 </script>
