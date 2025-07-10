@@ -1,4 +1,22 @@
-<script>
-    const path = location.pathname;
-    location.replace('/divein/?page=' + encodeURIComponent(path));
-</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=index.html?page=" id="meta-redirect">
+  <title>Redirecting...</title>
+  <script>
+    // 404ページでアクセスされたパスをindex.htmlにクエリとして渡す
+    const path = location.pathname.replace(/^\//, '');
+    const search = location.search.replace(/^\?/, '');
+    const hash = location.hash;
+    let pageParam = encodeURIComponent(path);
+    if (search) pageParam += encodeURIComponent('?' + search);
+    const url = `index.html?page=${pageParam}${hash}`;
+    document.getElementById('meta-redirect').setAttribute('content', `0; url=${url}`);
+    window.location.replace(url);
+  </script>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>
