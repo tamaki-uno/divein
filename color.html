@@ -1,0 +1,106 @@
+<canvas>
+
+</canvas>
+<script>
+  const canvas = document.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // 0〜15の値を2桁の16進数文字列に変換
+//   function hex(n) {
+//     // return n.toString(16).padStart(2, '0');
+//     return n < 10 ? n.toString() : String.fromCharCode(n - 10 + 'a'.charCodeAt(0));
+//   }
+
+  // Set canvas size
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const rectNumX = 16 * 3;
+  const rectNumY = 16 * 2;
+  const unitSize = Math.min(canvas.width / rectNumX, canvas.height / rectNumY);
+//   const rectSize = {
+//     width: canvas.width / rectNumX,
+//     height: canvas.height / rectNumY
+//   };
+  for (let x = 0; x < rectNumX; x ++) {
+    for (let y = 0; y < rectNumY; y ++) {
+        // const red = (x < 16) ? hex(x) : (x < 32) ? hex(15 - x) : '00';
+        // const green = (y < 16) ? hex(y) : (y < 32) ? hex(15 - y) : '00';
+        // const blue = (x < 16 && y < 16) ? '00' : (x < 32 && y < 32) ? hex(15 - x) : '00';
+        // let red = 0, green = 0, blue = 0;
+        /*
+        #fff -16- #fff #fff #fff
+        |
+        16
+        |
+        #f00 #0f0 #00f #f00
+
+        #000 #000 #000 #000
+        */
+        // let red = y/2;
+        // let green = y/2;
+        // let blue = y/2;
+        // let red = 0, green = 0, blue = 0;
+        let red = green = blue = y > 16 ? y - 16 : 0;
+        // let red = green = blue = y > 16 ? (y - 16) * 16 : 0; // 0〜240
+        const targetY = y < 16 ? y/16 : 1;
+
+        // const otherY = y / 2;
+        if (x < 16) {
+            // red = (16 - x) * y;
+            // green = x * y;
+            // blue = 0;
+            // red = (16 - x) * targetY;
+            // green = x * targetY;
+            // red = Math.max(0, (16 - x) * targetY);
+            // green = Math.max(0, x * targetY);
+            // blue = 0;
+            // red = Math.floor(255 * (x / 15)); // 0〜255
+            // green = Math.floor(255 * (targetY / 15)); // 0〜255
+            // red = (16 - x) * targetY;
+            // red = Math.max((16 - x) * red / 16);
+            red = Math.max(red, (16 - x) * targetY);
+            green = Math.max(green, x * targetY);
+            // blue = 0;
+        } else if (x < 32) {
+            // red = 0;
+            // green = (x - 16) * y;
+            // blue = (32 - x) * y;
+            // red = 0;
+            // green = Math.floor(255 * ((x - 16) / 15));
+            // blue = Math.floor(255 * (targetY / 15));
+            // red = 0;
+            green = Math.max(green, (32 - x) * targetY);
+            blue = Math.max(blue, (x - 16) * targetY);
+        } else {
+            // red = (x - 32) * y;
+            // green = (32 - x) * y;
+            // blue = 0;
+            // red = Math.floor(255 * ((x - 32) / 15));
+            // green = 0;
+            // blue = Math.floor(255 * (targetY / 15));
+            red = Math.max(red, (x - 32) * targetY);
+            blue = Math.max(blue, (48 - x) * targetY);
+        }
+        // red = red.toString(16).padStart(2, '0');
+        // green = green.toString(16).padStart(2, '0');
+        // blue = blue.toString(16).padStart(2, '0');
+        red = Math.floor(red*16).toString(16).padStart(2, '0');
+        green = Math.floor(green*16).toString(16).padStart(2, '0');
+        blue = Math.floor(blue*16).toString(16).padStart(2, '0');
+        ctx.fillStyle = `#${red}${green}${blue}`;
+        // ctx.fillRect(x * rectSize.width, y * rectSize.height, rectSize.width, rectSize.height);
+        // ctx.fillStyle = `hsl(${x * 360 / unitWidth}, ${y * 100 / unitHeight}%, 50%)`; // Use HSL for smooth gradient width: hue, saturation, lightness
+        // ctx.fillStyle = `hsl(${x * 10000 / unitWidth}, 50%, ${y * 100 / unitHeight}%)`; // Use HSL for smooth gradient width: hue, saturation, lightness
+        // ctx.lineWidth = 0;
+        // ctx.strokeStyle = 'transparent'; // Set stroke style to transparent
+        // ctx.
+        // no borders around the rectangles
+        ctx.lineWidth = 0;
+
+        const xCoord = x * unitSize
+        const yCoord = y * unitSize
+        ctx.fillRect(xCoord, yCoord, unitSize, unitSize);
+    }
+  }
+</script>
