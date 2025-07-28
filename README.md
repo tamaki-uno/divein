@@ -3,18 +3,34 @@
 ## What is this?
 
 * DIVEIN is a **Toggle-Based** Note-Taking App.
-* You don't need to think about formatting your notes anymore.
+* What you need to care about is your **thoughts** and **ideas**.
+* You don't need to think about *formats*, *styles*, or *structures*.
 * You can write notes intuitively and stay focused on what you want to think.
+
+## Terms
+
+* **Dive In**: To dive in to a line means to make the line the top level (or root) of the page. This means that the *Line* and its children will be the only *Lines* in the page.
+* **Line**: A line is a single note or a single item in the note. This is the minimum unit of the note.
+* **Child Line**: A child line is a line that is a child of another line. It is indented under the parent line.
+* **Sibling Line**: A sibling line is a line that is at the same level as another line. Sibling lines are under the same parent line and are at the same indentation level.
+* **Toggle**: To toggle means to show or hide the children of a line. When you toggle a line, it will either expand or collapse its children.
 
 ## How to use it?
 
-Access the [DIVEIN](https://tamaki-uno.github.io/divein/) to use this.
+Access the [DIVEIN](https://tamaki-uno.github.io/divein/) to use this. \
+Click on a line to start diving in to it.
 
 ### Controls
 
+* Controls can be done by **Mouse** or **Keyboard**.
+* You can use the following controls to interact with the app:
+  * **Click**, **Right Click**, or **Drag**
+  * **Enter** and **Tab**
+  * Other **Keyboard Shortcuts** (see below)
+
 #### Mouse Controls
 
-* Click on **a toggle icon** to *toggle* the visibility of the children of the line.
+* Click on **a toggle icon** (<img src="icons/toggle.svg" alt="▼" width="16" height="16">) to *toggle* the visibility of the children of the line.
   * Click on <img src="icons/closed.svg" alt="▶" width="16" height="16"> to *expand* the line.
   * Click on <img src="icons/open.svg" alt="▼" width="16" height="16"> to *collapse* the line.
 * Click on text in a line to edit it.
@@ -84,6 +100,22 @@ Access the [DIVEIN](https://tamaki-uno.github.io/divein/) to use this.
 * **manifest.webmanifest**: The web manifest for the app to be used as a PWA.
 * **README.md**: This file.
 * **LICENSE**: The license file.
+
+## Design
+
+* Dark theme and light theme will be supported.
+* Theme colors
+  * Background: #111 (dark) or #fff (light)
+  * Text & Icons: #eee (dark) or #111 (light)
+  * Accent: #149
+* Font: "Zen Maru Gothic", sans-serif
+* Icons: SVG icon
+  * Size: 100px x 100px
+  * Color: #f90 (dark) or #f60 (light)
+  * Stroke: 12px rounded
+  * Fill: none
+* Animations & Transitions
+* Others
 
 ## How to contribute?
 
