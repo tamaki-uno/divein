@@ -22,6 +22,12 @@ Click on a line to start diving in to it.
 
 ### Controls
 
+* Controls can be done by **Mouse** or **Keyboard**.
+* You can use the following controls to interact with the app:
+  * **Click**, **Right Click**, or **Drag**
+  * **Enter** and **Tab**
+  * Other **Keyboard Shortcuts** (see below)
+
 #### Mouse Controls
 
 * Click on **a toggle icon** (<img src="icons/toggle.svg" alt="▼" width="16" height="16">) to *toggle* the visibility of the children of the line.
