@@ -21,14 +21,14 @@ function init(url) {
     const container = initContainer(url.searchParams.get('uuid'));
     main.appendChild(container);
     // domain.com/path?query=param#fragment
-    switch (url.hash.slice(1)) {
-        case 'menu':
-            document.getElementById('menu').style.display = 'block';
-            break;
-        default:
-            document.getElementById('menu').style.display = 'none';
-            break;
-    }
+    // switch (url.hash.slice(1)) {
+    //     case 'menu':
+    //         document.getElementById('menu').style.display = 'block';
+    //         break;
+    //     default:
+    //         document.getElementById('menu').style.display = 'none';
+    //         break;
+    // }
             
     document.getElementById('loading').style.display = 'none';
 }
@@ -82,7 +82,10 @@ export function initLine(uuid) {
     // const contentText = localStorage.getItem(uuid) || 'Type your content here...';
     // const contentText = line.getContent() || 'Type your content here...';
     // content.innerHTML = 'Type your content here...';
-    content.innerHTML = request.result.objectStore('records').get(uuid).then(record => record.content || 'Type your content here...');
+    // content.innerHTML = request.result.objectStore('records').get(uuid).then(record => record.content || 'Type your content here...');
+    content.innerHTML = request.result.objectStore('records').get(uuid)
+        .then(record => record ? record.content : 'Type your content here...')
+        .catch(() => 'Type your content here...');
     formatContent(content);
     // content.innerText = window.localStorage.getItem(uuid) || 'Type your content here...';
     // content.addEventListener('input', () => {
