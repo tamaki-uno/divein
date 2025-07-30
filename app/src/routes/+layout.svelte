@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css'; // Tailwind CSS
-	import { db_getAllNotes, db_saveNote } from '$lib/db';
+	import { idb_getAllNotes, idb_saveNote } from '$lib/idb';
 
 	const API_URL = 'http://localhost:8000'; // FastAPIサーバーのURL
 
@@ -49,12 +49,12 @@
 	<div class="container mx-auto px-4 py-3 flex justify-between items-center">
 		<a href="/" class="text-xl font-bold">Offline-First Note App</a>
 		<div class="space-x-2">
-			<button on:click={syncWithServer} class="bg-purple-500 hover:bg-purple-600 text-sm font-bold py-1 px-3 rounded">
+			<!-- <button on:click={syncWithServer} class="bg-purple-500 hover:bg-purple-600 text-sm font-bold py-1 px-3 rounded">
 				サーバーに同期
 			</button>
 			<button on:click={fetchFromServer} class="bg-gray-500 hover:bg-gray-600 text-sm font-bold py-1 px-3 rounded">
 				サーバーから復元
-			</button>
+			</button> -->
 		</div>
 	</div>
 </header>

@@ -1,16 +1,20 @@
+import type { NoteData } from "./types";
 import { openDB, type IDBPDatabase } from 'idb';
 
-// --- Noteの型定義 ---
-export interface Note {
-	id: string;
-	title: string;
-	content: string;
-	updated_at: number; // UNIXタイムスタンプ
-}
+// // --- NoteDataの型定義 ---
+// export interface NoteData {
+// 	uuid: string;
+// 	content: string;
+//     children: NoteData[]; // 子ノートの配列
+//     created_at: number; // UNIXタイムスタンプ
+// 	updated_at: number; // UNIXタイムスタンプ
+// }
+
+
 
 // --- DBの初期化 ---
 let db: IDBPDatabase | null = null;
-const DB_NAME = 'NoteAppDB';
+const DB_NAME = 'DIVEIN_DB';
 const STORE_NAME = 'Notes';
 
 async function getDb(): Promise<IDBPDatabase> {
@@ -24,19 +28,19 @@ async function getDb(): Promise<IDBPDatabase> {
 }
 
 // --- DB操作関数 ---
-export const db_getAllNotes = async (): Promise<Note[]> => {
+export const idb_getAllNotes = async (): Promise<NoteData[]> => {
 	const db = await getDb();
 	const notes = await db.getAll(STORE_NAME);
 	// 更新日時の降順でソート
 	return notes.sort((a, b) => b.updated_at - a.updated_at);
 };
 
-export const db_getNote = async (id: string): Promise<Note | undefined> => {
+export const idb_getNote = async (uuid: string): Promise<NoteData | undefined> => {
 	const db = await getDb();
-	return db.get(STORE_NAME, id);
+	return db.get(STORE_NAME, uuid);
 };
 
-export const db_saveNote = async (note: Note): Promise<void> => {
+export const idb_saveNote = async (note: NoteData): Promise<void> => {
 	const db = await getDb();
 	await db.put(STORE_NAME, {
 		...note,
@@ -44,7 +48,7 @@ export const db_saveNote = async (note: Note): Promise<void> => {
 	});
 };
 
-export const db_deleteNote = async (id: string): Promise<void> => {
+export const idb_deleteNote = async (uuid: string): Promise<void> => {
 	const db = await getDb();
-	await db.delete(STORE_NAME, id);
+	await db.delete(STORE_NAME, uuid);
 };
