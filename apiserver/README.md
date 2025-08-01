@@ -42,16 +42,27 @@ pip install -r requirements.txt
 ```
 
 ### 4. Environment setup
-Choose one of the following database configurations:
 
-#### For SQLite (Development)
+Choose the setup that matches your needs:
+
+#### Quick Development Setup (Recommended)
 ```bash
 cp .env.sqlite.example .env
 ```
 
-#### For PostgreSQL (Production)
+#### Production Setup  
 ```bash
 cp env.postgresql.example .env
+```
+
+#### Custom/Advanced Setup
+```bash
+cp .env.example .env
+```
+
+#### Minimal Testing (No OAuth setup required initially)
+```bash
+cp .env.template .env
 ```
 
 ### 5. Configure environment variables
