@@ -5,12 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.security import create_access_token
-from app.core.exceptions import AuthenticationError
+from app.core.security import create_access_token, AuthenticationError
 from app.db.database import get_db
 from app.schemas.auth import Token, OAuth2AuthRequest
 from app.services.oauth_service import oauth2_service
-from app.services.user_service import user
+from app.services import user_service
 
 
 router = APIRouter()
@@ -26,16 +25,13 @@ async def auth_google(
         user_info = await oauth2_service.exchange_google_code(auth_request.code)
         
         # Get or create user
-        db_user = await user.get_by_provider_id(
-            db, provider="google", provider_id=user_info["sub"]
+        db_user = await user_service.get_user_by_provider_id(
+            db, "google", user_info["sub"]
         )
         
         if not db_user:
-            db_user = await user.create_oauth_user(
-                db,
-                provider="google",
-                provider_id=user_info["sub"],
-                email=user_info["email"]
+            db_user = await user_service.create_oauth_user(
+                db, "google", user_info["sub"], user_info["email"]
             )
         
         # Create access token
@@ -60,16 +56,14 @@ async def auth_github(
         user_info = await oauth2_service.exchange_github_code(auth_request.code)
         
         # Get or create user
-        db_user = await user.get_by_provider_id(
-            db, provider="github", provider_id=str(user_info["id"])
+        db_user = await user_service.get_user_by_provider_id(
+            db, "github", str(user_info["id"])
         )
         
         if not db_user:
-            db_user = await user.create_oauth_user(
-                db,
-                provider="github",
-                provider_id=str(user_info["id"]),
-                email=user_info.get("email", f"{user_info['login']}@github.local")
+            db_user = await user_service.create_oauth_user(
+                db, "github", str(user_info["id"]),
+                user_info.get("email", f"{user_info['login']}@github.local")
             )
         
         # Create access token

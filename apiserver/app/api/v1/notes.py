@@ -10,7 +10,7 @@ from app.core.security import get_current_active_user
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.note import Note, NoteSyncRequest
-from app.services.note_service import note
+from app.services import note_service
 
 
 router = APIRouter()
@@ -24,7 +24,9 @@ async def get_notes(
     limit: int = 100
 ):
     """Get all notes for the current user."""
-    return await note.get_by_owner(db, owner_id=current_user.id, skip=skip, limit=limit)
+    return await note_service.get_notes_by_owner(
+        db, current_user.id, skip=skip, limit=limit
+    )
 
 
 @router.post("/sync", response_model=List[Note])
@@ -33,7 +35,5 @@ async def sync_notes(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Synchronize notes from client."""
-    return await note.sync_notes(
-        db, notes=sync_request.notes, owner_id=current_user.id
-    )
+    """Sync notes with client data."""
+    return await note_service.sync_notes(db, current_user.id, sync_request)

@@ -14,6 +14,12 @@ from app.db.database import get_db
 from app.models.user import User
 
 
+# Custom Exceptions
+class AuthenticationError(Exception):
+    """Authentication related errors."""
+    pass
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token")
 
 

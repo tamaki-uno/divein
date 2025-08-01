@@ -5,7 +5,7 @@ import httpx
 from typing import Dict, Any
 
 from app.core.config import settings
-from app.core.exceptions import AuthenticationError
+from app.core.security import AuthenticationError
 
 
 class OAuth2Service:
