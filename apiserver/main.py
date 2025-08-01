@@ -7,11 +7,15 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from . import crud, models, schemas
-from .config import settings
-from .database import engine, get_db
+# 相対インポートを絶対インポートに変更
+import crud
+import models
+import schemas
+from config import settings
+from database import engine, get_db
 
-# ... (FastAPIインスタンス作成、CORS設定、DB初期化は変更なし) ...
+# FastAPIインスタンス作成
+app = FastAPI()
 
 # --- 認証関連 ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") # tokenUrlはダミー
@@ -97,3 +101,8 @@ async def get_notes_from_server(
 ):
     # +++ CRUD関数にcurrent_user.idを渡す +++
     return await crud.get_notes(db=db, owner_id=current_user.id)
+
+# 開発用の起動コード
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

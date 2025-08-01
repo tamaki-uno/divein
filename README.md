@@ -20,6 +20,26 @@
 Access the [DIVEIN](https://tamaki-uno.github.io/divein/) to use this. \
 Click on a line to start diving in to it.
 
+### API Server
+
+```bash
+cd apiserver
+python -m venv venv
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000
+# for development, you can use `--reload` to auto-reload the server on code changes.
+```
+
+### Frontend
+
+```bash
+cd app
+pnpm install
+pnpm run build
+# or use `pnpm run dev` to run the app in development mode.
+```
+
 ### Controls
 
 * Controls can be done by **Mouse** or **Keyboard**.
