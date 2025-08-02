@@ -143,41 +143,7 @@ async function DELETEIDB() {
     };
 }
 
-// async function getObjectStore(storeName, mode = 'readonly') {
-// async function getTransaction(storeName, mode = 'readonly') {
-//     const request = window.indexedDB.open('divein', 1);
-//     // Handle the onupgradeneeded event to create the object store if it doesn't exist
-//     request.onupgradeneeded = (event) => {
-//         const db = event.target.result;
-//         if (!db.objectStoreNames.contains(storeName)) {
-//             console.log(`Creating object store: ${storeName}`);
-//             db.createObjectStore(storeName, { keyPath: 'uuid' });
-//         }
-//     };
-//     // Handle errors when opening the database
-//     request.onerror = (event) => {
-//         console.error('Error opening database:', event.target.error);
-//         throw event.target.error;
-//     }
-//     // Get the object store after the database is opened successfully
-//     request.onsuccess = (event) => {
-//         const db = event.target.result;
-//         // const transaction = db.transaction(storeName, mode);
-//         // const objectStore = transaction.objectStore(storeName);
-//         // return objectStore;
-//         const transaction = db.transaction(storeName, mode);
-//         return transaction.objectStore(storeName);
-//     };
-    // const db = await getIDB();
-    // if (!db.objectStoreNames.contains(storeName)) {
-    //     console.log(`Creating object store: ${storeName}`);
-    //     db.createObjectStore(storeName, { keyPath: 'uuid' });
-    // }
-    // return db.transaction(storeName, mode).objectStore(storeName);
-// }
-
 async function getNote(uuid) {
-    // const objectStore = await getObjectStore('notes', 'readonly');
     const db = await getIDB();
     const transaction = db.transaction('notes', 'readonly');
     const objectStore = transaction.objectStore('notes');
@@ -192,8 +158,24 @@ async function getNote(uuid) {
         };
     });
 }
+
+async function getAllNotes() {
+    const db = await getIDB();
+    const transaction = db.transaction('notes', 'readonly');
+    const objectStore = transaction.objectStore('notes');
+    return await new Promise((resolve, reject) => {
+        const request = objectStore.getAll();
+        request.onsuccess = (event) => {
+            resolve(event.target.result);
+        };
+        request.onerror = (event_1) => {
+            console.error('Error getting all notes:', event_1.target.error);
+            reject(event_1.target.error);
+        };
+    });
+}
+
 async function setNote(note) {
-    // const objectStore = await getObjectStore('notes', 'readwrite');
     const db = await getIDB();
     const transaction = db.transaction('notes', 'readwrite');
     const objectStore = transaction.objectStore('notes');
@@ -210,6 +192,7 @@ async function setNote(note) {
     });
 }
 
+
 class Settings {
     constructor() {
         console.log('Settings initialized');
@@ -223,4 +206,13 @@ async function sync() {
 
 async function download() {
     console.log('Downloading notes...');
+    const notes = await getAllNotes();
+    const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `notes-${new Date().toISOString()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }
