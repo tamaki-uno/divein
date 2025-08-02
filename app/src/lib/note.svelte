@@ -15,7 +15,7 @@
     const { note, loadingState, syncResult } = noteStore;
     
     let currentNote: NoteData | null = null;
-    let currentLoadingState = { isLoading: true, error: null };
+    let currentLoadingState = { isLoading: true, error: null as string | null };
     
     // ストアの購読
     const unsubscribeNote = note.subscribe(value => currentNote = value);

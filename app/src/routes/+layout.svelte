@@ -8,7 +8,7 @@
 		if (!confirm('現在のローカルのメモでサーバーを上書きします。よろしいですか？')) return;
 
 		try {
-			const localNotes = await db_getAllNotes();
+			const localNotes = await idb_getAllNotes();
 			const response = await fetch(`${API_URL}/api/notes/sync`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -34,7 +34,7 @@
 			const serverNotes = await response.json();
 			// 取得したノートを一件ずつローカルDBに保存（上書き）
 			for (const note of serverNotes) {
-				await db_saveNote(note);
+				await idb_saveNote(note);
 			}
 			alert('サーバーからデータを復元しました。ページをリロードしてください。');
 
