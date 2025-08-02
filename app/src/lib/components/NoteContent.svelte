@@ -1,86 +1,76 @@
 <script lang="ts">
-    import type { NoteData } from '../types';
-    import { createEventDispatcher } from 'svelte';
-
-    export let note: NoteData;
+    export let content: string = '';
     
-    const dispatch = createEventDispatcher<{
-        toggle: { uuid: string };
-        delete: { uuid: string };
-        contentChange: { uuid: string; content: string };
-    }>();
+    export let ontoggle: () => void = () => {};
+    export let ondelete: () => void = () => {};
+    export let onchange: () => void = () => {};
+    export let createSibling: () => void = () => {};
+    export let becomeChild: () => void = () => {};
 
     let isEditing = false;
-    let editContent = note.content;
-
-    function handleToggle() {
-        dispatch('toggle', { uuid: note.uuid });
-    }
-
-    function handleDelete() {
-        dispatch('delete', { uuid: note.uuid });
-    }
+    let editContent = content;
 
     function startEditing() {
         isEditing = true;
-        editContent = note.content;
     }
 
     function saveContent() {
-        if (editContent !== note.content) {
-            dispatch('contentChange', { uuid: note.uuid, content: editContent });
+        if (content !== note.content) {
+            onchange();
         }
         isEditing = false;
     }
 
     function cancelEditing() {
         isEditing = false;
-        editContent = note.content;
+        editContent = content;
     }
 
     function handleKeydown(event: KeyboardEvent) {
-        if (event.key === 'Enter' && event.ctrlKey) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
             saveContent();
+            createSibling();
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            saveContent();
+            becomeChild();
         } else if (event.key === 'Escape') {
             cancelEditing();
         }
     }
 
-    function focusEditor(node: HTMLTextAreaElement) {
-        node.focus();
-    }
 </script>
 
 <div class="note-content">
     <button 
         class="toggle-button" 
-        on:click={handleToggle}
-        aria-label="ノートを展開/折りたたみ"
+        on:click={ontoggle}
+        aria-label="Toggle"
     >
         <img src="/icons/toggle.svg" alt="" class="toggle-icon" />
     </button>
     
-    <div class="content-area" on:dblclick={startEditing} role="button" tabindex="0">
+    <div class="content-area" on:click={startEditing} on:keydown={(e) => e.key === 'Enter' && startEditing()} role="button" tabindex="0">
         {#if isEditing}
             <textarea 
                 bind:value={editContent}
                 on:keydown={handleKeydown}
                 on:blur={saveContent}
                 class="content-editor"
-                placeholder="内容を入力してください..."
-                use:focusEditor
+                placeholder={content}
             ></textarea>
         {:else}
             <p class="content-text">
-                {note.content || '内容がありません（ダブルクリックで編集）'}
+                {content}
             </p>
         {/if}
     </div>
     
     <button 
         class="delete-button" 
-        on:click={handleDelete}
-        aria-label="ノートを削除"
+        on:click={ondelete}
+        aria-label="Delete"
     >
         <img src="/icons/delete.svg" alt="" class="delete-icon" />
     </button>

@@ -16,3 +16,7 @@ export interface SyncResult {
     updatedNote?: NoteData;
     error?: string;
 }
+
+export interface API {
+    url: string;
+}

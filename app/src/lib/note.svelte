@@ -3,10 +3,8 @@
     import type { NoteData } from './types';
     import { onMount, onDestroy } from 'svelte';
     import { NoteStore } from './noteStore';
-    
-    import Menu from './menu.svelte';
-    import StatusIndicator from './components/StatusIndicator.svelte';
     import NoteContent from './components/NoteContent.svelte';
+    import NoteChildren from './components/NoteChildren.svelte';
     
     export let uuid: string;
     
@@ -18,7 +16,7 @@
     let currentLoadingState = { isLoading: true, error: null as string | null };
     
     // ストアの購読
-    const unsubscribeNote = note.subscribe(value => currentNote = value);
+    const unsubscribeNote = note.subscribe(value => currentNote = value); // 現在のノートデータ
     const unsubscribeLoading = loadingState.subscribe(value => currentLoadingState = value);
     
     onMount(() => {
@@ -30,23 +28,19 @@
         unsubscribeLoading();
     });
 
-    function handleMenuChange(event: CustomEvent) {
-        console.log('Menu changed:', event.detail);
-    }
-
-    function handleNoteToggle(event: CustomEvent<{ uuid: string }>) {
-        console.log('Note toggle:', event.detail.uuid);
+    function handleToggle() {
+        console.log('Note toggle:', currentNote?.uuid);
         // トグル機能の実装
     }
 
-    function handleNoteDelete(event: CustomEvent<{ uuid: string }>) {
-        console.log('Note delete:', event.detail.uuid);
+    function handleDelete() {
+        console.log('Note delete:', currentNote?.uuid);
         // 削除機能の実装
     }
 
-    async function handleContentChange(event: CustomEvent<{ uuid: string; content: string }>) {
+    async function handleChange() {
         try {
-            await noteStore.saveNote(event.detail.content);
+            await noteStore.saveNote(currentNote);
         } catch (err) {
             console.error('Content save error:', err);
         }
@@ -58,33 +52,29 @@
 </script>
 
 <div class="note-container">
-    <StatusIndicator 
-        isLoading={currentLoadingState.isLoading}
-        error={currentLoadingState.error}
-        onRetry={handleRetry}
-    />
-    
-    {#if !currentLoadingState.isLoading && !currentLoadingState.error}
-        {#if currentNote}
+    {#if !currentLoadingState.error}
+        {#if currentLoadingState.isLoading}
+            <img src="/icons/loading.svg" alt="Loading..." class="loading-icon" />
+
+        {:else if currentNote}
             <NoteContent 
-                note={currentNote}
-                on:toggle={handleNoteToggle}
-                on:delete={handleNoteDelete}
-                on:contentChange={handleContentChange}
+                content={currentNote.content}
+                ontoggle={handleToggle}
+                ondelete={handleDelete}
+                onchange={handleChange}
             />
-            <Menu on:change={handleMenuChange} />
-            
-            <div class="note-children">
-                {#each currentNote.children as child}
-                    <svelte:self uuid={child} />
-                {/each}
-            </div>
-        {:else}
-            <div class="no-content">
-                <img src="/icons/no-content.svg" alt="No content" class="no-content-icon" />
-                <p>コンテンツがありません</p>
-            </div>
+            <NoteChildren
+                children={currentNote.children}
+                onchange={handleChange}
+            />
         {/if}
+    {:else}
+        <div class="error-container">
+            <img src="/icons/error.svg" alt="Error" class="error-icon" />
+            <button on:click={handleRetry} class="retry-button">
+                <img src="/icons/retry.svg" alt="Retry" />
+            </button>
+        </div>
     {/if}
 </div>
 
@@ -93,24 +83,29 @@
         padding: 1rem;
     }
     
-    .note-children {
-        margin-left: 1rem;
-        border-left: 2px solid #e0e0e0;
-        padding-left: 1rem;
+    .loading-icon,
+    .error-icon {
+        width: 24px;
+        height: 24px;
+        display: block;
+        margin: 0 auto;
     }
-
-    .no-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
+    .loading-icon {
+        animation: spin 1s linear infinite;
+    }
+    .error-container {
+        text-align: center;
         padding: 2rem;
-        color: #666;
     }
-    
-    .no-content-icon {
-        width: 2em;
-        height: 2em;
-        opacity: 0.5;
+    .retry-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+    }
+    .retry-button:hover {
+        background-color: #f5f5f5;
     }
 </style>

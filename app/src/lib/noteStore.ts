@@ -103,16 +103,23 @@ export class NoteStore {
         }
     }
 
-    async saveNote(content: string): Promise<void> {
+    // async saveNote(content: string): Promise<void> {
+    async saveNote(note: NoteData | null): Promise<void> {
+        if (!note) return;
         const currentNote = await new Promise<NoteData | null>(resolve => {
             this.note.subscribe(note => resolve(note))();
         });
 
         if (!currentNote) return;
 
+        // const updatedNote: NoteData = {
+        //     ...currentNote,
+        //     content,
+        //     updated_at: Date.now()
+        // };
         const updatedNote: NoteData = {
             ...currentNote,
-            content,
+            content: note.content,
             updated_at: Date.now()
         };
 

@@ -6,6 +6,7 @@
     let user: string = 'guest'; // ユーザー名の初期値
     let useruuid: string = ''; // ユーザーのUUID
     let uuid: string = ''; // クエリパラメータから取得するUUID
+    // let stack: string[] = []; // スタックの初期化
 
 	// コンポーネントがマウントされたらDBからノートを読み込む
 	onMount(async () => {
