@@ -1,4 +1,4 @@
-import Line from './scripts/line.js';
+// import Line from './scripts/line.js';
 
 const request = initDB();
 
@@ -37,7 +37,7 @@ function init(url) {
  * If no UUID is provided, generates a new one.
  * The container includes a line, children, and a menu if the UUID is 'menu'.
  */
-export function initContainer(uuid) {
+ function initContainer(uuid) {
     if (!uuid) uuid = crypto.randomUUID();
     const container = document.createElement('div');
     container.className = 'container';
@@ -58,7 +58,7 @@ export function initContainer(uuid) {
  * @param {string} uuid - The unique identifier for the line
  * @return {HTMLElement} - The initialized line element
  */
-export function initLine(uuid) {
+ function initLine(uuid) {
     const line = document.createElement('div');
     line.className = 'contentLine';
 
@@ -67,7 +67,7 @@ export function initLine(uuid) {
     icon.className = 'icon';
     icon.src = './icons/closed.svg';
     line.appendChild(icon);
-    icon.addEventListener('click', toggleOpen);
+    icon.addEventListener('click', toggle);
     icon.addEventListener('contextmenu', showMenu);
     icon.addEventListener('mouseover', showMenu);
     line.appendChild(icon);
@@ -212,6 +212,8 @@ function getRecord(uuid) {
     const request = window.indexedDB.open('divein', 1);
     request.onsuccess = (event) => {
         const db = event.target.result;
+    }
+}
         
 
 function updateDatabase(record) {
@@ -283,13 +285,13 @@ function becomeChild(target, line) {
 
 
 
-export function initContent(uuid) {}
+ function initContent(uuid) {}
 
 /**
  * Generates a div element containing the props for the current line.
  * This function is currently a placeholder and does not extract any props from the DOM.
  */
-export function initChildren() {
+ function initChildren() {
     // const props = {};
    // const containers = document.querySelectorAll('.container');
    // containers.forEach(container => {
@@ -315,7 +317,7 @@ export function initChildren() {
     return childrenDiv;
 }
 
-export function initMenu() {
+ function initMenu() {
     for (const child of JSON.parse(localStorage.getItem('childrenOfMenu'))) {
         const childContainer = initContainer(child);
         document.getElementById('menu').appendChild(childContainer);
@@ -327,7 +329,7 @@ export function initMenu() {
  * Toggles the open/closed state of a container.
  * @param {Event} event - The click event that triggered the toggle
  */
-export function toggleOpen(event) {
+ function toggleOpen(event) {
     const container = event.currentTarget.closest('.container');
     const icon = container.querySelector('.icon');
     const children = container.querySelector('.children');

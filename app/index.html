@@ -3,12 +3,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DIVEIN</title>
-    <link rel="stylesheet" href="style.css">
+    <!-- <link rel="stylesheet" href="style.css"> -->
     <link rel="icon" href="./icons/open.svg" type="image/svg+xml">
+
+<!-- <script>setTimeout(() => location.reload(), 1000 * 10);</script> -->
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 64px;
+            height: 64px;
+            z-index: 1000;
+        }
+        #settings, #sync, #download {
+            position: fixed;
+            z-index: 1000;
+            font-size: 40px;
+            background-color: white;
+            /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
+        }
+        #settings {
+            top: 1em;
+            right: 1em;
+        }
+        #sync {
+            top: 3em;
+            right: 1em;
+        }
+        #download {
+            top: 5em;
+            right: 1em;
+        }
+    </style>
 </head>
 <body>
-    <main></main>
     <img src="./icons/loading.svg" alt="Loading..." id="loading">
-    <script type="module" src="script.js"></script>
+    <main></main>
+    <img src="./icons/setting.svg" alt="Settings" id="settings" class="button hover">
+    <img src="./icons/sync.svg" alt="Sync" id="sync" class="button hover">
+    <img src="./icons/download.svg" alt="Download" id="download" class="button hover">
+    <!-- <script type="module" src="script.js"></script> -->
+    <!-- <script src="script.js"></script> -->
+    <script src="app.js"></script>
 </body>
 </html>
