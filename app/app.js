@@ -1,19 +1,28 @@
-addEventListener('DOMContentLoaded', async () => {
+'use strict';
+
+addEventListener('DOMContentLoaded', route);
+
+function route() {
+    const url = new URL(window.location);
+    initEventListeners(url.hash === '#settings');
+    init(url.searchParams.get('uuid') || crypto.randomUUID());
+}
+
+function init(uuid) {
+    console.log('Initializing app with UUID:', uuid);
+    const main = document.querySelector('main');
+    const note = new Note(uuid, main);
+    document.getElementById('loading').style.display = 'none';
+}
+
+function initEventListeners(isSettings) {
+    console.log('Initializing event listeners... (isSettings:', isSettings, ')');
     const settings = new Settings();
-    document.getElementById('settings').addEventListener('click', settings.open.bind(settings));
-    // document.getElementById('sync').addEventListener('click', syncWithApis);
+    if (isSettings) settings.toggle();
+    document.getElementById('settings').addEventListener('click', settings.toggle.bind(settings));
     document.getElementById('sync').addEventListener('click', async () => await syncWithApis());
     document.getElementById('download').addEventListener('click', download);
-
-    const url = new URL(window.location);
-    const main = document.querySelector('main');
-    const uuid = url.searchParams.get('uuid') || crypto.randomUUID();
-    url.searchParams.set('uuid', uuid);
-    window.history.replaceState({}, '', url.toString());
-    const note = new Note(uuid, main);
-
-    document.getElementById('loading').style.display = 'none';
-});
+}
 
 class Note {
     constructor(uuid, parentNode, fontSize = 30) {
@@ -100,6 +109,10 @@ class Note {
         this.container.classList.toggle('open', this.isExpanded);
     }
     addChild
+}
+
+class IDB {
+    constructor() {}
 }
 
 const objectStores = {
@@ -201,108 +214,111 @@ class Settings {
         if (document.getElementById('settingsDiv')) {
             this.div = document.getElementById('settingsDiv');
         } else {
-            this.init();
+            this.div = this.initDiv();
+            this.div.appendChild(this.initCloseButton());
+            this.div.appendChild(this.initUrlList());
+            document.body.appendChild(this.div);
         }
     }
 
-    init() {
-        this.div = document.createElement('div');
-        this.div.className = 'settingsDiv radius hover';
-        this.div.style.display = 'none';
-        this.div.id = 'settingsDiv';
-        this.div.appendChild(this.initCloseButton());
-        this.div.appendChild(this.initContent());
-
-        document.body.appendChild(this.div);
+    initDiv() {
+        const div = document.createElement('div');
+        div.className = 'settingsDiv radius hover';
+        div.style.display = 'none';
+        div.id = 'settingsDiv';
+        const title = document.createElement('h2');
+        title.textContent = 'Urls';
+        div.appendChild(title);
+        return div;
     }
 
     initCloseButton() {
         const closeButton = document.createElement('img');
-        closeButton.src = 'icons/close.svg';
+        closeButton.src = 'icons/cancel.svg';
         closeButton.className = 'button hover';
-        closeButton.style.fontSize = '40px';
-        closeButton.addEventListener('click', () => {
-            this.div.style.display = 'none';
-        });
+        closeButton.style.fontSize = '30px';
+        closeButton.addEventListener('click', this.toggle.bind(this));
         return closeButton;
     }
 
-    initContent() {
-        const content = document.createElement('div');
-        content.className = 'settings-content';
-        const title = document.createElement('h2');
-        
-        title.textContent = 'Urls';
-        content.appendChild(title);
-        const urlList = this.initUrlList();
-        content.appendChild(urlList);
-        const addUrl = this.initAddUrl();
-        content.appendChild(addUrl);
-
-        return content;
-    }
-
     initUrlList() {
-        const urlList = document.createElement('ul');
-        urlList.className = 'api-url-list';
+        this.urlList = document.createElement('div');
+        this.urlList.className = 'api-url-list';
         const apiUrls = getApiUrls();
         apiUrls.forEach(url => {
-            const urlDiv = document.createElement('div');
-            urlDiv.className = 'api-url';
-            urlDiv.textContent = url;
-            urlDiv.appendChild(this.initRemoveApiUrl(url));
-            urlList.appendChild(urlDiv);
+            this.urlList.appendChild(this.initUrl(url));
         });
+        this.urlList.appendChild(this.initAddButton());
 
-        return urlList;
+        return this.urlList;
     }
-    initAddUrl() {
+
+    initUrl(url) {
+        const urlDiv = document.createElement('div');
+        urlDiv.className = 'api-url';
+        urlDiv.textContent = url;
+        const removeButton = document.createElement('img');
+        removeButton.src = 'icons/cancel.svg';
+        removeButton.className = 'button hover';
+        removeButton.addEventListener('click', () => {
+            removeApiUrl(url);
+            urlDiv.remove();
+        });
+        urlDiv.appendChild(removeButton);
+        return urlDiv;
+    }
+
+    initAddButton() {
         const addUrl = document.createElement('img');
         addUrl.src = 'icons/add.svg';
         addUrl.className = 'button hover';
         addUrl.addEventListener('click', () => {
             const url = prompt('Enter API URL:');
-            if (url) {
-                addApiUrl(url);
-                const urlList = this.div.querySelector('.api-url-list');
-                const urlDiv = document.createElement('div');
-                urlDiv.className = 'api-url';
-                urlDiv.textContent = url;
-                const removeButton = document.createElement('img');
-                removeButton.src = 'icons/remove.svg';
-                removeButton.className = 'button hover';
-                removeButton.addEventListener('click', () => {
-                    this.removeApiUrl(url);
-                    urlDiv.remove();
-                });
-                urlDiv.appendChild(removeButton);
-                urlList.appendChild(urlDiv);
+            if (url && this.validateAndSaveUrl(url)) {
+                this.urlList.appendChild(this.initUrl(url));
             }
         });
         return addUrl;
     }
-    initRemoveApiUrl(url) {
-        const removeButton = document.createElement('img');
-        removeButton.src = 'icons/delete.svg';
-        removeButton.className = 'button hover';
-        removeButton.addEventListener('click', () => {
-            this.removeApiUrl(url);
-            const urlDiv = document.querySelector(`.api-url:contains('${url}')`);
-            if (urlDiv) {
-                urlDiv.remove();
+
+    validateAndSaveUrl(url) {
+        try {
+            new URL(url);
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                alert('Please enter a valid URL starting with http:// or https://');
+                return false;
             }
-        });
-        return removeButton;
+            addApiUrl(url);
+            return true;
+        } catch (e) {
+            return false;
+        }
     }
 
-    open() {
-        if (this.div.style.display === 'none') {
-            this.div.style.display = 'block';
-        } else {
+    validateAndSaveUrl(url) {
+        try {
+            new URL(url);
+            addApiUrl(url);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+    toggle() {
+        if (this.div.style.display === 'block') {
             this.div.style.display = 'none';
+            const url = new URL(window.location);
+            url.hash = '';
+            window.history.replaceState({}, '', url.toString());
+        } else {
+            this.div.style.display = 'block';
+            const url = new URL(window.location);
+            url.hash = '#settings';
+            window.history.replaceState({}, '', url.toString());
         }
     }
 }
+
 
 function getApiUrls() {
     const urls = JSON.parse(localStorage.getItem('apiUrls')) || [];
@@ -317,6 +333,12 @@ function addApiUrl(url) {
     }
 }
 
+function removeApiUrl(url) {
+    let urls = getApiUrls();
+    urls = urls.filter(existingUrl => existingUrl !== url);
+    localStorage.setItem('apiUrls', JSON.stringify(urls));
+}
+
 async function syncWithApis() {
     const urls = getApiUrls();
     if (urls.length === 0) return alert('No API URLs configured. Please add an API URL in settings.');
@@ -329,7 +351,7 @@ async function syncWithApis() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(notes)
+                body: JSON.stringify(localNotes)
             });
             if (!response.ok) {
                 throw new Error(`Failed to sync with ${url}: ${response.statusText}`);
