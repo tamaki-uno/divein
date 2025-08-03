@@ -1,15 +1,15 @@
 addEventListener('DOMContentLoaded', async () => {
-    // await initDatabase();
-    document.getElementById('settings').addEventListener('click', () => new Settings());
-    document.getElementById('sync').addEventListener('click', sync);
+    const api = new API();
+    document.getElementById('settings').addEventListener('click', api.openSettings.bind(api));
+    document.getElementById('sync').addEventListener('click', api.sync.bind(api));
     document.getElementById('download').addEventListener('click', download);
 
     const url = new URL(window.location);
     const main = document.querySelector('main');
     const uuid = url.searchParams.get('uuid') || crypto.randomUUID();
-    const note = new Note(uuid, main);
     url.searchParams.set('uuid', uuid);
     window.history.replaceState({}, '', url.toString());
+    const note = new Note(uuid, main);
 
     document.getElementById('loading').style.display = 'none';
 });
@@ -192,16 +192,137 @@ async function setNote(note) {
     });
 }
 
-
-class Settings {
+class API {
     constructor() {
-        console.log('Settings initialized');
+        console.log('API initialized');
+        this.urls = []
+        this.settings = new Settings();
+    }
+    openSettings() {
+        console.log('Opening settings...');
+        console.log('Settings div:', this.settings.div);
+        this.settings.div.style.display = 'flex';
+    }
+    async sync() {
+        console.log('Syncing notes...');
         location.reload();
     }
 }
 
-async function sync() {
-    console.log('Syncing notes...');
+class Settings {
+    constructor() {
+        console.log('Settings initialized');
+        if (document.getElementById('settingsDiv')) {
+            this.div = document.getElementById('settingsDiv');
+        } else {
+            this.init();
+        }
+    }
+
+    init() {
+        this.div = document.createElement('div');
+        this.div.className = 'settingsDiv radius hover';
+        this.div.style.display = 'none';
+        this.div.id = 'settingsDiv';
+        this.div.appendChild(this.initCloseButton());
+        this.div.appendChild(this.initContent());
+
+        document.body.appendChild(this.div);
+    }
+
+    initCloseButton() {
+        const closeButton = document.createElement('img');
+        closeButton.src = 'icons/close.svg';
+        closeButton.className = 'button hover';
+        closeButton.style.fontSize = '40px';
+        closeButton.addEventListener('click', () => {
+            this.div.style.display = 'none';
+        });
+        return closeButton;
+    }
+
+    initContent() {
+        const content = document.createElement('div');
+        content.className = 'settings-content';
+        const title = document.createElement('h2');
+        
+        title.textContent = 'Urls';
+        content.appendChild(title);
+        const urlList = this.initUrlList();
+        content.appendChild(urlList);
+        const addUrl = this.initAddUrl();
+        content.appendChild(addUrl);
+
+        return content;
+    }
+
+    initUrlList() {
+        const urlList = document.createElement('ul');
+        urlList.className = 'api-url-list';
+        const apiUrls = getApiUrls();
+        apiUrls.forEach(url => {
+            const urlDiv = document.createElement('div');
+            urlDiv.className = 'api-url';
+            urlDiv.textContent = url;
+            urlDiv.appendChild(this.initRemoveApiUrl(url));
+            urlList.appendChild(urlDiv);
+        });
+
+        return urlList;
+    }
+    initAddUrl() {
+        const addUrl = document.createElement('img');
+        addUrl.src = 'icons/add.svg';
+        addUrl.className = 'button hover';
+        addUrl.addEventListener('click', () => {
+            const url = prompt('Enter API URL:');
+            if (url) {
+                addApiUrl(url);
+                const urlList = this.div.querySelector('.api-url-list');
+                const urlDiv = document.createElement('div');
+                urlDiv.className = 'api-url';
+                urlDiv.textContent = url;
+                const removeButton = document.createElement('img');
+                removeButton.src = 'icons/remove.svg';
+                removeButton.className = 'button hover';
+                removeButton.addEventListener('click', () => {
+                    this.removeApiUrl(url);
+                    urlDiv.remove();
+                });
+                urlDiv.appendChild(removeButton);
+                urlList.appendChild(urlDiv);
+            }
+        });
+        return addUrl;
+    }
+    initRemoveApiUrl(url) {
+        const removeButton = document.createElement('img');
+        removeButton.src = 'icons/delete.svg';
+        removeButton.className = 'button hover';
+        removeButton.addEventListener('click', () => {
+            this.removeApiUrl(url);
+            const urlDiv = document.querySelector(`.api-url:contains('${url}')`);
+            if (urlDiv) {
+                urlDiv.remove();
+            }
+        });
+        return removeButton;
+    }
+}
+
+function getApiUrls() {
+    const apiUrls = localStorage.getItem('apiUrls');
+    if (apiUrls) {
+        return JSON.parse(apiUrls);
+    }
+    return [];
+}
+function addApiUrl(url) {
+    const apiUrls = getApiUrls();
+    if (!apiUrls.includes(url)) {
+        apiUrls.push(url);
+        localStorage.setItem('apiUrls', JSON.stringify(apiUrls));
+    }
 }
 
 async function download() {
