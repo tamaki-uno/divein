@@ -1,7 +1,8 @@
 addEventListener('DOMContentLoaded', async () => {
-    const api = new API();
-    document.getElementById('settings').addEventListener('click', api.openSettings.bind(api));
-    document.getElementById('sync').addEventListener('click', api.sync.bind(api));
+    const settings = new Settings();
+    document.getElementById('settings').addEventListener('click', settings.open.bind(settings));
+    // document.getElementById('sync').addEventListener('click', syncWithApis);
+    document.getElementById('sync').addEventListener('click', async () => await syncWithApis());
     document.getElementById('download').addEventListener('click', download);
 
     const url = new URL(window.location);
@@ -166,7 +167,9 @@ async function getAllNotes() {
     return await new Promise((resolve, reject) => {
         const request = objectStore.getAll();
         request.onsuccess = (event) => {
-            resolve(event.target.result);
+            // resolve(event.target.result);
+            const notes = event.target.result;
+            resolve(notes);
         };
         request.onerror = (event_1) => {
             console.error('Error getting all notes:', event_1.target.error);
@@ -190,23 +193,6 @@ async function setNote(note) {
             reject(event_1.target.error);
         };
     });
-}
-
-class API {
-    constructor() {
-        console.log('API initialized');
-        this.urls = []
-        this.settings = new Settings();
-    }
-    openSettings() {
-        console.log('Opening settings...');
-        console.log('Settings div:', this.settings.div);
-        this.settings.div.style.display = 'flex';
-    }
-    async sync() {
-        console.log('Syncing notes...');
-        location.reload();
-    }
 }
 
 class Settings {
@@ -308,20 +294,60 @@ class Settings {
         });
         return removeButton;
     }
+
+    open() {
+        if (this.div.style.display === 'none') {
+            this.div.style.display = 'block';
+        } else {
+            this.div.style.display = 'none';
+        }
+    }
 }
 
 function getApiUrls() {
-    const apiUrls = localStorage.getItem('apiUrls');
-    if (apiUrls) {
-        return JSON.parse(apiUrls);
-    }
-    return [];
+    const urls = JSON.parse(localStorage.getItem('apiUrls')) || [];
+    return urls;
 }
+
 function addApiUrl(url) {
-    const apiUrls = getApiUrls();
-    if (!apiUrls.includes(url)) {
-        apiUrls.push(url);
-        localStorage.setItem('apiUrls', JSON.stringify(apiUrls));
+    const urls = getApiUrls();
+    if (!urls.includes(url)) {
+        urls.push(url);
+        localStorage.setItem('apiUrls', JSON.stringify(urls));
+    }
+}
+
+async function syncWithApis() {
+    const urls = getApiUrls();
+    if (urls.length === 0) return alert('No API URLs configured. Please add an API URL in settings.');
+    console.log(`Syncing with API at ${urls}`);
+    const localNotes = await getAllNotes();
+    try {
+        const remoteNotesArray = await Promise.all(urls.map(async url => {
+            const response = await fetch(`${url}/sync`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(notes)
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to sync with ${url}: ${response.statusText}`);
+            }
+            const remoteNotes = JSON.parse(await response.text());
+            return remoteNotes;
+        }));
+        const remoteNotes = remoteNotesArray.flat();
+        await Promise.all(remoteNotes.map(async (remoteNote) => {
+            const localNote = localNotes.find(note => note.uuid === remoteNote.uuid);
+            if (!localNote || new Date(localNote.updatedAt) < new Date(remoteNote.updatedAt)) {
+                await setNote(remoteNote);
+            }
+        }));
+    } catch (error) {
+        console.error(error);
+    } finally {
+        console.log('Sync completed');
     }
 }
 
