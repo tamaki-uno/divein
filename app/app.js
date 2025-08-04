@@ -3,7 +3,10 @@
 function route() {
     const url = new URL(window.location);
     initEventListeners(url.hash === '#settings');
-    init(url.searchParams.get('uuid') || crypto.randomUUID());
+    const uuid = url.searchParams.get('uuid') || crypto.randomUUID();
+    url.searchParams.set('uuid', uuid);
+    window.history.replaceState({}, '', url.toString());
+    init(uuid);
 }
 
 async function init(uuid) {
@@ -40,20 +43,20 @@ class Note {
     }
     async getNote() {
         // const existingNoteData = await getNote(this.uuid);
+        // const existingNoteData = await db.getByKey('notes', this.uuid);
         const existingNoteData = await db.getByKey('notes', this.uuid);
-        console.log('Note data:', existingNoteData);
+        console.log('Existing note data:', existingNoteData);
         if (existingNoteData) {
-            console.log('Note found in database:', existingNoteData);
+            console.log('NoteData found in database:', existingNoteData);
             this.content = existingNoteData.content;
             this.children = existingNoteData.children;
             this.createdAt = existingNoteData.createdAt;
             this.updatedAt = existingNoteData.updatedAt;
             return;
         } else {
-            console.log('Note not found in database, creating new note');
             const noteData = {
                 uuid: this.uuid,
-                content: this.content = '',
+                content: this.content = 'hello',
                 children: this.children = [],
                 createdAt: this.createdAt = new Date().toISOString(),
                 updatedAt: this.updatedAt = new Date().toISOString()
@@ -80,30 +83,59 @@ class Note {
     }
     initContainer() {
         this.container = document.createElement('div');
-        this.container.className = 'note-container radius';
+        this.container.className = 'note-container radius hover';
         this.container.id = `note-${this.uuid}`;
         this.container.style.fontSize = `${this.fontSize}px`;
+        this.container.addEventListener('dblclick', (event) => {
+            console.log('Note double-clicked:', this.uuid);
+            event.preventDefault();
+            event.stopPropagation();
+            location.search = `?uuid=${this.uuid}`;
+            route();
+        });
         this.container.appendChild(this.initContent());
         this.container.appendChild(this.initChildren());
         return this.container;
     }
     initContent() {
         this.contentDiv = document.createElement('div');
-        this.contentDiv.className = 'note-content radius';
+        this.contentDiv.className = 'note-content radius hover';
         this.contentDiv.appendChild(this.initToggleIcon());
-        this.contentDiv.appendChild(document.createTextNode(this.content));
-        this.contentDiv.setAttribute('contenteditable', 'true');
-        this.contentDiv.addEventListener('input', () => {});
-        this.contentDiv.addEventListener('change', () => {
-            this.content = this.contentDiv.textContent.trim();
-            this.save()
-                .then(() => console.log('Content saved:', this.content))
-                .catch(error => console.error('Error saving content:', error));
+        this.contentDiv.appendChild(this.initContentSpan());
+        this.contentDiv.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            console.log('Context menu opened for note:', this.uuid);
+            // 
         });
-        this.contentDiv.addEventListener('keydown', (event) => {
+        return this.contentDiv;
+    }
+    initToggleIcon() {
+        this.toggleIcon = document.createElement('img');
+        this.toggleIcon.src = 'icons/toggle.svg';
+        this.toggleIcon.className = 'note-toggle-icon button hover';
+        this.toggleIcon.addEventListener('click', () => this.toggle());
+        return this.toggleIcon;
+    }
+    initContentSpan() {
+        this.contentSpan = document.createElement('span');
+        this.contentSpan.className = 'note-content-span radius hover';
+        this.contentSpan.setAttribute('contenteditable', 'true');
+        // this.contentSpan.addEventListener('change', () => {
+        this.contentSpan.addEventListener('blur', () => {
+            // console.log('Content changed:', this.contentSpan.textContent);
+            // this.content = this.contentSpan.textContent.trim();
+            if (this.contentSpan.textContent.trim() === this.content) return;
+            this.content = this.contentSpan.textContent.trim();
+            console.log('Content updated:', this.content);
+            this.renderContent();
+            this.save();
+                // .then(() => console.log('Content saved:', this.content))
+                // .catch(error => console.error('Error saving content:', error));
+        });
+        this.contentSpan.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                this.contentDiv.blur();
+                this.contentSpan.blur();
                 console.log('Enter pressed');
                 if (event.shiftKey) {
                     console.log('Shift + Enter pressed');
@@ -120,24 +152,51 @@ class Note {
                 }
             }
         });
-                
-        return this.contentDiv;
+        this.renderContent();
+        return this.contentSpan;
     }
-    initToggleIcon() {
-        this.toggleIcon = document.createElement('img');
-        this.toggleIcon.src = 'icons/toggle.svg';
-        this.toggleIcon.className = 'note-toggle-icon button hover';
-        this.toggleIcon.addEventListener('click', () => this.toggle());
-        return this.toggleIcon;
+    renderContent() {
+        if (this.content.startsWith('http://') || this.content.startsWith('https://')) {
+            const link = document.createElement('a');
+            link.href = this.content;
+            link.textContent = this.content;
+            link.target = '_blank';
+            this.contentSpan.innerHTML = '';
+            this.contentSpan.appendChild(link);
+        } else if (this.content.startsWith('\\') || this.content.startsWith('>')) {
+            this.contentSpan.innerHTML = '';
+            this.contentSpan.appendChild(document.createTextNode(this.content));
+        } else if (this.content.startsWith('![')) {
+            const img = document.createElement('img');
+            img.src = this.content.slice(2, -1);
+            img.alt = this.content.slice(2, -1);
+            img.className = 'note-image';
+            this.contentSpan.innerHTML = '';
+            this.contentSpan.appendChild(img);
+        } else {
+            this.contentSpan.innerHTML = '';
+            this.contentSpan.appendChild(document.createTextNode(this.content));
+        }
+    }
+    toggle() {
+        console.log(`Changeing expansion state of note: ${this.uuid} (isExpanded: ${this.isExpanded})`);
+        this.isExpanded = !this.isExpanded;
+        this.container.classList.toggle('expanded', this.isExpanded);
+        this.toggleIcon.classList.toggle('expanded', this.isExpanded);
     }
     initChildren() {
         this.childrenDiv = document.createElement('div');
         this.childrenDiv.className = 'note-children';
-        this.children.forEach(childUuid => {
-            const note = new Note(childUuid, this.childrenDiv, this.fontSize * 0.8);
+        this.renderChildren();
+        return this.childrenDiv;
+    }
+    renderChildren() {
+        this.childrenDiv.innerHTML = '';
+        this.children.forEach(async childUuid => {
+            const childNote = new Note(childUuid, this.fontSize * 0.8);
+            this.childrenDiv.appendChild(await childNote.init());
         });
         this.childrenDiv.appendChild(this.initAddChildIcon());
-        return this.childrenDiv;
     }
     initAddChildIcon() {
         this.addChildIcon = document.createElement('img');
@@ -146,17 +205,11 @@ class Note {
         this.addChildIcon.addEventListener('click', () => this.addChild());
         return this.addChildIcon;
     }
-    render() {
-        this.contentDiv.textContent = this.content;
-    }
-    toggle() {
-        this.isExpanded = !this.isExpanded;
-        this.container.classList.toggle('open', this.isExpanded);
-    }
     addChild() {
+        console.log(`Adding child note to ${this.uuid}`);
         const childUuid = crypto.randomUUID();
         this.children.push(childUuid);
-        const childNote = new Note(childUuid, this.childrenDiv, this.fontSize * 0.8);
+        this.renderChildren();
         this.save()
             .then(() => console.log('Child note added:', childUuid))
             .catch(error => console.error('Error adding child note:', error));
@@ -179,9 +232,10 @@ class IDB {
             ]
         }
     };
-    constructor(schemas) {
-        console.log('Initializing IDB with schemas:', schemas);
-        this.schemas = { ...IDB.schemas, ...schemas };
+    constructor(dbName, version = 1) {
+        this.dbName = dbName;
+        this.version = version;
+        const request = window.indexedDB.open(dbName, version);
     }
     async init(schemas) {
         if (IDB.db) return this.db = IDB.db;
@@ -198,8 +252,6 @@ class IDB {
             });
             console.log('Object stores created:', this.db.objectStoreNames);
         }
-        request.onerror = (event) => console.error('Database error:', event.target.error);
-        request.onsuccess = (event) => this.db = event.target.result;
         return new Promise((resolve, reject) => {
             request.onsuccess = (event) => {
                 this.db = event.target.result;
@@ -212,15 +264,31 @@ class IDB {
             };
         });
     }
-    async getObjectStore(storeName, mode = 'readonly') {
+    createObjectStore(storeName, options) {
+        const transaction = this.db.transaction(this.db.objectStoreNames, 'versionchange');
+        const objectStore = transaction.objectStore(storeName);
+        if (!objectStore) {
+            console.log(`Creating object store: ${storeName}`);
+            const newObjectStore = this.db.createObjectStore(storeName, options);
+        }
+    }
+    getObjectStore(storeName, mode = 'readonly') {
         if (!this.db) throw new Error('Database not initialized');
         const transaction = this.db.transaction(storeName, mode);
         return transaction.objectStore(storeName);
     }
     async getByKey(storeName, key) {
         const objectStore = await this.getObjectStore(storeName, 'readonly');
+        // return new Promise((resolve, reject) => {
+        //     const request = objectStore.get(key);
+        //     request.onsuccess = (event) => resolve(event.target.result);
+        //     request.onerror = (event) => {
+        //         console.error('Error getting data:', event.target.error);
+        //         reject(event.target.error);
+        //     };
+        // });
+        const request = objectStore.get(key);
         return new Promise((resolve, reject) => {
-            const request = objectStore.get(key);
             request.onsuccess = (event) => resolve(event.target.result);
             request.onerror = (event) => {
                 console.error('Error getting data:', event.target.error);
@@ -294,113 +362,18 @@ class IDB {
             };
         });
     }
+    async clear(storeName) {
+        const objectStore = await this.getObjectStore(storeName, 'readwrite');
+        return new Promise((resolve, reject) => {
+            const request = objectStore.clear();
+            request.onsuccess = (event) => resolve(event.target.result);
+            request.onerror = (event) => {
+                console.error('Error clearing data:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+    }
 }
-
-// const schemas = {
-//     notes: {
-//         options: {
-//             keyPath: 'uuid',
-//             autoIncrement: false
-//         },
-//         indexes: [
-//             { name: 'uuid', unique: true },
-//             { name: 'content', unique: false },
-//             { name: 'children', unique: false },
-//             { name: 'createdAt', unique: false },
-//             { name: 'updatedAt', unique: false }
-//         ]
-//     }
-// };
-
-// async function getIDB() {
-//     return new Promise((resolve, reject) => {
-//     const request = window.indexedDB.open('divein', 1);
-//     request.onupgradeneeded = (event) => {
-//         const db = event.target.result;
-//         for (const [storeName, options] of Object.entries(objectStores)) {
-//             if (!db.objectStoreNames.contains(storeName)) {
-//                 // console.log(`Creating object store: ${storeName}, options:`, options);
-//                 console.log(`Creating object store: ${storeName}`);
-//                 // db.createObjectStore(storeName, options);
-//                 const objectStore = db.createObjectStore(storeName, { keyPath: options.keyPath, autoIncrement: options.autoIncrement });
-//                 options.indexes.forEach(index => {
-//                     objectStore.createIndex(index.name, index.name, { unique: index.unique });
-//                 });
-//             }
-//         }
-//     }
-//     request.onerror = (event) => {
-//         console.error('Database error:', event.target.error);
-//         reject(event.target.error);
-//     }
-//     request.onsuccess = (event) => {
-//         const db = event.target.result;
-//         resolve(db);
-//         // return db;
-//     };
-//     });
-// }
-
-// async function DELETEIDB() {
-//     const request = window.indexedDB.deleteDatabase('divein');
-//     request.onsuccess = (event) => {
-//         console.log('Database deleted successfully');
-//     };
-//     request.onerror = (event) => {
-//         console.error('Error deleting database:', event.target.error);
-//     };
-// }
-
-// async function getNote(uuid) {
-//     const db = await getIDB();
-//     const transaction = db.transaction('notes', 'readonly');
-//     const objectStore = transaction.objectStore('notes');
-//     return await new Promise((resolve, reject) => {
-//         const request = objectStore.get(uuid);
-//         request.onsuccess = (event) => {
-//             resolve(event.target.result);
-//         };
-//         request.onerror = (event_1) => {
-//             console.error('Error getting note:', event_1.target.error);
-//             reject(event_1.target.error);
-//         };
-//     });
-// }
-
-// async function getAllNotes() {
-//     const db = await getIDB();
-//     const transaction = db.transaction('notes', 'readonly');
-//     const objectStore = transaction.objectStore('notes');
-//     return await new Promise((resolve, reject) => {
-//         const request = objectStore.getAll();
-//         request.onsuccess = (event) => {
-//             // resolve(event.target.result);
-//             const notes = event.target.result;
-//             resolve(notes);
-//         };
-//         request.onerror = (event_1) => {
-//             console.error('Error getting all notes:', event_1.target.error);
-//             reject(event_1.target.error);
-//         };
-//     });
-// }
-
-// async function setNote(note) {
-//     const db = await getIDB();
-//     const transaction = db.transaction('notes', 'readwrite');
-//     const objectStore = transaction.objectStore('notes');
-//     note.updatedAt = new Date().toISOString();
-//     return await new Promise((resolve, reject) => {
-//         const request = objectStore.put(note);
-//         request.onsuccess = (event) => {
-//             resolve(event.target.result);
-//         };
-//         request.onerror = (event_1) => {
-//             console.error('Error setting note:', event_1.target.error);
-//             reject(event_1.target.error);
-//         };
-//     });
-// }
 
 class Settings {
     constructor(show = false) {
@@ -431,6 +404,38 @@ class Settings {
         this.closeButton.style.fontSize = '30px';
         this.closeButton.addEventListener('click', this.toggle.bind(this));
         return this.closeButton;
+    }
+    initThemButton() {
+        // this.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        this.isDarkTheme = ! window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        // document.body.classList.toggle('dark-theme', this.isDarkTheme);
+        this.themeButton = document.createElement('img');
+        // this.themeButton.src = `icons/${this.theme}.svg`;
+        this.themeButton.src = this.isDarkTheme ? 'icons/light.svg' : 'icons/dark.svg';
+        this.themeButton.className = 'button hover';
+        this.themeButton.addEventListener('click', this.toggleTheme.bind(this));
+        this.toggleTheme();
+        return this.themeButton;
+    }
+    toggleTheme() {
+        // this.theme = this.theme === 'dark' ? 'light' : 'dark';
+        this.isDarkTheme = !this.isDarkTheme;
+        // document.body.classList.toggle('dark-theme', this.isDarkTheme);
+        this.themeButton.src = this.isDarkTheme ? 'icons/light.svg' : 'icons/dark.svg';
+        // localStorage.setItem('theme', this.theme);
+        // localStorage.setItem('isDarkTheme', this.isDarkTheme);
+        // console.log(`Theme changed to: ${this.isDarkTheme ? 'dark' : 'light'}`);
+        // this.themeButton.src = `icons/${this.theme}.svg`;
+        if (document.getElementById('theme')) {
+            document.getElementById('theme').href = this.isDarkTheme ? 'styles/dark.css' : 'styles/light.css';
+        } else {
+            const link = document.createElement('link');
+            link.id = 'theme';
+            link.rel = 'stylesheet';
+            link.href = this.isDarkTheme ? 'styles/dark.css' : 'styles/light.css';
+            document.head.appendChild(link);
+        }
     }
     initUrlList() {
         this.urlList = document.createElement('div');
@@ -531,7 +536,7 @@ async function syncWithApis() {
     const urls = getApiUrls();
     if (urls.length === 0) return alert('No API URLs configured. Please add an API URL in settings.');
     console.log(`Syncing with API at ${urls}`);
-    const localNotes = await getAllNotes();
+    const localNotes = await db.getAll('notes');
     try {
         const remoteNotesArray = await Promise.all(urls.map(async url => {
             const response = await fetch(`${url}/sync`, {
@@ -551,7 +556,7 @@ async function syncWithApis() {
         await Promise.all(remoteNotes.map(async (remoteNote) => {
             const localNote = localNotes.find(note => note.uuid === remoteNote.uuid);
             if (!localNote || new Date(localNote.updatedAt) < new Date(remoteNote.updatedAt)) {
-                await setNote(remoteNote);
+                await db.put('notes', remoteNote);
             }
         }));
     } catch (error) {
@@ -563,7 +568,8 @@ async function syncWithApis() {
 
 async function download() {
     console.log('Downloading notes...');
-    const notes = await getAllNotes();
+    const notes = await db.getAll('notes');
+    if (notes.length === 0) return alert('No notes to download.');
     const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -595,12 +601,19 @@ const objectStores = {
         ]
     }
 };
-const db = new IDB(objectStores);
+// const db = new IDB(objectStores);
+// db.init(objectStores)
+//     // .then(() => console.log('Database initialized'))
+//     .then(() => {
+//         console.log('Database initialized');
+//         route();
+//     })
+//     .catch(error => console.error('Error initializing database:', error));
+// addEventListener('DOMContentLoaded', route);
+const db = new IDB();
 db.init(objectStores)
-    // .then(() => console.log('Database initialized'))
     .then(() => {
         console.log('Database initialized');
         route();
     })
     .catch(error => console.error('Error initializing database:', error));
-// addEventListener('DOMContentLoaded', route);
