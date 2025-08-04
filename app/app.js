@@ -1,57 +1,42 @@
 'use strict';
 
-addEventListener('DOMContentLoaded', route);
-
-const objectStores = {
-    notes: {
-        options: {
-            keyPath: 'uuid',
-            autoIncrement: false
-        },
-        indexes: [
-            { name: 'uuid', unique: true },
-            { name: 'content', unique: false },
-            { name: 'createdAt', unique: false },
-            { name: 'updatedAt', unique: false }
-        ]
-    }
-};
-const db = new IDB(objectStores);
-
 function route() {
     const url = new URL(window.location);
     initEventListeners(url.hash === '#settings');
     init(url.searchParams.get('uuid') || crypto.randomUUID());
 }
 
-function init(uuid) {
+async function init(uuid) {
     console.log('Initializing app with UUID:', uuid);
-    const main = document.querySelector('main');
-    const note = new Note(uuid, main);
+    const note = new Note(uuid, 30, true);
+    document.querySelector('main').appendChild(await note.init());
     document.getElementById('loading').style.display = 'none';
+    return;
 }
 
 function initEventListeners(isSettings) {
     console.log('Initializing event listeners... (isSettings:', isSettings, ')');
-    const settings = new Settings();
+    addEventListener('hashchange', route);
+    addEventListener('popstate', route);
+    addEventListener('DOMContentLoaded', route);
+    const settings = new Settings(isSettings);
     if (isSettings) settings.toggle();
-    document.getElementById('settings').addEventListener('click', settings.toggle.bind(settings));
-    document.getElementById('sync').addEventListener('click', async () => await syncWithApis());
+    document.getElementById('settings').addEventListener('click', () => settings.toggle());
+    document.getElementById('sync').addEventListener('click', syncWithApis);
     document.getElementById('download').addEventListener('click', download);
+    return;
 }
 
 class Note {
-    constructor(uuid, parentNode, fontSize = 30) {
-        console.log(`Creating note with UUID: ${uuid}, parentNode:`, parentNode, `fontSize: ${fontSize}`);
+    constructor(uuid, fontSize = 30, isExpanded = false) {
+        console.log(`Creating note with UUID: ${uuid}, fontSize: ${fontSize}, isExpanded: ${isExpanded}`);
         this.uuid = uuid;
-        this.parentNode = parentNode;
         this.fontSize = fontSize;
-        this.isExpanded = false;
-        this.getNote()
-            .then(() => {
-                console.log('Note data loaded:', this);
-                parentNode.appendChild(this.initContainer());
-            });
+        this.isExpanded = isExpanded;
+    }
+    async init() {
+        await this.getNote();
+        return this.initContainer();
     }
     async getNote() {
         // const existingNoteData = await getNote(this.uuid);
@@ -105,10 +90,37 @@ class Note {
     initContent() {
         this.contentDiv = document.createElement('div');
         this.contentDiv.className = 'note-content radius';
-        this.contentDiv.setAttribute('contenteditable', 'true');
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(document.createTextNode(this.content));
-        this.contentDiv.addEventListener('input', () => {
+        this.contentDiv.setAttribute('contenteditable', 'true');
+        this.contentDiv.addEventListener('input', () => {});
+        this.contentDiv.addEventListener('change', () => {
+            this.content = this.contentDiv.textContent.trim();
+            this.save()
+                .then(() => console.log('Content saved:', this.content))
+                .catch(error => console.error('Error saving content:', error));
+        });
+        this.contentDiv.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.contentDiv.blur();
+                console.log('Enter pressed');
+                if (event.shiftKey) {
+                    console.log('Shift + Enter pressed');
+                } else {
+                    console.log('Enter pressed without Shift');
+                }
+            } else if (event.key === 'Tab') {
+                event.preventDefault();
+                console.log('Tab pressed');
+                if (event.shiftKey) {
+                    console.log('Shift + Tab pressed');
+                } else {
+                    console.log('Tab pressed without Shift');
+                }
+            }
+        });
+                
         return this.contentDiv;
     }
     initToggleIcon() {
@@ -116,6 +128,7 @@ class Note {
         this.toggleIcon.src = 'icons/toggle.svg';
         this.toggleIcon.className = 'note-toggle-icon button hover';
         this.toggleIcon.addEventListener('click', () => this.toggle());
+        return this.toggleIcon;
     }
     initChildren() {
         this.childrenDiv = document.createElement('div');
@@ -123,19 +136,31 @@ class Note {
         this.children.forEach(childUuid => {
             const note = new Note(childUuid, this.childrenDiv, this.fontSize * 0.8);
         });
-        this.childrenDiv.appendChild(this.addChildIcon);
+        this.childrenDiv.appendChild(this.initAddChildIcon());
+        return this.childrenDiv;
     }
     initAddChildIcon() {
         this.addChildIcon = document.createElement('img');
         this.addChildIcon.src = 'icons/add.svg';
         this.addChildIcon.className = 'note-add-child-icon button hover';
         this.addChildIcon.addEventListener('click', () => this.addChild());
+        return this.addChildIcon;
+    }
+    render() {
+        this.contentDiv.textContent = this.content;
     }
     toggle() {
         this.isExpanded = !this.isExpanded;
         this.container.classList.toggle('open', this.isExpanded);
     }
-    addChild
+    addChild() {
+        const childUuid = crypto.randomUUID();
+        this.children.push(childUuid);
+        const childNote = new Note(childUuid, this.childrenDiv, this.fontSize * 0.8);
+        this.save()
+            .then(() => console.log('Child note added:', childUuid))
+            .catch(error => console.error('Error adding child note:', error));
+    }
 }
 
 class IDB {
@@ -155,6 +180,11 @@ class IDB {
         }
     };
     constructor(schemas) {
+        console.log('Initializing IDB with schemas:', schemas);
+        this.schemas = { ...IDB.schemas, ...schemas };
+    }
+    async init(schemas) {
+        if (IDB.db) return this.db = IDB.db;
         this.schemas = { ...schemas };
         const request = window.indexedDB.open('divein', 1);
         request.onupgradeneeded = (event) => {
@@ -170,6 +200,17 @@ class IDB {
         }
         request.onerror = (event) => console.error('Database error:', event.target.error);
         request.onsuccess = (event) => this.db = event.target.result;
+        return new Promise((resolve, reject) => {
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                console.log('Database opened successfully:', this.db);
+                resolve(this.db);
+            };
+            request.onerror = (event) => {
+                console.error('Error opening database:', event.target.error);
+                reject(event.target.error);
+            };
+        });
     }
     async getObjectStore(storeName, mode = 'readonly') {
         if (!this.db) throw new Error('Database not initialized');
@@ -362,50 +403,45 @@ class IDB {
 // }
 
 class Settings {
-    constructor() {
-        console.log('Settings initialized');
+    constructor(show = false) {
+        console.log(`Initializing Settings (show: ${show})`);
         if (document.getElementById('settingsDiv')) {
             this.div = document.getElementById('settingsDiv');
         } else {
-            this.div = this.initDiv();
-            this.div.appendChild(this.initCloseButton());
-            this.div.appendChild(this.initUrlList());
-            document.body.appendChild(this.div);
+            document.body.appendChild(this.initDiv());
         }
+        if (show) this.toggle();
     }
-
     initDiv() {
-        const div = document.createElement('div');
-        div.className = 'settingsDiv radius hover';
-        div.style.display = 'none';
-        div.id = 'settingsDiv';
+        this.div = document.createElement('div');
+        this.div.className = 'settingsDiv radius hover';
+        this.div.style.display = 'none';
+        this.div.id = 'settingsDiv';
         const title = document.createElement('h2');
         title.textContent = 'Urls';
-        div.appendChild(title);
-        return div;
+        this.div.appendChild(title);
+        this.div.appendChild(this.initCloseButton());
+        this.div.appendChild(this.initUrlList());
+        return this.div;
     }
-
     initCloseButton() {
-        const closeButton = document.createElement('img');
-        closeButton.src = 'icons/cancel.svg';
-        closeButton.className = 'button hover';
-        closeButton.style.fontSize = '30px';
-        closeButton.addEventListener('click', this.toggle.bind(this));
-        return closeButton;
+        this.closeButton = document.createElement('img');
+        this.closeButton.src = 'icons/cancel.svg';
+        this.closeButton.className = 'button hover';
+        this.closeButton.style.fontSize = '30px';
+        this.closeButton.addEventListener('click', this.toggle.bind(this));
+        return this.closeButton;
     }
-
     initUrlList() {
         this.urlList = document.createElement('div');
         this.urlList.className = 'api-url-list';
-        const apiUrls = getApiUrls();
-        apiUrls.forEach(url => {
+        this.apiUrls = getApiUrls();
+        this.apiUrls.forEach(url => {
             this.urlList.appendChild(this.initUrl(url));
         });
         this.urlList.appendChild(this.initAddButton());
-
         return this.urlList;
     }
-
     initUrl(url) {
         const urlDiv = document.createElement('div');
         urlDiv.className = 'api-url';
@@ -420,7 +456,6 @@ class Settings {
         urlDiv.appendChild(removeButton);
         return urlDiv;
     }
-
     initAddButton() {
         const addUrl = document.createElement('img');
         addUrl.src = 'icons/add.svg';
@@ -538,3 +573,34 @@ async function download() {
     a.click();
     document.body.removeChild(a);
 }
+
+
+
+
+
+
+
+
+const objectStores = {
+    notes: {
+        options: {
+            keyPath: 'uuid',
+            autoIncrement: false
+        },
+        indexes: [
+            { name: 'uuid', unique: true },
+            { name: 'content', unique: false },
+            { name: 'createdAt', unique: false },
+            { name: 'updatedAt', unique: false }
+        ]
+    }
+};
+const db = new IDB(objectStores);
+db.init(objectStores)
+    // .then(() => console.log('Database initialized'))
+    .then(() => {
+        console.log('Database initialized');
+        route();
+    })
+    .catch(error => console.error('Error initializing database:', error));
+// addEventListener('DOMContentLoaded', route);
