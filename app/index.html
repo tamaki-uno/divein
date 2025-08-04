@@ -14,38 +14,47 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 64px;
-            height: 64px;
+            width: 100px;
+            height: 100px;
             z-index: 1000;
         }
-        #settings, #sync, #download {
+        #settings, #sync, #download, #reload {
             position: fixed;
             z-index: 1000;
             font-size: 40px;
             background-color: white;
             /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
         }
-        #settings {
-            top: 1em;
-            right: 1em;
-        }
-        #sync {
-            top: 3em;
-            right: 1em;
-        }
-        #download {
-            top: 5em;
-            right: 1em;
-        }
     </style>
 </head>
 <body>
     <img src="./icons/loading.svg" alt="Loading..." id="loading" onclick="location.reload()">
-        <!-- <script>document.getElementById('loading').addEventListener('click', () => location.reload())</script> -->
     <main></main>
-    <img src="./icons/setting.svg" alt="Settings" id="settings" class="button hover">
-    <img src="./icons/sync.svg" alt="Sync" id="sync" class="button hover">
-    <img src="./icons/download.svg" alt="Download" id="download" class="button hover">
+    <img 
+        src="./icons/setting.svg" 
+        alt="Settings" 
+        id="settings" 
+        class="button hover" 
+        style="top: 1em; right: 1em;">
+    <img 
+        src="./icons/sync.svg" 
+        alt="Sync" 
+        id="sync" 
+        class="button hover" 
+        style="top: 3em; right: 1em;">
+    <img 
+        src="./icons/download.svg" 
+        alt="Download" 
+        id="download" 
+        class="button hover" 
+        style="top: 5em; right: 1em;">
+    <img 
+        src="./icons/loading.svg" 
+        alt="reload" 
+        id="reload" 
+        class="button hover" 
+        style="top: 7em; right: 1em;" 
+        onclick="location.reload()">
     <!-- <script type="module" src="script.js"></script> -->
     <!-- <script src="script.js"></script> -->
     <script src="app.js"></script>
