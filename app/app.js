@@ -100,10 +100,11 @@ class Note {
         this.contentDiv.className = 'note-content radius hover';
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(this.initContentSpan());
+        this.contentDiv.appendChild(this.initMenu());
         this.contentDiv.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             console.log('Context menu opened for note:', this.uuid);
-            // 
+            this.menu.style.display = 'block';
         });
         return this.contentDiv;
     }
@@ -114,19 +115,25 @@ class Note {
         this.toggleIcon.addEventListener('click', () => this.toggle());
         return this.toggleIcon;
     }
+    toggle() {
+        console.log(`Changeing expansion state of note: ${this.uuid} (isExpanded: ${this.isExpanded})`);
+        this.isExpanded = !this.isExpanded;
+        this.container.classList.toggle('expanded', this.isExpanded);
+        this.toggleIcon.classList.toggle('expanded', this.isExpanded);
+    }
     initContentSpan() {
         this.contentSpan = document.createElement('span');
         this.contentSpan.className = 'note-content-span radius hover';
         this.contentSpan.setAttribute('contenteditable', 'true');
+        this.suggestion = new Suggestion(this);
+        this.contentSpan.appendChild(this.suggestion.div);
         this.contentSpan.addEventListener('focus', () => {
             console.log('Content span focused:', this.uuid);
             this.contentSpan.innerHTML = this.contentSpan.textContent; // Preserve formatting
         });
         this.contentSpan.addEventListener('input', () => {
-            const searchResult = db.search('notes', this.contentSpan.textContent.trim());
-            if (searchResult.length > 0) {
-                new
-            console.log('Content changed:', searchResult);
+            this.suggestion.update(this.contentSpan.textContent);
+        });
         this.contentSpan.addEventListener('blur', () => {
             if (this.contentSpan.textContent.trim() === this.content) return;
             this.content = this.contentSpan.textContent.trim();
@@ -180,11 +187,15 @@ class Note {
             this.contentSpan.appendChild(document.createTextNode(this.content));
         }
     }
-    toggle() {
-        console.log(`Changeing expansion state of note: ${this.uuid} (isExpanded: ${this.isExpanded})`);
-        this.isExpanded = !this.isExpanded;
-        this.container.classList.toggle('expanded', this.isExpanded);
-        this.toggleIcon.classList.toggle('expanded', this.isExpanded);
+    initMenu() {
+        this.menu = document.createElement('div');
+        this.menu.className = 'note-menu radius hover';
+        this.menu.style.display = 'none';
+        // this.menu.appendChild(this.initDeleteButton());
+        // this.menu.appendChild(this.initEditButton());
+        // this.menu.appendChild(this.initSyncButton());
+        // this.menu.appendChild(this.initDownloadButton());
+        return this.menu;
     }
     initChildren() {
         this.childrenDiv = document.createElement('div');
@@ -232,16 +243,18 @@ class Suggestion {
     constructor(note) {
         console.log('Creating suggestion for note:', note);
         this.note = note;
+        this.result = [];
+        this.renderSuggestion();
     }
-    update(content) {
+    async update(content) {
         console.log('Updating suggestion with content:', content);
-        this.content = content;
-        this.result = db.search('notes', content.trim());
+        this.result = await db.search('notes', content.trim());
         this.renderSuggestion();
     }
     renderSuggestion() {
         this.div = document.createElement('div');
         this.div.className = 'suggestion';
+        this.div.style.display = this.result.length > 0 ? 'block' : 'none';
         for (const note of this.result) {
             const noteDiv = document.createElement('div');
             noteDiv.className = 'suggestion-note';
@@ -446,36 +459,16 @@ class Settings {
         return this.closeButton;
     }
     initThemButton() {
-        // this.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        this.isDarkTheme = ! window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-        // document.body.classList.toggle('dark-theme', this.isDarkTheme);
+        if (localStorage.getItem('darkTheme')) localStorage.setItem('darkTheme', matchMedia('(prefers-color-scheme: dark)').matches);
         this.themeButton = document.createElement('img');
-        // this.themeButton.src = `icons/${this.theme}.svg`;
-        this.themeButton.src = this.isDarkTheme ? 'icons/light.svg' : 'icons/dark.svg';
         this.themeButton.className = 'button hover';
         this.themeButton.addEventListener('click', this.toggleTheme.bind(this));
-        this.toggleTheme();
         return this.themeButton;
     }
     toggleTheme() {
-        // this.theme = this.theme === 'dark' ? 'light' : 'dark';
-        this.isDarkTheme = !this.isDarkTheme;
-        // document.body.classList.toggle('dark-theme', this.isDarkTheme);
-        this.themeButton.src = this.isDarkTheme ? 'icons/light.svg' : 'icons/dark.svg';
-        // localStorage.setItem('theme', this.theme);
-        // localStorage.setItem('isDarkTheme', this.isDarkTheme);
-        // console.log(`Theme changed to: ${this.isDarkTheme ? 'dark' : 'light'}`);
-        // this.themeButton.src = `icons/${this.theme}.svg`;
-        if (document.getElementById('theme')) {
-            document.getElementById('theme').href = this.isDarkTheme ? 'styles/dark.css' : 'styles/light.css';
-        } else {
-            const link = document.createElement('link');
-            link.id = 'theme';
-            link.rel = 'stylesheet';
-            link.href = this.isDarkTheme ? 'styles/dark.css' : 'styles/light.css';
-            document.head.appendChild(link);
-        }
+        localStorage.setItem('darkTheme', !localStorage.getItem('darkTheme'));
+        this.themeButton.src = `icons/${localStorage.getItem('darkTheme') ? 'dark' : 'light'}.svg`;
+        document.getElementById()
     }
     initUrlList() {
         this.urlList = document.createElement('div');
