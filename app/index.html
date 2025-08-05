@@ -1,64 +1,93 @@
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DIVEIN</title>
     <!-- <link rel="stylesheet" href="style.css"> -->
 
-<!-- <script>setTimeout(() => location.reload(), 1000 * 10);</script> -->
+    <!-- <script>setTimeout(() => location.reload(), 1000 * 10);</script> -->
     <!-- <link rel="stylesheet" id="theme" href="./themes/light.css"> -->
-    <link rel="icon" href="./icons/open.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="./icons/open.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
     <style>
-        #loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100px;
-            height: 100px;
-            z-index: 1000;
-        }
-        #settings, #sync, #download, #reload {
-            position: fixed;
-            font-size: 40px;
-            right: 1em;
-            z-index: 1000;
-            /* background-color: var(--theme-color); */
-            background-color: rgba(255, 255, 255, 0.8);
-        }
+      #loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100px;
+        height: 100px;
+        z-index: 1000;
+      }
+      #home,
+      #settings,
+      #sync,
+      #download,
+      #upload,
+      #reload {
+        position: fixed;
+        font-size: 40px;
+        right: 1em;
+        z-index: 1000;
+        /* background-color: var(--theme-color); */
+        background-color: rgba(255, 255, 255, 0.8);
+      }
     </style>
-</head>
-<body>
-    <img src="./icons/loading.svg" alt="Loading..." id="loading" onclick="location.reload()">
+  </head>
+
+  <body>
+    <img
+      src="./icons/loading.svg"
+      alt="Loading..."
+      id="loading"
+      onclick="location.reload()"
+    />
     <main></main>
-    <img 
-        src="./icons/setting.svg" 
-        alt="Settings" 
-        id="settings" 
-        class="button hover" 
-        style="top: 1em; right: 1em;">
-    <img 
-        src="./icons/sync.svg" 
-        alt="Sync" 
-        id="sync" 
-        class="button hover" 
-        style="top: 3em; right: 1em;">
-    <img 
-        src="./icons/download.svg" 
-        alt="Download" 
-        id="download" 
-        class="button hover" 
-        style="top: 5em; right: 1em;">
-    <img 
-        src="./icons/loading.svg" 
-        alt="reload" 
-        id="reload" 
-        class="button hover" 
-        style="top: 7em; right: 1em;" 
-        onclick="location.reload()">
+    <img
+      src="./icons/home.svg"
+      alt="Home"
+      id="home"
+      class="button hover"
+      style="top: 1em"
+    />
+    <img
+      src="./icons/setting.svg"
+      alt="Settings"
+      id="settings"
+      class="button hover"
+      style="top: 3em"
+    />
+    <img
+      src="./icons/sync.svg"
+      alt="Sync"
+      id="sync"
+      class="button hover"
+      style="top: 5em"
+    />
+    <img
+      src="./icons/download.svg"
+      alt="Download"
+      id="download"
+      class="button hover"
+      style="top: 7em"
+    />
+    <img
+      src="./icons/upload.svg"
+      alt="Upload"
+      id="upload"
+      class="button hover"
+      style="top: 9em"
+    />
+    <img
+      src="./icons/reload.svg"
+      alt="reload"
+      id="reload"
+      class="button hover"
+      style="top: 11em"
+      onclick="location.reload()"
+    />
     <!-- <script type="module" src="script.js"></script> -->
     <!-- <script src="script.js"></script> -->
     <script src="app.js"></script>
-</body>
+  </body>
 </html>

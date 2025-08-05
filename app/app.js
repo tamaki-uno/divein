@@ -3,15 +3,26 @@
 function route() {
     const url = new URL(window.location);
     initEventListeners(url.hash === '#settings');
-    const uuid = url.searchParams.get('uuid') || crypto.randomUUID();
-    url.searchParams.set('uuid', uuid);
-    window.history.replaceState({}, '', url.toString());
-    init(uuid);
+    let uuid;
+    if (url.searchParams.has('uuid')) {
+        uuid = url.searchParams.get('uuid');
+        init(uuid);
+    } else {
+        if (localStorage.getItem('homeUuid')) {
+            uuid = localStorage.getItem('homeUuid');
+        } else {
+            uuid = crypto.randomUUID();
+            localStorage.setItem('homeUuid', uuid);
+        }
+        url.searchParams.set('uuid', uuid);
+        window.history.replaceState({}, '', url.toString());
+        init(uuid, true);
+    }
 }
 
-async function init(uuid) {
+async function init(uuid, isHome = false) {
     console.log('Initializing app with UUID:', uuid);
-    const note = new Note(uuid, 30, true);
+    const note = new Note(uuid, 30, true, isHome);
     document.querySelector('main').appendChild(await note.init());
     document.getElementById('loading').style.display = 'none';
     return;
@@ -24,28 +35,29 @@ function initEventListeners(isSettings) {
     addEventListener('DOMContentLoaded', route);
     const settings = new Settings(isSettings);
     // if (isSettings) settings.toggle();
+    document.getElementById('home').addEventListener('click', home);
     document.getElementById('settings').addEventListener('click', () => settings.toggle());
     document.getElementById('sync').addEventListener('click', syncWithApis);
     document.getElementById('download').addEventListener('click', download);
+    document.getElementById('upload').addEventListener('click', upload);
     return;
 }
 
 class Note {
-    constructor(uuid, fontSize = 30, isExpanded = false) {
-        console.log(`Creating note with UUID: ${uuid}, fontSize: ${fontSize}, isExpanded: ${isExpanded}`);
+    constructor(uuid, fontSize = 30, isExpanded = false, isHome = false) {
+        // console.log(`Creating note with UUID: ${uuid}, fontSize: ${fontSize}, isExpanded: ${isExpanded}`);
         this.uuid = uuid;
         this.fontSize = fontSize;
         this.isExpanded = isExpanded;
+        this.isHome = isHome;
     }
     async init() {
-        await this.getNote();
+        await this.get();
         return this.initContainer();
     }
-    async getNote() {
+    async get() {
         const existingNoteData = await db.getByKey('notes', this.uuid);
-        // console.log('Existing note data:', existingNoteData);
         if (existingNoteData) {
-            // console.log('NoteData found in database:', existingNoteData);
             this.content = existingNoteData.content;
             this.children = existingNoteData.children;
             this.createdAt = existingNoteData.createdAt;
@@ -54,19 +66,16 @@ class Note {
         } else {
             const noteData = {
                 uuid: this.uuid,
-                content: this.content = 'hello',
+                content: this.content = this.isHome ? 'home' : '',
                 children: this.children = [],
                 createdAt: this.createdAt = new Date().toISOString(),
                 updatedAt: this.updatedAt = new Date().toISOString()
             };
-            // await setNote(noteData);
             await db.add('notes', noteData);
-            // console.log('New note created and saved:', noteData);
             return;
         }
     }
     async save() {
-        console.log('Saving note:', this);
         this.updatedAt = new Date().toISOString();
         const noteData = {
             uuid: this.uuid,
@@ -81,8 +90,8 @@ class Note {
     }
     initContainer() {
         this.container = document.createElement('div');
-        this.container.className = 'note-container radius hover';
-        this.container.id = `note-${this.uuid}`;
+        this.container.id = this.uuid;
+        this.container.className = 'note-container radius hover' + (this.isExpanded ? ' expanded' : '');
         this.container.style.fontSize = `${this.fontSize}px`;
         this.container.addEventListener('dblclick', (event) => {
             console.log('Note double-clicked:', this.uuid);
@@ -116,7 +125,7 @@ class Note {
         return this.toggleIcon;
     }
     toggle() {
-        console.log(`Changeing expansion state of note: ${this.uuid} (isExpanded: ${this.isExpanded})`);
+        console.log(`Toggling note expansion to ${!this.isExpanded} for UUID: ${this.uuid}`);
         this.isExpanded = !this.isExpanded;
         this.container.classList.toggle('expanded', this.isExpanded);
         this.toggleIcon.classList.toggle('expanded', this.isExpanded);
@@ -460,7 +469,7 @@ class Settings {
         this.closeButton.src = 'icons/cancel.svg';
         this.closeButton.className = 'button hover';
         this.closeButton.style.fontSize = '30px';
-        this.closeButton.addEventListener('click', this.toggle.bind(this));
+        this.closeButton.addEventListener('click', () => this.toggle());
         return this.closeButton;
     }
     initThemeButton() {
@@ -469,7 +478,7 @@ class Settings {
         this.themeButton.src = `icons/${localStorage.getItem('theme') === 'dark' ? 'light' : 'dark'}.svg`;
         this.themeButton.className = 'button hover';
         this.themeButton.style.fontSize = '30px';
-        this.themeButton.addEventListener('click', this.toggleTheme.bind(this));
+        this.themeButton.addEventListener('click', () => this.toggleTheme());
         return this.themeButton;
     }
     toggleTheme() {
@@ -607,7 +616,18 @@ async function syncWithApis() {
         console.log('Sync completed');
     }
 }
-
+function home() {
+    console.log('Home button clicked');
+    const homeUuid = localStorage.getItem('homeUuid');
+    if (homeUuid) {
+        console.log('Navigating to home UUID:', homeUuid);
+        location.search = `?uuid=${homeUuid}`;
+        route();
+    } else {
+        location.search = '';
+        route();
+    }
+}
 async function download() {
     console.log('Downloading notes...');
     const notes = await db.getAll('notes');
@@ -621,7 +641,52 @@ async function download() {
     a.click();
     document.body.removeChild(a);
 }
-
+async function upload() {
+    console.log('Uploading notes...');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.type !== 'application/json') {
+            return alert('Please upload a valid JSON file.');
+        }
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const notes = JSON.parse(e.target.result);
+                if (!Array.isArray(notes)) {
+                    return alert('Invalid file format. Please upload a valid JSON file containing an array of notes.');
+                }
+                await Promise.all(notes.map(async (note) => {
+                    if (!note.uuid || !note.content || !note.createdAt || !note.updatedAt) {
+                        return alert('Invalid note format in uploaded file.');
+                    }
+                    const existingNote = await db.getByKey('notes', note.uuid);
+                    if (existingNote) {
+                        if (new Date(existingNote.updatedAt) < new Date(note.updatedAt)) {
+                            await db.put('notes', note);
+                        }
+                    } else {
+                        await db.add('notes', note);
+                    }
+                }));
+                alert('Notes uploaded successfully.');
+                location.reload();
+            } catch (error) {
+                console.error('Error uploading notes:', error);
+                alert('Failed to upload notes. Please ensure the file is a valid JSON file.');
+            }
+        };
+        reader.onerror = (error) => {
+            console.error('Error reading file:', error);
+            alert('Failed to read file. Please try again.');
+        };
+        reader.readAsText(file);
+    });
+    input.click();
+}
 
 
 
