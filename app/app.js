@@ -473,7 +473,7 @@ class Settings {
         return this.closeButton;
     }
     initThemeButton() {
-        if (localStorage.getItem('theme')) localStorage.setItem('theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        if (!localStorage.getItem('theme')) localStorage.setItem('theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         this.themeButton = document.createElement('img');
         this.themeButton.src = `icons/${localStorage.getItem('theme') === 'dark' ? 'light' : 'dark'}.svg`;
         this.themeButton.className = 'button hover';
