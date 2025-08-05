@@ -1,16 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500;600;700;900&display=swap');
 
+/* :root {
+    --background-color: #f0f0f0;
+    --color-background: #f0f0f0;
+    --color-text: #333;
+    --color-primary: #6200ea;
+    --color-secondary: #03dac6;
+    --color-accent: #ff4081;
+    --color-error: #b00020;
+    --color-warning: #ff9800;
+    --color-success: #4caf50;
+} */
+/* @media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #121212;
+        --color-background: #1e1e1e;
+        --color-text: #e0e0e0;
+        --color-primary: #bb86fc;
+        --color-secondary: #03dac6;
+        --color-accent: #ff4081;
+        --color-error: #cf6679;
+        --color-warning: #ff9800;
+        --color-success: #4caf50;
+    }
+} */
+/* @media () */
+
 body {
     font-family: 'Zen Maru Gothic', sans-serif;
     margin: 0;
     padding: 0;
     /* background-color: #f0f0f0; */
-    background-color: #eee;
-}
-
-.dark-theme {
-    background-color: #333;
-    color: #eee;
+    /* background-color: var(--background-color, #eee); */
+    background-color: light-dark(#eee, #111);
 }
 
 .button {
@@ -68,8 +90,9 @@ body {
     flex-direction: column;
     /* position: relative; */
     /* background-color: bisque; */
-    background-color: #ddd;
+    /* background-color: var(--color-background, #f0f0f0); */
     /* background-color: white; */
+    background-color: light-dark(#fff, #222);
     overflow: hidden;
     /* height: 2em; */
     padding: 0.2em;
@@ -82,6 +105,8 @@ body {
     line-height: 1.5em;
     /* height: 10em; */
     /* background-color: yellow; */
+    /* background-color: var(--color-background, #f0f0f0); */
+    background-color: light-dark(#eee, #333);
     overflow: hidden;
     outline: none;
 }
@@ -100,6 +125,7 @@ body {
     overflow: hidden;
     /* text-overflow: ellipsis; */
     white-space: nowrap;
+    background-color: light-dark(#ddd, #444);
 }
 .note-children {
     display: flex;
@@ -119,5 +145,7 @@ body {
     height: 20em;
     width: 20em;
     padding: 1em;
-    background-color: white;
+    /* background-color: white; */
+    /* background-color: var(--color-background, #f0f0f0); */
+    background-color: light-dark(#eee, #222);
 }

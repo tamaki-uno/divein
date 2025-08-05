@@ -42,8 +42,6 @@ class Note {
         return this.initContainer();
     }
     async getNote() {
-        // const existingNoteData = await getNote(this.uuid);
-        // const existingNoteData = await db.getByKey('notes', this.uuid);
         const existingNoteData = await db.getByKey('notes', this.uuid);
         console.log('Existing note data:', existingNoteData);
         if (existingNoteData) {
@@ -120,17 +118,21 @@ class Note {
         this.contentSpan = document.createElement('span');
         this.contentSpan.className = 'note-content-span radius hover';
         this.contentSpan.setAttribute('contenteditable', 'true');
-        // this.contentSpan.addEventListener('change', () => {
+        this.contentSpan.addEventListener('focus', () => {
+            console.log('Content span focused:', this.uuid);
+            this.contentSpan.innerHTML = this.contentSpan.textContent; // Preserve formatting
+        });
+        this.contentSpan.addEventListener('input', () => {
+            const searchResult = db.search('notes', this.contentSpan.textContent.trim());
+            if (searchResult.length > 0) {
+                new
+            console.log('Content changed:', searchResult);
         this.contentSpan.addEventListener('blur', () => {
-            // console.log('Content changed:', this.contentSpan.textContent);
-            // this.content = this.contentSpan.textContent.trim();
             if (this.contentSpan.textContent.trim() === this.content) return;
             this.content = this.contentSpan.textContent.trim();
             console.log('Content updated:', this.content);
             this.renderContent();
             this.save();
-                // .then(() => console.log('Content saved:', this.content))
-                // .catch(error => console.error('Error saving content:', error));
         });
         this.contentSpan.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
@@ -190,13 +192,23 @@ class Note {
         this.renderChildren();
         return this.childrenDiv;
     }
-    renderChildren() {
+    async renderChildren() {
         this.childrenDiv.innerHTML = '';
-        this.children.forEach(async childUuid => {
+        for (const childUuid of this.children) {
             const childNote = new Note(childUuid, this.fontSize * 0.8);
             this.childrenDiv.appendChild(await childNote.init());
-        });
+        }
         this.childrenDiv.appendChild(this.initAddChildIcon());
+        // await Promise.all(this.children.map(async (childUuid) => {
+        //     const childNote = new Note(childUuid, this.fontSize * 0.8);
+        //     const childElement = await childNote.init();
+        //     this.childrenDiv.appendChild(childElement);
+        // })).then(() => {
+        //     this.childrenDiv.appendChild(this.initAddChildIcon());
+        //     console.log('Children rendered:', this.children);
+        // }).catch(error => {
+        //     console.error('Error rendering children:', error);
+        // });
     }
     initAddChildIcon() {
         this.addChildIcon = document.createElement('img');
@@ -213,6 +225,34 @@ class Note {
         this.save()
             .then(() => console.log('Child note added:', childUuid))
             .catch(error => console.error('Error adding child note:', error));
+    }
+}
+
+class Suggestion {
+    constructor(note) {
+        console.log('Creating suggestion for note:', note);
+        this.note = note;
+    }
+    update(content) {
+        console.log('Updating suggestion with content:', content);
+        this.content = content;
+        this.result = db.search('notes', content.trim());
+        this.renderSuggestion();
+    }
+    renderSuggestion() {
+        this.div = document.createElement('div');
+        this.div.className = 'suggestion';
+        for (const note of this.result) {
+            const noteDiv = document.createElement('div');
+            noteDiv.className = 'suggestion-note';
+            noteDiv.textContent = note.content;
+            noteDiv.addEventListener('click', () => {
+                console.log('Suggestion clicked:', note.uuid);
+                this.note.uuid = note.uuid;
+                this.note.renderContent();
+            });
+            this.div.appendChild(noteDiv);
+        }
     }
 }
 
