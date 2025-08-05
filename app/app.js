@@ -23,7 +23,7 @@ function initEventListeners(isSettings) {
     addEventListener('popstate', route);
     addEventListener('DOMContentLoaded', route);
     const settings = new Settings(isSettings);
-    if (isSettings) settings.toggle();
+    // if (isSettings) settings.toggle();
     document.getElementById('settings').addEventListener('click', () => settings.toggle());
     document.getElementById('sync').addEventListener('click', syncWithApis);
     document.getElementById('download').addEventListener('click', download);
@@ -43,9 +43,9 @@ class Note {
     }
     async getNote() {
         const existingNoteData = await db.getByKey('notes', this.uuid);
-        console.log('Existing note data:', existingNoteData);
+        // console.log('Existing note data:', existingNoteData);
         if (existingNoteData) {
-            console.log('NoteData found in database:', existingNoteData);
+            // console.log('NoteData found in database:', existingNoteData);
             this.content = existingNoteData.content;
             this.children = existingNoteData.children;
             this.createdAt = existingNoteData.createdAt;
@@ -61,7 +61,7 @@ class Note {
             };
             // await setNote(noteData);
             await db.add('notes', noteData);
-            console.log('New note created and saved:', noteData);
+            // console.log('New note created and saved:', noteData);
             return;
         }
     }
@@ -209,7 +209,7 @@ class Note {
             const childNote = new Note(childUuid, this.fontSize * 0.8);
             this.childrenDiv.appendChild(await childNote.init());
         }
-        this.childrenDiv.appendChild(this.initAddChildIcon());
+        // this.childrenDiv.appendChild(this.initAddChildIcon());
         // await Promise.all(this.children.map(async (childUuid) => {
         //     const childNote = new Note(childUuid, this.fontSize * 0.8);
         //     const childElement = await childNote.init();
@@ -444,10 +444,15 @@ class Settings {
         this.div.style.display = 'none';
         this.div.id = 'settingsDiv';
         const title = document.createElement('h2');
-        title.textContent = 'Urls';
+        title.textContent = 'Settings';
         this.div.appendChild(title);
         this.div.appendChild(this.initCloseButton());
+        const urlsTitle = document.createElement('h3');
+        urlsTitle.textContent = 'API URLs';
+        this.div.appendChild(urlsTitle);
         this.div.appendChild(this.initUrlList());
+        this.div.appendChild(document.createElement('h3')).textContent = 'Theme';
+        this.div.appendChild(this.initThemeButton());
         return this.div;
     }
     initCloseButton() {
@@ -458,22 +463,26 @@ class Settings {
         this.closeButton.addEventListener('click', this.toggle.bind(this));
         return this.closeButton;
     }
-    initThemButton() {
-        if (localStorage.getItem('darkTheme')) localStorage.setItem('darkTheme', matchMedia('(prefers-color-scheme: dark)').matches);
+    initThemeButton() {
+        if (localStorage.getItem('theme')) localStorage.setItem('theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         this.themeButton = document.createElement('img');
+        this.themeButton.src = `icons/${localStorage.getItem('theme') === 'dark' ? 'light' : 'dark'}.svg`;
         this.themeButton.className = 'button hover';
+        this.themeButton.style.fontSize = '30px';
         this.themeButton.addEventListener('click', this.toggleTheme.bind(this));
         return this.themeButton;
     }
     toggleTheme() {
-        localStorage.setItem('darkTheme', !localStorage.getItem('darkTheme'));
-        this.themeButton.src = `icons/${localStorage.getItem('darkTheme') ? 'dark' : 'light'}.svg`;
-        document.getElementById()
+        this.themeButton.src = `icons/${localStorage.getItem('theme')}.svg`;
+        localStorage.setItem('theme', localStorage.getItem('theme') === 'dark' ? 'light' : 'dark');
+        console.log(`Theme changed to: ${localStorage.getItem('theme')}`);
+        // document.classList.toggle('dark-theme', localStorage.getItem('theme') === 'dark');
+        document.documentElement.classList.toggle('dark-theme', localStorage.getItem('theme') === 'dark');
     }
     initUrlList() {
         this.urlList = document.createElement('div');
         this.urlList.className = 'api-url-list';
-        this.apiUrls = getApiUrls();
+        this.apiUrls = JSON.parse(localStorage.getItem('apiUrls')) || [];
         this.apiUrls.forEach(url => {
             this.urlList.appendChild(this.initUrl(url));
         });
@@ -483,7 +492,7 @@ class Settings {
     initUrl(url) {
         const urlDiv = document.createElement('div');
         urlDiv.className = 'api-url';
-        urlDiv.textContent = url;
+        urlDiv.appendChild(document.createElement('span')).textContent = url;
         const removeButton = document.createElement('img');
         removeButton.src = 'icons/cancel.svg';
         removeButton.className = 'button hover';
@@ -634,6 +643,9 @@ const objectStores = {
         ]
     }
 };
+
+const defaultApiUrl = 'https://api.example.com';
+
 // const db = new IDB(objectStores);
 // db.init(objectStores)
 //     // .then(() => console.log('Database initialized'))
@@ -644,9 +656,76 @@ const objectStores = {
 //     .catch(error => console.error('Error initializing database:', error));
 // addEventListener('DOMContentLoaded', route);
 const db = new IDB();
+// localStorage.setItem('apiUrls', JSON.stringify(defaultApiUrls));
+addApiUrl(defaultApiUrl);
 db.init(objectStores)
     .then(() => {
         console.log('Database initialized');
         route();
     })
     .catch(error => console.error('Error initializing database:', error));
+
+addEventListener('error', (event) => {
+    console.error('Error event:', event);
+    setTimeout(() => location.reload(), 1000);
+});
+
+addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled rejection:', event.reason);
+    setTimeout(() => location.reload(), 1000);
+});
+
+// Global error handling
+window.addEventListener('error', (event) => {
+    console.error('Global error caught:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error
+    });
+    
+    // Prevent infinite reload loops
+    const lastReload = localStorage.getItem('lastErrorReload');
+    const now = Date.now();
+    if (!lastReload || now - parseInt(lastReload) > 5000) {
+        localStorage.setItem('lastErrorReload', now.toString());
+        setTimeout(() => location.reload(), 2000);
+    }
+});
+
+// IndexedDB specific error handling
+const originalConsoleError = console.error;
+console.error = function(...args) {
+    originalConsoleError.apply(console, args);
+    
+    // Check for database-related errors
+    if (args.some(arg => 
+        typeof arg === 'string' && 
+        (arg.includes('database') || arg.includes('IndexedDB') || arg.includes('IDB'))
+    )) {
+        console.warn('Database error detected, attempting recovery...');
+        // Clear potentially corrupted database
+        if ('indexedDB' in window) {
+            indexedDB.deleteDatabase('divein');
+            setTimeout(() => location.reload(), 1000);
+        }
+    }
+};
+
+// Wrap async functions with error handling
+const originalRoute = route;
+window.route = async function() {
+    try {
+        await originalRoute();
+    } catch (error) {
+        console.error('Route error:', error);
+        document.getElementById('loading').innerHTML = `
+            <div style="color: red; text-align: center;">
+                <h3>Error loading application</h3>
+                <p>${error.message}</p>
+                <button onclick="location.reload()">Reload</button>
+            </div>
+        `;
+    }
+};

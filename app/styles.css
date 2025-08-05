@@ -124,6 +124,7 @@ body {
     flex-grow: 1;
     overflow: hidden;
     /* text-overflow: ellipsis; */
+    padding: 0.2em;
     white-space: nowrap;
     background-color: light-dark(#ddd, #444);
 }
@@ -142,7 +143,7 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1000;
-    height: 20em;
+    /* height: 20em; */
     width: 20em;
     padding: 1em;
     /* background-color: white; */
