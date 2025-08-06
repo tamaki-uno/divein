@@ -17,7 +17,7 @@
 
 ## How to use it?
 
-Access the [DIVEIN](https://tamaki-uno.github.io/divein/) to use this. \
+Access the [DIVEIN](https://tamaki-uno.github.io/divein/app/) to use this. \
 Click on a line to start diving in to it.
 
 ### Controls
