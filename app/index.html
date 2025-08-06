@@ -1,0 +1,69 @@
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DIVEIN</title>
+    <!-- <link rel="stylesheet" href="style.css"> -->
+
+    <!-- <script>setTimeout(() => location.reload(), 1000 * 10);</script> -->
+    <!-- <link rel="stylesheet" id="theme" href="./themes/light.css"> -->
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <img
+      src="./icons/loading.svg"
+      alt="Loading..."
+      id="loading"
+      class="icon"
+      onclick="location.reload()"
+      style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100px;
+        height: 100px;
+        z-index: 1000;
+      "
+    />
+    <main></main>
+    <span class="control button hover-shadow" style="top: 1em">
+      <img src="./icons/home.svg" alt="Home" id="home" class="icon" />
+    </span>
+    <span class="control button hover-shadow" style="top: 3em">
+      <img
+        src="./icons/setting.svg"
+        alt="Settings"
+        id="settings"
+        class="icon"
+      />
+    </span>
+    <span class="control button hover-shadow" style="top: 5em">
+      <img src="./icons/sync.svg" alt="Sync" id="sync" class="icon" />
+    </span>
+    <span class="control button hover-shadow" style="top: 7em">
+      <img
+        src="./icons/download.svg"
+        alt="Download"
+        id="download"
+        class="icon"
+      />
+    </span>
+    <span class="control button hover-shadow" style="top: 9em">
+      <img src="./icons/upload.svg" alt="Upload" id="upload" class="icon" />
+    </span>
+    <!-- for debugging purposes -->
+    <span
+      class="control button hover"
+      style="top: 11em"
+      onclick="location.reload()"
+    >
+      <img src="./icons/reload.svg" alt="reload" id="reload" class="icon" />
+    </span>
+    <!-- <script type="module" src="script.js"></script> -->
+    <!-- <script src="script.js"></script> -->
+    <script src="app.js"></script>
+  </body>
+</html>

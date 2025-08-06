@@ -1,0 +1,21 @@
+{
+  "name": "DIVEIN",
+  "short_name": "DIVEIN",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0078d4",
+  "description": "Toggle-Based Note-Taking App. Write intuitively and stay focused.",
+  "icons": [
+    {
+      "src": "icons/open.svg",
+      "sizes": "48x48",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icons/closed.svg",
+      "sizes": "48x48",
+      "type": "image/svg+xml"
+    }
+  ]
+}
