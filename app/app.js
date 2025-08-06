@@ -19,75 +19,88 @@ class Note {
         return this.initContainer();
     }
     async get() {
-        const defaultNoteData = {
-            uuid: this.uuid,
-            content: this.parentNote ? '' : 'HOME',
-            children: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        return await db.getByKey('notes', this.uuid) || defaultNoteData;
+        return await db.getByKey('notes', this.uuid) || this.createNoteData();
     }
     async save() {
-        const noteData = {
+        if (await this.hasChanged()) await db.put('notes', this.createNoteData());
+    }
+    createNoteData() {
+        return {
             uuid: this.uuid,
-            content: this.content,
-            children: this.children.map(child => child.uuid),
-            createdAt: this.createdAt,
+            content: this.content || (this.parentNote ? '' : 'HOME'),
+            children: this.children ? this.children.map(child => child.uuid) : [],
+            createdAt: this.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
+    }
+    async hasChanged() {
         const existingNote = await db.getByKey('notes', this.uuid);
-        const changed = !existingNote || existingNote.content !== noteData.content || existingNote.children !== noteData.children;
-        if (changed) {
-            await db.put('notes', noteData);
-            console.log('Note saved:', noteData);
-        }
+        const noteData = this.createNoteData();
+        const isNewNote = !existingNote;
+        if (isNewNote) return true;
+        const isContentChanged = existingNote.content !== noteData.content;
+        const isChildrenChanged = existingNote.children !== noteData.children;
+        return isContentChanged || isChildrenChanged;
     }
     initContainer() {
-        this.container = document.createElement('div');
-        this.container.id = this.uuid;
-        this.container.className = 'radius flex-column' + (this.isExpanded ? ' expanded' : '');
-        this.container.style.fontSize = `${this.fontSize}px`;
-        this.container.style.overflow = 'hidden';
-        this.container.style.position = 'relative';
-        this.container.style.backgroundColor = 'var(--sub-background)';
-        this.container.style.padding = '0.2em';
-        this.container.style.margin = '0.2em';
-        this.container.style.height = this.isExpanded ? 'auto' : 'fit-content';
-        this.container.addEventListener('dblclick', (event) => {
-            console.log('Note double-clicked:', this.uuid);
-            event.preventDefault();
-            event.stopPropagation();
-            location.search = `?uuid=${this.uuid}`;
-            route();
-        });
+        this.container = this.createContainerElement();
         this.container.appendChild(this.initContent());
         this.container.appendChild(this.initChildren());
         return this.container;
     }
+    createContainerElement() {
+        const container = document.createElement('div');
+        container.id = this.uuid;
+        container.className = 'radius flex-column' + (this.isExpanded ? ' expanded' : '');
+        container.style.fontSize = `${this.fontSize}px`;
+        container.style.overflow = 'hidden';
+        container.style.position = 'relative';
+        container.style.backgroundColor = 'var(--sub-background)';
+        container.style.padding = '0.2em';
+        container.style.margin = '0.2em';
+        container.style.height = this.isExpanded ? 'auto' : 'fit-content';
+        container.addEventListener('dblclick', this.handleDoubleClick.bind(this));
+        return container;
+    }
+    handleDoubleClick(event) {
+        console.log('Note double-clicked:', this.uuid);
+        event.preventDefault();
+        event.stopPropagation();
+        location.search = `?uuid=${this.uuid}`;
+        route();
+    }
     initContent() {
-        this.contentDiv = document.createElement('div');
-        this.contentDiv.className = 'radius flex-row';
-        this.contentDiv.style.position = 'relative';
-        this.contentDiv.style.padding = '0.2em';
-        this.contentDiv.style.backgroundColor = 'var(--main-background)';
+        this.contentDiv = this.createContentDiv();
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(this.initContentSpan());
         this.menu = new Menu(this);
         this.contentDiv.appendChild(this.menu.init());
-        this.contentDiv.addEventListener('contextmenu', (event) => {
-            event.preventDefault();
-            console.log('Context menu opened for note:', this.uuid);
-            this.menu.style.display = 'block';
-        });
+        this.contentDiv.addEventListener('contextmenu', this.handleContextMenu.bind(this));
         return this.contentDiv;
     }
+    createContentDiv() {
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'radius flex-row';
+        contentDiv.style.position = 'relative';
+        contentDiv.style.padding = '0.2em';
+        contentDiv.style.backgroundColor = 'var(--main-background)';
+        return contentDiv;
+    }
+    handleContextMenu(event) {
+        event.preventDefault();
+        console.log('Context menu opened for note:', this.uuid);
+        this.menu.style.display = 'block';
+    }
     initToggleIcon() {
-        this.toggleIcon = document.createElement('img');
-        this.toggleIcon.src = 'icons/toggle.svg';
-        this.toggleIcon.className = 'note-toggle-icon icon button hover';
+        this.toggleIcon = this.createToggleIcon();
         this.toggleIcon.addEventListener('click', () => this.toggle());
         return this.toggleIcon;
+    }
+    createToggleIcon() {
+        const toggleIcon = document.createElement('img');
+        toggleIcon.src = 'icons/toggle.svg';
+        toggleIcon.className = 'note-toggle-icon icon button hover';
+        return toggleIcon;
     }
     toggle() {
         console.log(`Toggling note expansion to ${!this.isExpanded} for UUID: ${this.uuid}`);
@@ -101,72 +114,78 @@ class Note {
         this.contentSpan.setAttribute('contenteditable', 'true');
         this.suggestion = new Suggestion(this);
         this.contentSpan.appendChild(this.suggestion.div);
-        this.contentSpan.addEventListener('focus', () => {
-            // console.log('Content span focused:', this.uuid);
-            this.contentSpan.innerHTML = this.contentSpan.textContent; // Preserve formatting
-        });
-        this.contentSpan.addEventListener('input', () => {
-            this.suggestion.update(this.contentSpan.textContent);
-            this.content = this.contentSpan.textContent.trim();
-            this.save();
-        });
-        // this.contentSpan.addEventListener('blur', () => {
-        //     if (this.contentSpan.textContent.trim() === this.content) return;
-        //     this.content = this.contentSpan.textContent.trim();
-        //     console.log('Content updated:', this.content);
-        //     this.renderContent();
-        //     this.save();
-        // });
-        this.contentSpan.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                this.contentSpan.blur();
-                this.save();
-                if (event.shiftKey) {
-                    console.log('Shift + Enter pressed');
-                } else {
-                    console.log('Enter pressed without Shift');
-                    const newNoteUuid = crypto.randomUUID();
-                    this.parentNote ? this.parentNote.addChild(newNoteUuid, this.uuid) : this.addChild(newNoteUuid);
-                }
-            } else if (event.key === 'Tab') {
-                event.preventDefault();
-                this.save();
-                if (event.shiftKey) {
-                    console.log('Shift + Tab pressed');
-                } else {
-                    console.log('Tab pressed without Shift');
-                    if (this.parentNote) {
-                        const index = this.parentNote.children.indexOf(this);
-                        this.moveTo(this.parentNote.children[index - 1].uuid);
-                    }
-                }
-            }
-        });
+        this.addContentSpanEventListeners();
         this.renderContent();
         return this.contentSpan;
     }
+    addContentSpanEventListeners() {
+        this.contentSpan.addEventListener('focus', () => this.contentSpan.innerHTML = this.contentSpan.textContent);
+        this.contentSpan.addEventListener('input', this.handleInput.bind(this));
+        this.contentSpan.addEventListener('keydown', this.handleKeyDown.bind(this));
+    }
+    handleInput() {
+        this.suggestion.update(this.contentSpan.textContent);
+        this.content = this.contentSpan.textContent.trim();
+        this.save();
+    }
+    handleKeyDown(event) {
+        if (event.key === 'Enter') {
+            this.handleEnterKey(event);
+        } else if (event.key === 'Tab') {
+            this.handleTabKey(event);
+        } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            this.handleArrowKey(event);
+        }
+    }
+    handleEnterKey(event) {
+        event.preventDefault();
+        this.contentSpan.blur();
+        this.save();
+        if (event.shiftKey) {
+            console.log('Shift + Enter pressed');
+        } else {
+            console.log('Enter pressed without Shift');
+            const newNoteUuid = crypto.randomUUID();
+            this.parentNote ? this.parentNote.addChild(newNoteUuid, this.uuid) : this.addChild(newNoteUuid);
+        }
+    }
+    handleTabKey(event) {
+        event.preventDefault();
+        this.save();
+        if (event.shiftKey) {
+            console.log('Shift + Tab pressed');
+        } else {
+            console.log('Tab pressed without Shift');
+            if (this.parentNote) {
+                const index = this.parentNote.children.indexOf(this);
+                this.moveTo(this.parentNote.children[index - 1].uuid);
+            }
+        }
+    }
+    handleArrowKey(event) {
+        event.preventDefault();
+        console.log(`Arrow key pressed: ${event.key}`);
+        this.save();
+        if (!this.parentNote) return;
+        const index = this.parentNote.children.indexOf(this);
+        let nextIndex = index;
+        if (event.key === 'ArrowUp' && index > 0) nextIndex--;
+        if (event.key === 'ArrowDown' && index < this.parentNote.children.length - 1) nextIndex++;
+        this.contentSpan.blur();
+        this.parentNote.children[nextIndex].contentSpan.focus();
+    }
     renderContent() {
+        this.contentSpan.innerHTML = '';
         if (this.content.startsWith('http://') || this.content.startsWith('https://')) {
             const link = document.createElement('a');
             link.href = this.content;
             link.textContent = this.content;
             link.target = '_blank';
-            this.contentSpan.innerHTML = '';
             this.contentSpan.appendChild(link);
-        } else if (this.content.startsWith('\\') || this.content.startsWith('>')) {
-            this.contentSpan.innerHTML = '';
-            this.contentSpan.appendChild(document.createTextNode(this.content));
-        } else if (this.content.startsWith('![')) {
-            const img = document.createElement('img');
-            img.src = this.content.slice(2, -1);
-            img.alt = this.content.slice(2, -1);
-            img.className = 'note-image';
-            this.contentSpan.innerHTML = '';
-            this.contentSpan.appendChild(img);
+        } else if (false) {
+            console.log('how did you get here?');
         } else {
-            this.contentSpan.innerHTML = '';
-            this.contentSpan.appendChild(document.createTextNode(this.content));
+            this.contentSpan.textContent = this.content;
         }
     }
     getRelativeSet(n=1, noteSet = new Set()) {
@@ -196,7 +215,6 @@ class Note {
         // });
         this.parentNote.children = this.parentNote.children.filter((child, index, siblings) => {
             if (child.uuid === this.uuid) {
-                console.log(`Removing note ${this.uuid} from its parent ${this.parentNote.uuid}`);
                 child.container.remove();
                 return false;
             } else if (siblings[index] && siblings[index].uuid === newParentUuid) {
@@ -223,17 +241,6 @@ class Note {
         this.childrenDiv.insertBefore(await childNote.init(), this.childrenDiv.children[index] || null);
         this.save();
         childNote.contentSpan.focus();
-
-    }
-    deleteChild(childUuid) {
-        this.children = this.children.filter(child => {
-            if (child.uuid === childUuid) {
-                console.log(`Deleting child note with UUID: ${childUuid}`);
-                child.container.remove();
-                return false;
-            }
-            return true;
-        });
     }
 }
 
@@ -300,7 +307,7 @@ class Suggestion {
         this.renderSuggestion();
     }
     async update(content) {
-        console.log('Updating suggestion with content:', content);
+        // console.log('Updating suggestion with content:', content);
         this.result = await db.search('notes', content.trim());
         this.renderSuggestion();
     }
@@ -702,7 +709,6 @@ async function init() {
         initDB(),
     ]);
     await route();
-    console.log('Routing completed successfully.');
 }
 const dbSchemas = {
     notes: {
@@ -739,15 +745,10 @@ const defaultApiUrls = [
     }
 ];
 async function initDB() {
-    console.log('Initializing database...');
     await db.init(dbSchemas);
-    console.log('Database initialized successfully.');
     await Promise.all(defaultApiUrls.map(async apiUrl => {
         const existingUrl = await db.getByKey('apiUrls', apiUrl.url);
-        if (!existingUrl) {
-            await db.add('apiUrls', apiUrl);
-            console.log(`Default API URL added: ${apiUrl.url}`);
-        }
+        if (!existingUrl) await db.add('apiUrls', apiUrl);
         return;
     }));
 }
@@ -769,7 +770,6 @@ async function route() {
     document.getElementById('loading').style.display = 'none';
     return;
 }
-
 function initEventListeners(isSettings) {
     console.log('Initializing event listeners... (isSettings:', isSettings, ')');
     addEventListener('hashchange', route);
