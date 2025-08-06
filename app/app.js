@@ -54,39 +54,40 @@ class Note {
         this.childNotes = [];
     }
     async init() {
-        await this.get();
+        const noteData = await this.get();
+        this.content = noteData.content;
+        this.children = noteData.children.map(childUuid => new Note(childUuid, this, this.fontSize * 0.8, false));
+        this.createdAt = noteData.createdAt;
+        this.updatedAt = noteData.updatedAt;
+        this.save();
+        // await this.get();
         return this.initContainer();
     }
     async get() {
-        const existingNoteData = await db.getByKey('notes', this.uuid);
-        if (existingNoteData) {
-            this.content = existingNoteData.content;
-            this.children = existingNoteData.children;
-            this.createdAt = existingNoteData.createdAt;
-            this.updatedAt = existingNoteData.updatedAt;
-            return;
-        } else {
-            const noteData = {
-                uuid: this.uuid,
-                content: this.content = this.parentNote ? '' : 'HOME',
-                children: this.children = [],
-                createdAt: this.createdAt = new Date().toISOString(),
-                updatedAt: this.updatedAt = new Date().toISOString()
-            };
-            await db.add('notes', noteData);
-            return;
-        }
+        const defaultNoteData = {
+            uuid: this.uuid,
+            content: this.parentNote ? '' : 'HOME',
+            children: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        return await db.getByKey('notes', this.uuid) || defaultNoteData;
+        // const noteData = await db.getByKey('notes', this.uuid) || defaultNoteData;
+        // this.content = noteData.content;
+        // this.children = noteData.children.map(childUuid => new Note(childUuid, this, this.fontSize * 0.8, false));
+        // this.createdAt = noteData.createdAt;
+        // this.updatedAt = noteData.updatedAt;
+        // this.save();
     }
     async save() {
         this.updatedAt = new Date().toISOString();
         const noteData = {
             uuid: this.uuid,
             content: this.content,
-            children: this.children,
+            children: this.children.map(child => child.uuid),
             createdAt: this.createdAt,
             updatedAt: this.updatedAt
         };
-        // await setNote(noteData);
         await db.put('notes', noteData);
         console.log('Note saved:', noteData);
     }
@@ -149,7 +150,7 @@ class Note {
         this.suggestion = new Suggestion(this);
         this.contentSpan.appendChild(this.suggestion.div);
         this.contentSpan.addEventListener('focus', () => {
-            console.log('Content span focused:', this.uuid);
+            // console.log('Content span focused:', this.uuid);
             this.contentSpan.innerHTML = this.contentSpan.textContent; // Preserve formatting
         });
         this.contentSpan.addEventListener('input', () => {
@@ -166,21 +167,25 @@ class Note {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 this.contentSpan.blur();
-                console.log('Enter pressed');
                 if (event.shiftKey) {
                     console.log('Shift + Enter pressed');
                 } else {
                     console.log('Enter pressed without Shift');
-                    this.parentNote ? this.parentNote.addChild() : this.addChild();
+                    const newNoteUuid = crypto.randomUUID();
+                    this.parentNote ? this.parentNote.addChild(newNoteUuid, this.uuid) : this.addChild(newNoteUuid);
                 }
             } else if (event.key === 'Tab') {
                 event.preventDefault();
-                console.log('Tab pressed');
                 if (event.shiftKey) {
                     console.log('Shift + Tab pressed');
                 } else {
                     console.log('Tab pressed without Shift');
-                    if (this.parentNote) this.parentNote.moveGrandChild(this.uuid);
+                    // if (this.parentNote) this.parentNote.moveGrandChild(this.uuid);
+                    // if (this.parentNote) this.moveTo(this.parentNote.uuid, this.parentNote.children.indexOf(this) - 1);
+                    if (this.parentNote) {
+                        const index = this.parentNote.children.indexOf(this);
+                        this.moveTo(this.parentNote.children[index - 1]);
+                    }
                 }
             }
         });
@@ -210,39 +215,82 @@ class Note {
             this.contentSpan.appendChild(document.createTextNode(this.content));
         }
     }
+    getRelativeSet(n=1, noteSet = new Set()) {
+        // n --;
+        noteSet.add(this);
+        if (this.parentNote) {
+            noteSet.add(this.parentNote);
+            this.parentNote.children.forEach(child => noteSet.add(child));
+        }
+        this.children.forEach(child => noteSet.add(child));
+        // if (n > 0) {
+        //     noteSet.forEach(note => {
+        //         const relativeSet = note.getRelativeSet(n, noteSet);
+        //         relativeSet.forEach(relativeNote => noteSet.add(relativeNote));
+        //     });
+        // }
+        return noteSet;
+    }
+    moveTo(newParentUuid, index = 0) {
+        console.log(`Moving note ${this.uuid} from ${this.parentNote ? this.parentNote.uuid : 'root'} to ${newParentUuid}`);
+        if (!this.parentNote) return console.warn('Cannot move root note');
+        // this.parentNote = this.parentNote ? this.parentNote.moveChild(this.uuid, newParentUuid, index) : null;\
+        // if (this.parentNote) {
+        //     this.parentNote.deleteChild(this.uuid);
+        // }
+        // const noteSet = this.getRelativeSet();
+        // this.parentNote = noteSet.find(note => note.uuid === newParentUuid);
+        const noteArray = Array.from(this.getRelativeSet());
+        this.parentNote = noteArray.find(note => note.uuid === newParentUuid);
+        // const siblingUuid = this.parentNote.children[index] ? this.parentNote.children[index].uuid : null;
+        const elderSibling = this.parentNote.children.find((child, index, siblings) => {
+            return siblings(index + 1) === this.uuid;
+        });
+        this.parentNote.deleteChild(this.uuid);
+        this.parentNote.addChild(this.uuid, elderSibling);
+    }
     initChildren() {
         this.childrenDiv = document.createElement('div');
         this.childrenDiv.className = 'note-children';
-        this.childNotes = [];
-        this.children.forEach(childUuid => {
-            this.addChild(childUuid);
-        });
+        this.children.forEach(async (childNote) => this.childrenDiv.appendChild(await childNote.init()));
         return this.childrenDiv;
     }
-    async addChild(childUuid) {
+    async addChild(childUuid, siblingUuid) {
         console.log(`Adding child note to ${this.uuid}`);
-        const uuid = childUuid || crypto.randomUUID();
-        if (! this.children.includes(uuid)) {
-            this.children.push(uuid);
-            this.save();
-        } 
+        const uuid = childUuid;
+        const index = siblingUuid ? this.children.findIndex(child => child.uuid === siblingUuid) + 1 : 0;
         const childNote = new Note(uuid, this, this.fontSize * 0.8, false);
-        this.childNotes.push(childNote);
-        const childNoteDiv = await childNote.init();
-        this.childrenDiv.appendChild(childNoteDiv);
-        childNote.contentSpan.focus();
-    }
-    moveGrandChild(childUuid) {
-        console.log(`Moving grandchild note with UUID: ${childUuid} to parent note: ${this.uuid}`);
-        const targetIndex = this.children.indexOf(childUuid);
-        if (targetIndex === -1 || targetIndex === 0) return console.warn('Child note not found or is the first child.');
-        this.children.splice(targetIndex, 1);
+        this.children.splice(index, 0, childNote);
+        this.childrenDiv.insertBefore(await childNote.init(), this.childrenDiv.children[index] || null);
         this.save();
-        this.childNotes = this.childNotes.flatMap(note => 
-            note.uuid === childUuid ? [] : [note]
-        );
-        return this.childNotes.find(note => note.uuid === this.children[targetIndex - 1]).addChild(childUuid);
+        childNote.contentSpan.focus();
+
     }
+    deleteChild(childUuid) {
+        this.children = this.children.filter(child => {
+            if (child.uuid === childUuid) {
+                console.log(`Deleting child note with UUID: ${childUuid}`);
+                child.container.remove();
+                return false;
+            }
+            return true;
+        });
+    }
+    // moveChild(childUuid, newParentUuid, index) {
+    //     console.log(`Moving child note with UUID: ${childUuid} to new parent UUID: ${newParentUuid} at index: ${index}`);
+
+    // }
+    // moveGrandChild(childUuid) {
+    //     console.log(`Moving grandchild note with UUID: ${childUuid} to parent note: ${this.uuid}`);
+    //     const targetIndex = this.children.indexOf(childUuid);
+    //     if (targetIndex === -1 || targetIndex === 0) return console.warn('Child note not found or is the first child.');
+    //     this.children.splice(targetIndex, 1);
+    //     this.save();
+    //     this.childNotes = this.childNotes.flatMap(note => 
+    //         note.uuid === childUuid ? [] : [note]
+    //     );
+    //     return this.childNotes.find(note => note.uuid === this.children[targetIndex - 1]).addChild(childUuid);
+    // }
 }
 
 class Menu {
@@ -792,8 +840,8 @@ db.init(objectStores)
 
 
 addEventListener('error', (event) => {
-    console.error('Error event:', event);
-    // setTimeout(() => location.reload(), 10000);
+    // console.error('Error event:', event);
+    setTimeout(() => location.reload(), 30000);
 });
 
 // addEventListener('unhandledrejection', (event) => {
