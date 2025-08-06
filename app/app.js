@@ -1,71 +1,5 @@
 'use strict';
 
-async function init() {
-    console.log('Initializing application...');
-    await Promise.all([
-        waitForDOM(),
-        initDB()
-    ]);
-    await route();
-    console.log('Routing completed successfully.');
-}
-
-async function waitForDOM() {
-    return new Promise(resolve => {
-        addEventListener('DOMContentLoaded', () => {
-            console.log('DOM fully loaded and parsed. Starting routing...');
-            resolve();
-        });
-    });
-}
-
-async function initDB() {
-    console.log('Initializing database...');
-    await db.init(dbSchemas);
-    console.log('Database initialized successfully.');
-    await Promise.all(defaultApiUrls.map(async apiUrl => {
-        const existingUrl = await db.getByKey('apiUrls', apiUrl.url);
-        if (!existingUrl) {
-            await db.add('apiUrls', apiUrl);
-            console.log(`Default API URL added: ${apiUrl.url}`);
-        }
-    }));
-}
-
-async function route() {
-    document.documentElement.classList = localStorage.getItem('theme');
-    const url = new URL(window.location);
-    initEventListeners(url.hash === '#settings');
-    let uuid;
-    if (url.searchParams.has('uuid')) {
-        uuid = url.searchParams.get('uuid');
-    } else {
-        uuid = localStorage.getItem('homeUuid') || crypto.randomUUID();
-        if (!localStorage.getItem('homeUuid')) localStorage.setItem('homeUuid', uuid);
-        url.searchParams.set('uuid', uuid);
-        window.history.replaceState({}, '', url.toString());
-    }
-    const note = new Note(uuid, null, 30, true);
-    document.querySelector('main').appendChild(await note.init());
-    document.getElementById('loading').style.display = 'none';
-    return;
-}
-
-function initEventListeners(isSettings) {
-    console.log('Initializing event listeners... (isSettings:', isSettings, ')');
-    addEventListener('hashchange', route);
-    addEventListener('popstate', route);
-    addEventListener('DOMContentLoaded', route);
-    const settings = new Settings(isSettings);
-    // if (isSettings) settings.toggle();
-    document.getElementById('home').addEventListener('click', home);
-    document.getElementById('settings').addEventListener('click', () => settings.toggle());
-    document.getElementById('sync').addEventListener('click', syncWithApis);
-    document.getElementById('download').addEventListener('click', download);
-    document.getElementById('upload').addEventListener('click', upload);
-    return;
-}
-
 class Note {
     constructor(uuid, parentNote, fontSize = 30, isExpanded = false) {
         // console.log(`Creating note with UUID: ${uuid}, fontSize: ${fontSize}, isExpanded: ${isExpanded}`);
@@ -298,21 +232,6 @@ class Note {
             return true;
         });
     }
-    // moveChild(childUuid, newParentUuid, index) {
-    //     console.log(`Moving child note with UUID: ${childUuid} to new parent UUID: ${newParentUuid} at index: ${index}`);
-
-    // }
-    // moveGrandChild(childUuid) {
-    //     console.log(`Moving grandchild note with UUID: ${childUuid} to parent note: ${this.uuid}`);
-    //     const targetIndex = this.children.indexOf(childUuid);
-    //     if (targetIndex === -1 || targetIndex === 0) return console.warn('Child note not found or is the first child.');
-    //     this.children.splice(targetIndex, 1);
-    //     this.save();
-    //     this.childNotes = this.childNotes.flatMap(note => 
-    //         note.uuid === childUuid ? [] : [note]
-    //     );
-    //     return this.childNotes.find(note => note.uuid === this.children[targetIndex - 1]).addChild(childUuid);
-    // }
 }
 
 class Menu {
@@ -772,9 +691,16 @@ async function upload() {
     input.click();
 }
 
-
-
-// const objectStores = {
+// Main initialization function
+async function init() {
+    console.log('Initializing application...');
+    await Promise.all([
+        new Promise(resolve => addEventListener('DOMContentLoaded', resolve)),
+        initDB(),
+    ]);
+    await route();
+    console.log('Routing completed successfully.');
+}
 const dbSchemas = {
     notes: {
         options: {
@@ -797,7 +723,6 @@ const dbSchemas = {
         ]
     }
 };
-
 const defaultApiUrls = [
     {
         url: 'https://api.example.com/sync',
@@ -810,21 +735,54 @@ const defaultApiUrls = [
         addedAt: new Date().toISOString()
     }
 ];
+async function initDB() {
+    console.log('Initializing database...');
+    await db.init(dbSchemas);
+    console.log('Database initialized successfully.');
+    await Promise.all(defaultApiUrls.map(async apiUrl => {
+        const existingUrl = await db.getByKey('apiUrls', apiUrl.url);
+        if (!existingUrl) {
+            await db.add('apiUrls', apiUrl);
+            console.log(`Default API URL added: ${apiUrl.url}`);
+        }
+        return;
+    }));
+}
+async function route() {
+    document.documentElement.classList = localStorage.getItem('theme');
+    const url = new URL(window.location);
+    initEventListeners(url.hash === '#settings');
+    let uuid;
+    if (url.searchParams.has('uuid')) {
+        uuid = url.searchParams.get('uuid');
+    } else {
+        uuid = localStorage.getItem('homeUuid') || crypto.randomUUID();
+        if (!localStorage.getItem('homeUuid')) localStorage.setItem('homeUuid', uuid);
+        url.searchParams.set('uuid', uuid);
+        window.history.replaceState({}, '', url.toString());
+    }
+    const note = new Note(uuid, null, 30, true);
+    document.querySelector('main').appendChild(await note.init());
+    document.getElementById('loading').style.display = 'none';
+    return;
+}
+
+function initEventListeners(isSettings) {
+    console.log('Initializing event listeners... (isSettings:', isSettings, ')');
+    addEventListener('hashchange', route);
+    addEventListener('popstate', route);
+    addEventListener('DOMContentLoaded', route);
+    const settings = new Settings(isSettings);
+    document.getElementById('home').addEventListener('click', home);
+    document.getElementById('settings').addEventListener('click', () => settings.toggle());
+    document.getElementById('sync').addEventListener('click', syncWithApis);
+    document.getElementById('download').addEventListener('click', download);
+    document.getElementById('upload').addEventListener('click', upload);
+    return;
+}
 
 const db = new IDB('divein', 1);
 init();
-// db.init(dbSchemas)
-//     .then(async () => {
-//         await Promise.all(defaultApiUrls.map(async apiUrl => {
-//             const existingUrl = await db.getByKey('apiUrls', apiUrl.url);
-//             if (!existingUrl) {
-//                 await db.add('apiUrls', apiUrl);
-//                 console.log(`Default API URL added: ${apiUrl.url}`);
-//             }
-//         }));
-//         route();
-//     })
-//     .catch(error => console.error('Error initializing database:', error));
 
 
 
