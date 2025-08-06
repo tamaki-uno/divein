@@ -2,7 +2,7 @@
   <!-- 右向きの正三角形 -->
   <polygon
     points="20,10 20,90 89.282032302755,50"
-    stroke="#333" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"
+    stroke="#000" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"
     fill="none"
   />
 </svg>

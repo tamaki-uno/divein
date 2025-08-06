@@ -1,6 +1,7 @@
 'use strict';
 
 function route() {
+    document.documentElement.classList = localStorage.getItem('theme');
     const url = new URL(window.location);
     initEventListeners(url.hash === '#settings');
     let uuid;
@@ -109,7 +110,8 @@ class Note {
         this.contentDiv.className = 'note-content radius hover';
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(this.initContentSpan());
-        this.contentDiv.appendChild(this.initMenu());
+        this.menu = new Menu(this);
+        this.contentDiv.appendChild(this.menu.init());
         this.contentDiv.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             console.log('Context menu opened for note:', this.uuid);
@@ -120,7 +122,7 @@ class Note {
     initToggleIcon() {
         this.toggleIcon = document.createElement('img');
         this.toggleIcon.src = 'icons/toggle.svg';
-        this.toggleIcon.className = 'note-toggle-icon button hover';
+        this.toggleIcon.className = 'note-toggle-icon icon button hover';
         this.toggleIcon.addEventListener('click', () => this.toggle());
         return this.toggleIcon;
     }
@@ -196,16 +198,6 @@ class Note {
             this.contentSpan.appendChild(document.createTextNode(this.content));
         }
     }
-    initMenu() {
-        this.menu = document.createElement('div');
-        this.menu.className = 'note-menu radius hover';
-        this.menu.style.display = 'none';
-        // this.menu.appendChild(this.initDeleteButton());
-        // this.menu.appendChild(this.initEditButton());
-        // this.menu.appendChild(this.initSyncButton());
-        // this.menu.appendChild(this.initDownloadButton());
-        return this.menu;
-    }
     initChildren() {
         this.childrenDiv = document.createElement('div');
         this.childrenDiv.className = 'note-children';
@@ -230,13 +222,6 @@ class Note {
         //     console.error('Error rendering children:', error);
         // });
     }
-    initAddChildIcon() {
-        this.addChildIcon = document.createElement('img');
-        this.addChildIcon.src = 'icons/add.svg';
-        this.addChildIcon.className = 'note-add-child-icon button hover';
-        this.addChildIcon.addEventListener('click', () => this.addChild());
-        return this.addChildIcon;
-    }
     addChild() {
         console.log(`Adding child note to ${this.uuid}`);
         const childUuid = crypto.randomUUID();
@@ -248,6 +233,61 @@ class Note {
     }
 }
 
+class Menu {
+    constructor(note) {
+        this.note = note;
+    }
+    init() {
+        this.div = document.createElement('div');
+        this.div.className = 'note-menu radius hover';
+        this.div.style.display = 'none';
+        this.div.appendChild(this.initAddChildButton());
+        this.div.appendChild(this.initDeleteButton());
+        this.div.appendChild(this.initSyncButton());
+        this.div.appendChild(this.initDownloadButton());
+        return this.div;
+    }
+    initAddChildButton() {
+        this.addChildButton = document.createElement('img');
+        this.addChildButton.src = 'icons/add.svg';
+        this.addChildButton.className = 'button hover';
+        this.addChildButton.addEventListener('click', () => {
+            console.log('Add child button clicked for note:', this.note.uuid);
+            this.note.addChild();
+        });
+        return this.addChildButton;
+    }
+    initDeleteButton() {
+        this.deleteButton = document.createElement('img');
+        this.deleteButton.src = 'icons/delete.svg';
+        this.deleteButton.className = 'button hover';
+        this.deleteButton.addEventListener('click', () => {
+            console.log('Delete button clicked for note:', this.note.uuid);
+            this.note.delete();
+        });
+        return this.deleteButton;
+    }
+    initSyncButton() {
+        this.syncButton = document.createElement('img');
+        this.syncButton.src = 'icons/sync.svg';
+        this.syncButton.className = 'button hover';
+        this.syncButton.addEventListener('click', () => {
+            console.log('Sync button clicked for note:', this.note.uuid);
+            this.note.sync();
+        });
+        return this.syncButton;
+    }
+    initDownloadButton() {
+        this.downloadButton = document.createElement('img');
+        this.downloadButton.src = 'icons/download.svg';
+        this.downloadButton.className = 'button hover';
+        this.downloadButton.addEventListener('click', () => {
+            console.log('Download button clicked for note:', this.note.uuid);
+            this.note.download();
+        });
+        return this.downloadButton;
+    }
+}
 class Suggestion {
     constructor(note) {
         console.log('Creating suggestion for note:', note);
@@ -449,7 +489,7 @@ class Settings {
     }
     initDiv() {
         this.div = document.createElement('div');
-        this.div.className = 'settingsDiv radius hover';
+        this.div.className = 'settingsDiv radius hover-shadow';
         this.div.style.display = 'none';
         this.div.id = 'settingsDiv';
         const title = document.createElement('h2');
@@ -467,8 +507,11 @@ class Settings {
     initCloseButton() {
         this.closeButton = document.createElement('img');
         this.closeButton.src = 'icons/cancel.svg';
-        this.closeButton.className = 'button hover';
+        this.closeButton.className = 'icon button hover';
         this.closeButton.style.fontSize = '30px';
+        this.closeButton.style.position = 'absolute';
+        this.closeButton.style.top = '1em';
+        this.closeButton.style.right = '1em';
         this.closeButton.addEventListener('click', () => this.toggle());
         return this.closeButton;
     }
@@ -476,7 +519,7 @@ class Settings {
         if (!localStorage.getItem('theme')) localStorage.setItem('theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         this.themeButton = document.createElement('img');
         this.themeButton.src = `icons/${localStorage.getItem('theme') === 'dark' ? 'light' : 'dark'}.svg`;
-        this.themeButton.className = 'button hover';
+        this.themeButton.className = 'icon button hover';
         this.themeButton.style.fontSize = '30px';
         this.themeButton.addEventListener('click', () => this.toggleTheme());
         return this.themeButton;
@@ -485,8 +528,7 @@ class Settings {
         this.themeButton.src = `icons/${localStorage.getItem('theme')}.svg`;
         localStorage.setItem('theme', localStorage.getItem('theme') === 'dark' ? 'light' : 'dark');
         console.log(`Theme changed to: ${localStorage.getItem('theme')}`);
-        // document.classList.toggle('dark-theme', localStorage.getItem('theme') === 'dark');
-        document.documentElement.classList.toggle('dark-theme', localStorage.getItem('theme') === 'dark');
+        document.documentElement.classList = localStorage.getItem('theme');
     }
     initUrlList() {
         this.urlList = document.createElement('div');
@@ -500,11 +542,18 @@ class Settings {
     }
     initUrl(url) {
         const urlDiv = document.createElement('div');
-        urlDiv.className = 'api-url';
-        urlDiv.appendChild(document.createElement('span')).textContent = url;
+        urlDiv.className = 'api-url hover radius';
+        urlDiv.style.position = 'relative';
+        urlDiv.style.padding = '0.5em';
+        const urlSpan = document.createElement('span');
+        urlSpan.className = 'api-url-text';
+        urlSpan.textContent = url;
+        urlDiv.appendChild(urlSpan);
         const removeButton = document.createElement('img');
         removeButton.src = 'icons/cancel.svg';
-        removeButton.className = 'button hover';
+        removeButton.className = 'icon button hover';
+        removeButton.style.position = 'absolute';
+        removeButton.style.right = '0.5em';
         removeButton.addEventListener('click', () => {
             removeApiUrl(url);
             urlDiv.remove();
@@ -515,16 +564,16 @@ class Settings {
     initAddButton() {
         const addUrl = document.createElement('img');
         addUrl.src = 'icons/add.svg';
-        addUrl.className = 'button hover';
+        addUrl.className = 'icon button hover';
         addUrl.addEventListener('click', () => {
             const url = prompt('Enter API URL:');
             if (url && this.validateAndSaveUrl(url)) {
-                this.urlList.appendChild(this.initUrl(url));
+                // this.urlList.appendChild(this.initUrl(url));
+                this.urlList.insertBefore(this.initUrl(url), this.urlList.lastChild);
             }
         });
         return addUrl;
     }
-
     validateAndSaveUrl(url) {
         try {
             new URL(url);
@@ -538,7 +587,6 @@ class Settings {
             return false;
         }
     }
-
     validateAndSaveUrl(url) {
         try {
             new URL(url);
