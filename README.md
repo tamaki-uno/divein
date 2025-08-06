@@ -24,7 +24,7 @@ Click on a line to start diving in to it.
 
 * Controls can be done by **Mouse** or **Keyboard**.
 * You can use the following controls to interact with the app:
-  * **Click**, **Right Click**, or **Drag**
+  * **Click**, **Double Click**, **Right Click** or **Drag**
   * **Enter** and **Tab**
   * Other **Keyboard Shortcuts** (see below)
 
@@ -32,6 +32,7 @@ Click on a line to start diving in to it.
 
 * Click on **a toggle icon** (<img src="app/icons/toggle.svg" alt="▼" width="16" height="16">) to *toggle* the visibility of the children of the line.
 * Click on text in a line to edit it.
+* Double-click on text in a line to **Dive In** to the line.
 * Hover on **a toggle icon** or right-click on a line to show options for the line.
   * Click on **Add Child** (<img src="app/icons/add.svg" alt="Add Child" width="16" height="16">) to add a child line to the current line.
   * Click on **Add Sibling** (<img src="app/icons/add.svg" alt="Add Sibling" width="16" height="16">) to add a sibling line below the current line. (You can also use **Enter** key to do this.)
