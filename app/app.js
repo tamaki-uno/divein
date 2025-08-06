@@ -1,28 +1,50 @@
 'use strict';
 
-function route() {
+async function init() {
+    console.log('Initializing application...');
+    await Promise.all([
+        waitForDOM(),
+        initDB()
+    ]);
+    await route();
+    console.log('Routing completed successfully.');
+}
+
+async function waitForDOM() {
+    return new Promise(resolve => {
+        addEventListener('DOMContentLoaded', () => {
+            console.log('DOM fully loaded and parsed. Starting routing...');
+            resolve();
+        });
+    });
+}
+
+async function initDB() {
+    console.log('Initializing database...');
+    await db.init(dbSchemas);
+    console.log('Database initialized successfully.');
+    await Promise.all(defaultApiUrls.map(async apiUrl => {
+        const existingUrl = await db.getByKey('apiUrls', apiUrl.url);
+        if (!existingUrl) {
+            await db.add('apiUrls', apiUrl);
+            console.log(`Default API URL added: ${apiUrl.url}`);
+        }
+    }));
+}
+
+async function route() {
     document.documentElement.classList = localStorage.getItem('theme');
     const url = new URL(window.location);
     initEventListeners(url.hash === '#settings');
     let uuid;
     if (url.searchParams.has('uuid')) {
         uuid = url.searchParams.get('uuid');
-        init(uuid);
     } else {
-        if (localStorage.getItem('homeUuid')) {
-            uuid = localStorage.getItem('homeUuid');
-        } else {
-            uuid = crypto.randomUUID();
-            localStorage.setItem('homeUuid', uuid);
-        }
+        uuid = localStorage.getItem('homeUuid') || crypto.randomUUID();
+        if (!localStorage.getItem('homeUuid')) localStorage.setItem('homeUuid', uuid);
         url.searchParams.set('uuid', uuid);
         window.history.replaceState({}, '', url.toString());
-        init(uuid);
     }
-}
-
-async function init(uuid) {
-    console.log('Initializing app with UUID:', uuid);
     const note = new Note(uuid, null, 30, true);
     document.querySelector('main').appendChild(await note.init());
     document.getElementById('loading').style.display = 'none';
@@ -790,18 +812,19 @@ const defaultApiUrls = [
 ];
 
 const db = new IDB('divein', 1);
-db.init(dbSchemas)
-    .then(async () => {
-        await Promise.all(defaultApiUrls.map(async apiUrl => {
-            const existingUrl = await db.getByKey('apiUrls', apiUrl.url);
-            if (!existingUrl) {
-                await db.add('apiUrls', apiUrl);
-                console.log(`Default API URL added: ${apiUrl.url}`);
-            }
-        }));
-        route();
-    })
-    .catch(error => console.error('Error initializing database:', error));
+init();
+// db.init(dbSchemas)
+//     .then(async () => {
+//         await Promise.all(defaultApiUrls.map(async apiUrl => {
+//             const existingUrl = await db.getByKey('apiUrls', apiUrl.url);
+//             if (!existingUrl) {
+//                 await db.add('apiUrls', apiUrl);
+//                 console.log(`Default API URL added: ${apiUrl.url}`);
+//             }
+//         }));
+//         route();
+//     })
+//     .catch(error => console.error('Error initializing database:', error));
 
 
 
