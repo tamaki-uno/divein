@@ -16,7 +16,6 @@ class Note {
         this.createdAt = noteData.createdAt;
         this.updatedAt = noteData.updatedAt;
         this.save();
-        // await this.get();
         return this.initContainer();
     }
     async get() {
@@ -28,24 +27,21 @@ class Note {
             updatedAt: new Date().toISOString()
         };
         return await db.getByKey('notes', this.uuid) || defaultNoteData;
-        // const noteData = await db.getByKey('notes', this.uuid) || defaultNoteData;
-        // this.content = noteData.content;
-        // this.children = noteData.children.map(childUuid => new Note(childUuid, this, this.fontSize * 0.8, false));
-        // this.createdAt = noteData.createdAt;
-        // this.updatedAt = noteData.updatedAt;
-        // this.save();
     }
     async save() {
-        this.updatedAt = new Date().toISOString();
         const noteData = {
             uuid: this.uuid,
             content: this.content,
             children: this.children.map(child => child.uuid),
             createdAt: this.createdAt,
-            updatedAt: this.updatedAt
+            updatedAt: new Date().toISOString()
         };
-        await db.put('notes', noteData);
-        console.log('Note saved:', noteData);
+        const existingNote = await db.getByKey('notes', this.uuid);
+        const changed = !existingNote || existingNote.content !== noteData.content || existingNote.children !== noteData.children;
+        if (changed) {
+            await db.put('notes', noteData);
+            console.log('Note saved:', noteData);
+        }
     }
     initContainer() {
         this.container = document.createElement('div');
@@ -111,18 +107,21 @@ class Note {
         });
         this.contentSpan.addEventListener('input', () => {
             this.suggestion.update(this.contentSpan.textContent);
-        });
-        this.contentSpan.addEventListener('blur', () => {
-            if (this.contentSpan.textContent.trim() === this.content) return;
             this.content = this.contentSpan.textContent.trim();
-            console.log('Content updated:', this.content);
-            this.renderContent();
             this.save();
         });
+        // this.contentSpan.addEventListener('blur', () => {
+        //     if (this.contentSpan.textContent.trim() === this.content) return;
+        //     this.content = this.contentSpan.textContent.trim();
+        //     console.log('Content updated:', this.content);
+        //     this.renderContent();
+        //     this.save();
+        // });
         this.contentSpan.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 this.contentSpan.blur();
+                this.save();
                 if (event.shiftKey) {
                     console.log('Shift + Enter pressed');
                 } else {
@@ -132,15 +131,14 @@ class Note {
                 }
             } else if (event.key === 'Tab') {
                 event.preventDefault();
+                this.save();
                 if (event.shiftKey) {
                     console.log('Shift + Tab pressed');
                 } else {
                     console.log('Tab pressed without Shift');
-                    // if (this.parentNote) this.parentNote.moveGrandChild(this.uuid);
-                    // if (this.parentNote) this.moveTo(this.parentNote.uuid, this.parentNote.children.indexOf(this) - 1);
                     if (this.parentNote) {
                         const index = this.parentNote.children.indexOf(this);
-                        this.moveTo(this.parentNote.children[index - 1]);
+                        this.moveTo(this.parentNote.children[index - 1].uuid);
                     }
                 }
             }
@@ -190,20 +188,25 @@ class Note {
     moveTo(newParentUuid, index = 0) {
         console.log(`Moving note ${this.uuid} from ${this.parentNote ? this.parentNote.uuid : 'root'} to ${newParentUuid}`);
         if (!this.parentNote) return console.warn('Cannot move root note');
-        // this.parentNote = this.parentNote ? this.parentNote.moveChild(this.uuid, newParentUuid, index) : null;\
-        // if (this.parentNote) {
-        //     this.parentNote.deleteChild(this.uuid);
-        // }
-        // const noteSet = this.getRelativeSet();
-        // this.parentNote = noteSet.find(note => note.uuid === newParentUuid);
         const noteArray = Array.from(this.getRelativeSet());
-        this.parentNote = noteArray.find(note => note.uuid === newParentUuid);
-        // const siblingUuid = this.parentNote.children[index] ? this.parentNote.children[index].uuid : null;
-        const elderSibling = this.parentNote.children.find((child, index, siblings) => {
-            return siblings(index + 1) === this.uuid;
-        });
-        this.parentNote.deleteChild(this.uuid);
-        this.parentNote.addChild(this.uuid, elderSibling);
+        // this.parentNote.deleteChild(this.uuid);
+        // this.parentNote = noteArray.find(note => note.uuid === newParentUuid);
+        // const elderSibling = this.parentNote.children.find((child, index, siblings) => {
+        //     return siblings(index + 1) === this.uuid;
+        // });
+        this.parentNote.children = this.parentNote.children.filter((child, index, siblings) => {
+            if (child.uuid === this.uuid) {
+                console.log(`Removing note ${this.uuid} from its parent ${this.parentNote.uuid}`);
+                child.container.remove();
+                return false;
+            } else if (siblings[index] && siblings[index].uuid === newParentUuid) {
+                // elderSibling = child;
+                this.parentNote = child;
+                this.parentNote.addChild(this.uuid, siblings[index + 1].uuid, -1);
+            }
+            return true;
+        })
+        // this.parentNote.addChild(this.uuid, elderSibling);
     }
     initChildren() {
         this.childrenDiv = document.createElement('div');
@@ -291,7 +294,7 @@ class Menu {
 }
 class Suggestion {
     constructor(note) {
-        console.log('Creating suggestion for note:', note);
+        // console.log('Creating suggestion for note:', note);
         this.note = note;
         this.result = [];
         this.renderSuggestion();
@@ -783,7 +786,6 @@ function initEventListeners(isSettings) {
 
 const db = new IDB('divein', 1);
 init();
-
 
 
 // for debugging purposes
