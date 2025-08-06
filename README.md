@@ -30,27 +30,24 @@ Click on a line to start diving in to it.
 
 #### Mouse Controls
 
-* Click on **a toggle icon** (<img src="icons/toggle.svg" alt="▼" width="16" height="16">) to *toggle* the visibility of the children of the line.
-  * Click on <img src="icons/closed.svg" alt="▶" width="16" height="16"> to *expand* the line.
-  * Click on <img src="icons/open.svg" alt="▼" width="16" height="16"> to *collapse* the line.
+* Click on **a toggle icon** (<img src="app/icons/toggle.svg" alt="▼" width="16" height="16">) to *toggle* the visibility of the children of the line.
 * Click on text in a line to edit it.
 * Hover on **a toggle icon** or right-click on a line to show options for the line.
-  * Click on **Add Child** to add a child line to the current line.
-  * Click on **Add Sibling** to add a sibling line below the current line. (You can also use **Enter** key to do this.)
-  * Click on **Delete Line** to delete the current line.
-  * Click on **Dive In** to *dive in* to the current line. (The line you clicked will be the *top level* of the page.)
-  * Click on **Copy** to copy the current line and its children.
-  * Select from **Sort by** to sort the children of the current line.
+  * Click on **Add Child** (<img src="app/icons/add.svg" alt="Add Child" width="16" height="16">) to add a child line to the current line.
+  * Click on **Add Sibling** (<img src="app/icons/add.svg" alt="Add Sibling" width="16" height="16">) to add a sibling line below the current line. (You can also use **Enter** key to do this.)
+  * Click on **Delete Line** (<img src="app/icons/cancel.svg" alt="Delete Line" width="16" height="16">) to delete the current line.
+  * Click on **Copy** (<img src="app/icons/copy.svg" alt="Copy" width="16" height="16">) to copy the current line and its children.
+  * Select from **Sort by** (<img src="app/icons/sort.svg" alt="Sort by" width="16" height="16">) to sort the children of the current line.
     * **Default**: Children lines are listed in the order you listed them.
     * **Alphabetical**: Sorts children alphabetically.
     * **Creation Date**: Sorts children by creation date.
     * **Modification Date**: Sorts children by modification date.
     * **Random**: Randomly sorts children.
-  * Select from **Filter by** to filter the children of the current line.
+  * Select from **Filter by** (<img src="app/icons/filter.svg" alt="Filter by" width="16" height="16">) to filter the children of the current line.
     * **Match**: Filters children that match the text you enter.
     * **Creation Date**: Filters children by creation date.
     * **Modification Date**: Filters children by modification date.
-  * Select from **Style** to change the style of the current line.
+  * Select from **Style** (<img src="app/icons/style.svg" alt="Style" width="16" height="16">) to change the style of the current line.
     * **Bold**: Makes the text bold (you can also use **Ctrl + B**).
     * **Italic**: Makes the text italic (you can also use **Ctrl + I**).
     * **Underline**: Underlines the text (you can also use **Ctrl + U**).
@@ -90,13 +87,13 @@ Click on a line to start diving in to it.
 * **script.js**: The main JavaScript
 * **scripts/**: Contains additional JavaScript files.
 * **icons/**: Contains icons used in the app.
-  * **add.svg**: **+** icon <img src="icons/add.svg" alt="add.svg" width="16" height="16">
-  * **close.svg**: **×** icon <img src="icons/close.svg" alt="close.svg" width="16" height="16">
-  * **closed.svg**: **▶** (collapsed) icon <img src="icons/closed.svg" alt="closed.svg" width="16" height="16">
-  * **open.svg**: **▼** (expanded) icon <img src="icons/open.svg" alt="open.svg" width="16" height="16">
-  * **filter.svg**: **Filter** icon <img src="icons/filter.svg" alt="filter.svg" width="16" height="16">
-  * **loading.svg**: **Loading** icon <img src="icons/loading.svg" alt="loading.svg" width="16" height="16">
-  * **sort.svg**: **Sort** icon <img src="icons/sort.svg" alt="sort.svg" width="16" height="16">
+  * **add.svg**: **+** icon <img src="app/icons/add.svg" alt="add.svg" width="16" height="16">
+  * **close.svg**: **×** icon <img src="app/icons/close.svg" alt="close.svg" width="16" height="16">
+  * **closed.svg**: **▶** (collapsed) icon <img src="app/icons/closed.svg" alt="closed.svg" width="16" height="16">
+  * **open.svg**: **▼** (expanded) icon <img src="app/icons/open.svg" alt="open.svg" width="16" height="16">
+  * **filter.svg**: **Filter** icon <img src="app/icons/filter.svg" alt="filter.svg" width="16" height="16">
+  * **loading.svg**: **Loading** icon <img src="app/icons/loading.svg" alt="loading.svg" width="16" height="16">
+  * **sort.svg**: **Sort** icon <img src="app/icons/sort.svg" alt="sort.svg" width="16" height="16">
 * **manifest.webmanifest**: The web manifest for the app to be used as a PWA.
 * **README.md**: This file.
 * **LICENSE**: The license file.
