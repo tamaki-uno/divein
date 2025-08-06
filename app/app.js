@@ -609,7 +609,7 @@ class Settings {
     }
 }
 async function syncWithApis() {
-    const urls = JSON.parse(localStorage.getItem('apiUrls'));
+    const urls = await db.getAll('apiUrls').then(urls => urls.map(urlObj => urlObj.url));
     if (urls.length === 0) return alert('No API URLs configured. Please add an API URL in settings.');
     console.log(`Syncing with API at ${urls}`);
     const localNotes = await db.getAll('notes');
@@ -786,9 +786,3 @@ function initEventListeners(isSettings) {
 
 const db = new IDB('divein', 1);
 init();
-
-
-// for debugging purposes
-addEventListener('error', (event) => {
-    setTimeout(() => location.reload(), 10000);
-});
