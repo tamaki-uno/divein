@@ -39,7 +39,7 @@ class Note {
         const isNewNote = !existingNote;
         if (isNewNote) return true;
         const isContentChanged = existingNote.content !== noteData.content;
-        const isChildrenChanged = existingNote.children !== noteData.children;
+        const isChildrenChanged = JSON.stringify(existingNote.children) !== JSON.stringify(noteData.children);
         return isContentChanged || isChildrenChanged;
     }
     initContainer() {
