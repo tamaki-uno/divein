@@ -84,7 +84,6 @@ body {
 .flex {
     display: flex;
 }
-
 .flex-column {
     display: flex;
     flex-direction: column;
@@ -93,20 +92,10 @@ body {
     display: flex;
     flex-direction: row;
 }
-
 .none {
     display: none;
 }
 
-.note-container {
-    display: flex;
-    flex-direction: column;
-    /* position: relative; */
-    background-color: var(--main-background);
-    overflow: hidden;
-    /* height: 2em; */
-    padding: 0.2em;
-}
 .note-content {
     display: flex;
     flex-direction: row;

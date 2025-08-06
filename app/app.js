@@ -17,13 +17,13 @@ function route() {
         }
         url.searchParams.set('uuid', uuid);
         window.history.replaceState({}, '', url.toString());
-        init(uuid, true);
+        init(uuid);
     }
 }
 
-async function init(uuid, isHome = false) {
+async function init(uuid) {
     console.log('Initializing app with UUID:', uuid);
-    const note = new Note(uuid, 30, true, isHome);
+    const note = new Note(uuid, null, 30, true);
     document.querySelector('main').appendChild(await note.init());
     document.getElementById('loading').style.display = 'none';
     return;
@@ -45,12 +45,13 @@ function initEventListeners(isSettings) {
 }
 
 class Note {
-    constructor(uuid, fontSize = 30, isExpanded = false, isHome = false) {
+    constructor(uuid, parentNote, fontSize = 30, isExpanded = false) {
         // console.log(`Creating note with UUID: ${uuid}, fontSize: ${fontSize}, isExpanded: ${isExpanded}`);
         this.uuid = uuid;
+        this.parentNote = parentNote;
         this.fontSize = fontSize;
         this.isExpanded = isExpanded;
-        this.isHome = isHome;
+        this.childNotes = [];
     }
     async init() {
         await this.get();
@@ -67,7 +68,7 @@ class Note {
         } else {
             const noteData = {
                 uuid: this.uuid,
-                content: this.content = this.isHome ? 'home' : '',
+                content: this.content = this.parentNote ? '' : 'HOME',
                 children: this.children = [],
                 createdAt: this.createdAt = new Date().toISOString(),
                 updatedAt: this.updatedAt = new Date().toISOString()
@@ -92,8 +93,14 @@ class Note {
     initContainer() {
         this.container = document.createElement('div');
         this.container.id = this.uuid;
-        this.container.className = 'note-container radius hover' + (this.isExpanded ? ' expanded' : '');
+        this.container.className = 'radius flex-column' + (this.isExpanded ? ' expanded' : '');
         this.container.style.fontSize = `${this.fontSize}px`;
+        this.container.style.overflow = 'hidden';
+        this.container.style.position = 'relative';
+        this.container.style.backgroundColor = 'var(--sub-background)';
+        this.container.style.padding = '0.2em';
+        this.container.style.margin = '0.2em';
+        this.container.style.height = this.isExpanded ? 'auto' : 'fit-content';
         this.container.addEventListener('dblclick', (event) => {
             console.log('Note double-clicked:', this.uuid);
             event.preventDefault();
@@ -107,7 +114,10 @@ class Note {
     }
     initContent() {
         this.contentDiv = document.createElement('div');
-        this.contentDiv.className = 'note-content radius hover';
+        this.contentDiv.className = 'radius flex-row';
+        this.contentDiv.style.position = 'relative';
+        this.contentDiv.style.padding = '0.2em';
+        this.contentDiv.style.backgroundColor = 'var(--main-background)';
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(this.initContentSpan());
         this.menu = new Menu(this);
@@ -161,6 +171,7 @@ class Note {
                     console.log('Shift + Enter pressed');
                 } else {
                     console.log('Enter pressed without Shift');
+                    this.parentNote ? this.parentNote.addChild() : this.addChild();
                 }
             } else if (event.key === 'Tab') {
                 event.preventDefault();
@@ -169,6 +180,7 @@ class Note {
                     console.log('Shift + Tab pressed');
                 } else {
                     console.log('Tab pressed without Shift');
+                    if (this.parentNote) this.parentNote.moveGrandChild(this.uuid);
                 }
             }
         });
@@ -201,35 +213,35 @@ class Note {
     initChildren() {
         this.childrenDiv = document.createElement('div');
         this.childrenDiv.className = 'note-children';
-        this.renderChildren();
+        this.childNotes = [];
+        this.children.forEach(childUuid => {
+            this.addChild(childUuid);
+        });
         return this.childrenDiv;
     }
-    async renderChildren() {
-        this.childrenDiv.innerHTML = '';
-        for (const childUuid of this.children) {
-            const childNote = new Note(childUuid, this.fontSize * 0.8);
-            this.childrenDiv.appendChild(await childNote.init());
-        }
-        // this.childrenDiv.appendChild(this.initAddChildIcon());
-        // await Promise.all(this.children.map(async (childUuid) => {
-        //     const childNote = new Note(childUuid, this.fontSize * 0.8);
-        //     const childElement = await childNote.init();
-        //     this.childrenDiv.appendChild(childElement);
-        // })).then(() => {
-        //     this.childrenDiv.appendChild(this.initAddChildIcon());
-        //     console.log('Children rendered:', this.children);
-        // }).catch(error => {
-        //     console.error('Error rendering children:', error);
-        // });
-    }
-    addChild() {
+    async addChild(childUuid) {
         console.log(`Adding child note to ${this.uuid}`);
-        const childUuid = crypto.randomUUID();
-        this.children.push(childUuid);
-        this.renderChildren();
-        this.save()
-            .then(() => console.log('Child note added:', childUuid))
-            .catch(error => console.error('Error adding child note:', error));
+        const uuid = childUuid || crypto.randomUUID();
+        if (! this.children.includes(uuid)) {
+            this.children.push(uuid);
+            this.save();
+        } 
+        const childNote = new Note(uuid, this, this.fontSize * 0.8, false);
+        this.childNotes.push(childNote);
+        const childNoteDiv = await childNote.init();
+        this.childrenDiv.appendChild(childNoteDiv);
+        childNote.contentSpan.focus();
+    }
+    moveGrandChild(childUuid) {
+        console.log(`Moving grandchild note with UUID: ${childUuid} to parent note: ${this.uuid}`);
+        const targetIndex = this.children.indexOf(childUuid);
+        if (targetIndex === -1 || targetIndex === 0) return console.warn('Child note not found or is the first child.');
+        this.children.splice(targetIndex, 1);
+        this.save();
+        this.childNotes = this.childNotes.flatMap(note => 
+            note.uuid === childUuid ? [] : [note]
+        );
+        return this.childNotes.find(note => note.uuid === this.children[targetIndex - 1]).addChild(childUuid);
     }
 }
 
@@ -616,7 +628,6 @@ function getApiUrls() {
     const urls = JSON.parse(localStorage.getItem('apiUrls')) || [];
     return urls;
 }
-
 function addApiUrl(url) {
     const urls = getApiUrls();
     if (!urls.includes(url)) {
@@ -624,7 +635,6 @@ function addApiUrl(url) {
         localStorage.setItem('apiUrls', JSON.stringify(urls));
     }
 }
-
 function removeApiUrl(url) {
     let urls = getApiUrls();
     urls = urls.filter(existingUrl => existingUrl !== url);
@@ -778,67 +788,70 @@ db.init(objectStores)
     })
     .catch(error => console.error('Error initializing database:', error));
 
+
+
+
 addEventListener('error', (event) => {
     console.error('Error event:', event);
-    setTimeout(() => location.reload(), 1000);
+    // setTimeout(() => location.reload(), 10000);
 });
 
-addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled rejection:', event.reason);
-    setTimeout(() => location.reload(), 1000);
-});
+// addEventListener('unhandledrejection', (event) => {
+//     console.error('Unhandled rejection:', event.reason);
+//     setTimeout(() => location.reload(), 1000);
+// });
 
-// Global error handling
-window.addEventListener('error', (event) => {
-    console.error('Global error caught:', {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        error: event.error
-    });
+// // Global error handling
+// window.addEventListener('error', (event) => {
+//     console.error('Global error caught:', {
+//         message: event.message,
+//         filename: event.filename,
+//         lineno: event.lineno,
+//         colno: event.colno,
+//         error: event.error
+//     });
     
-    // Prevent infinite reload loops
-    const lastReload = localStorage.getItem('lastErrorReload');
-    const now = Date.now();
-    if (!lastReload || now - parseInt(lastReload) > 5000) {
-        localStorage.setItem('lastErrorReload', now.toString());
-        setTimeout(() => location.reload(), 2000);
-    }
-});
+//     // Prevent infinite reload loops
+//     const lastReload = localStorage.getItem('lastErrorReload');
+//     const now = Date.now();
+//     if (!lastReload || now - parseInt(lastReload) > 5000) {
+//         localStorage.setItem('lastErrorReload', now.toString());
+//         setTimeout(() => location.reload(), 2000);
+//     }
+// });
 
-// IndexedDB specific error handling
-const originalConsoleError = console.error;
-console.error = function(...args) {
-    originalConsoleError.apply(console, args);
+// // IndexedDB specific error handling
+// const originalConsoleError = console.error;
+// console.error = function(...args) {
+//     originalConsoleError.apply(console, args);
     
-    // Check for database-related errors
-    if (args.some(arg => 
-        typeof arg === 'string' && 
-        (arg.includes('database') || arg.includes('IndexedDB') || arg.includes('IDB'))
-    )) {
-        console.warn('Database error detected, attempting recovery...');
-        // Clear potentially corrupted database
-        if ('indexedDB' in window) {
-            indexedDB.deleteDatabase('divein');
-            setTimeout(() => location.reload(), 1000);
-        }
-    }
-};
+//     // Check for database-related errors
+//     if (args.some(arg => 
+//         typeof arg === 'string' && 
+//         (arg.includes('database') || arg.includes('IndexedDB') || arg.includes('IDB'))
+//     )) {
+//         console.warn('Database error detected, attempting recovery...');
+//         // Clear potentially corrupted database
+//         if ('indexedDB' in window) {
+//             indexedDB.deleteDatabase('divein');
+//             setTimeout(() => location.reload(), 1000);
+//         }
+//     }
+// };
 
-// Wrap async functions with error handling
-const originalRoute = route;
-window.route = async function() {
-    try {
-        await originalRoute();
-    } catch (error) {
-        console.error('Route error:', error);
-        document.getElementById('loading').innerHTML = `
-            <div style="color: red; text-align: center;">
-                <h3>Error loading application</h3>
-                <p>${error.message}</p>
-                <button onclick="location.reload()">Reload</button>
-            </div>
-        `;
-    }
-};
+// // Wrap async functions with error handling
+// const originalRoute = route;
+// window.route = async function() {
+//     try {
+//         await originalRoute();
+//     } catch (error) {
+//         console.error('Route error:', error);
+//         document.getElementById('loading').innerHTML = `
+//             <div style="color: red; text-align: center;">
+//                 <h3>Error loading application</h3>
+//                 <p>${error.message}</p>
+//                 <button onclick="location.reload()">Reload</button>
+//             </div>
+//         `;
+//     }
+// };
