@@ -380,29 +380,14 @@ class Suggestion {
 
 class IDB {
     static db = null;
-    static schemas = {
-        notes: {
-            options: {
-                keyPath: 'uuid',
-                autoIncrement: false
-            },
-            indexes: [
-                { name: 'uuid', unique: true },
-                { name: 'content', unique: false },
-                { name: 'createdAt', unique: false },
-                { name: 'updatedAt', unique: false }
-            ]
-        }
-    };
     constructor(dbName, version = 1) {
         this.dbName = dbName;
         this.version = version;
-        const request = window.indexedDB.open(dbName, version);
     }
     async init(schemas) {
         if (IDB.db) return this.db = IDB.db;
-        this.schemas = { ...schemas };
-        const request = window.indexedDB.open('divein', 1);
+        this.schemas = schemas;
+        const request = window.indexedDB.open(this.dbName, this.version);
         request.onupgradeneeded = (event) => {
             this.db = event.target.result;
             Object.entries(this.schemas).forEach(([name, schema]) => {
@@ -537,17 +522,31 @@ class IDB {
     }
 }
 
+// button handlers
+function home() {
+    console.log('Home button clicked');
+    const homeUuid = localStorage.getItem('homeUuid');
+    if (homeUuid) {
+        console.log('Navigating to home UUID:', homeUuid);
+        location.search = `?uuid=${homeUuid}`;
+        route();
+    } else {
+        location.search = '';
+        route();
+    }
+}
 class Settings {
     constructor(show = false) {
         console.log(`Initializing Settings (show: ${show})`);
         if (document.getElementById('settingsDiv')) {
             this.div = document.getElementById('settingsDiv');
         } else {
-            document.body.appendChild(this.initDiv());
+            // document.body.appendChild(this.initDiv());
+            this.initDiv();
         }
         if (show) this.toggle();
     }
-    initDiv() {
+    async initDiv() {
         this.div = document.createElement('div');
         this.div.className = 'settingsDiv radius hover-shadow';
         this.div.style.display = 'none';
@@ -559,10 +558,11 @@ class Settings {
         const urlsTitle = document.createElement('h3');
         urlsTitle.textContent = 'API URLs';
         this.div.appendChild(urlsTitle);
-        this.div.appendChild(this.initUrlList());
+        this.div.appendChild(await this.initUrlList());
         this.div.appendChild(document.createElement('h3')).textContent = 'Theme';
         this.div.appendChild(this.initThemeButton());
-        return this.div;
+        // return this.div;
+        document.body.appendChild(this.div);
     }
     initCloseButton() {
         this.closeButton = document.createElement('img');
@@ -590,24 +590,24 @@ class Settings {
         console.log(`Theme changed to: ${localStorage.getItem('theme')}`);
         document.documentElement.classList = localStorage.getItem('theme');
     }
-    initUrlList() {
+    async initUrlList() {
         this.urlList = document.createElement('div');
         this.urlList.className = 'api-url-list';
-        this.apiUrls = JSON.parse(localStorage.getItem('apiUrls')) || [];
-        this.apiUrls.forEach(url => {
-            this.urlList.appendChild(this.initUrl(url));
+        this.apiUrls = await db.getAll('apiUrls');
+        this.apiUrls.forEach(apiUrl => {
+            this.urlList.appendChild(this.initUrl(apiUrl));
         });
         this.urlList.appendChild(this.initAddButton());
         return this.urlList;
     }
-    initUrl(url) {
+    initUrl(apiUrl) {
         const urlDiv = document.createElement('div');
         urlDiv.className = 'api-url hover radius';
         urlDiv.style.position = 'relative';
         urlDiv.style.padding = '0.5em';
         const urlSpan = document.createElement('span');
         urlSpan.className = 'api-url-text';
-        urlSpan.textContent = url;
+        urlSpan.textContent = apiUrl.url;
         urlDiv.appendChild(urlSpan);
         const removeButton = document.createElement('img');
         removeButton.src = 'icons/cancel.svg';
@@ -615,7 +615,7 @@ class Settings {
         removeButton.style.position = 'absolute';
         removeButton.style.right = '0.5em';
         removeButton.addEventListener('click', () => {
-            removeApiUrl(url);
+            db.delete('apiUrls', apiUrl.url);
             urlDiv.remove();
         });
         urlDiv.appendChild(removeButton);
@@ -637,20 +637,7 @@ class Settings {
     validateAndSaveUrl(url) {
         try {
             new URL(url);
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                alert('Please enter a valid URL starting with http:// or https://');
-                return false;
-            }
-            addApiUrl(url);
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
-    validateAndSaveUrl(url) {
-        try {
-            new URL(url);
-            addApiUrl(url);
+            db.add('apiUrls', { url, addedAt: new Date().toISOString() });
             return true;
         } catch (e) {
             return false;
@@ -670,27 +657,8 @@ class Settings {
         }
     }
 }
-
-
-function getApiUrls() {
-    const urls = JSON.parse(localStorage.getItem('apiUrls')) || [];
-    return urls;
-}
-function addApiUrl(url) {
-    const urls = getApiUrls();
-    if (!urls.includes(url)) {
-        urls.push(url);
-        localStorage.setItem('apiUrls', JSON.stringify(urls));
-    }
-}
-function removeApiUrl(url) {
-    let urls = getApiUrls();
-    urls = urls.filter(existingUrl => existingUrl !== url);
-    localStorage.setItem('apiUrls', JSON.stringify(urls));
-}
-
 async function syncWithApis() {
-    const urls = getApiUrls();
+    const urls = JSON.parse(localStorage.getItem('apiUrls'));
     if (urls.length === 0) return alert('No API URLs configured. Please add an API URL in settings.');
     console.log(`Syncing with API at ${urls}`);
     const localNotes = await db.getAll('notes');
@@ -720,18 +688,6 @@ async function syncWithApis() {
         console.error(error);
     } finally {
         console.log('Sync completed');
-    }
-}
-function home() {
-    console.log('Home button clicked');
-    const homeUuid = localStorage.getItem('homeUuid');
-    if (homeUuid) {
-        console.log('Navigating to home UUID:', homeUuid);
-        location.search = `?uuid=${homeUuid}`;
-        route();
-    } else {
-        location.search = '';
-        route();
     }
 }
 async function download() {
@@ -796,11 +752,8 @@ async function upload() {
 
 
 
-
-
-
-
-const objectStores = {
+// const objectStores = {
+const dbSchemas = {
     notes: {
         options: {
             keyPath: 'uuid',
@@ -812,94 +765,47 @@ const objectStores = {
             { name: 'createdAt', unique: false },
             { name: 'updatedAt', unique: false }
         ]
+    },
+    apiUrls: {
+        options: {
+            keyPath: 'url'
+        },
+        indexes: [
+            { name: 'url', unique: true }
+        ]
     }
 };
 
-const defaultApiUrl = 'https://api.example.com';
+const defaultApiUrls = [
+    {
+        url: 'https://api.example.com/sync',
+        name: 'Example API',
+        addedAt: new Date().toISOString()
+    },
+    {
+        url: 'https://api.anotherexample.com/sync',
+        name: 'Another Example API',
+        addedAt: new Date().toISOString()
+    }
+];
 
-// const db = new IDB(objectStores);
-// db.init(objectStores)
-//     // .then(() => console.log('Database initialized'))
-//     .then(() => {
-//         console.log('Database initialized');
-//         route();
-//     })
-//     .catch(error => console.error('Error initializing database:', error));
-// addEventListener('DOMContentLoaded', route);
-const db = new IDB();
-// localStorage.setItem('apiUrls', JSON.stringify(defaultApiUrls));
-addApiUrl(defaultApiUrl);
-db.init(objectStores)
-    .then(() => {
-        console.log('Database initialized');
+const db = new IDB('divein', 1);
+db.init(dbSchemas)
+    .then(async () => {
+        await Promise.all(defaultApiUrls.map(async apiUrl => {
+            const existingUrl = await db.getByKey('apiUrls', apiUrl.url);
+            if (!existingUrl) {
+                await db.add('apiUrls', apiUrl);
+                console.log(`Default API URL added: ${apiUrl.url}`);
+            }
+        }));
         route();
     })
     .catch(error => console.error('Error initializing database:', error));
 
 
 
-
+// for debugging purposes
 addEventListener('error', (event) => {
-    // console.error('Error event:', event);
-    setTimeout(() => location.reload(), 30000);
+    setTimeout(() => location.reload(), 10000);
 });
-
-// addEventListener('unhandledrejection', (event) => {
-//     console.error('Unhandled rejection:', event.reason);
-//     setTimeout(() => location.reload(), 1000);
-// });
-
-// // Global error handling
-// window.addEventListener('error', (event) => {
-//     console.error('Global error caught:', {
-//         message: event.message,
-//         filename: event.filename,
-//         lineno: event.lineno,
-//         colno: event.colno,
-//         error: event.error
-//     });
-    
-//     // Prevent infinite reload loops
-//     const lastReload = localStorage.getItem('lastErrorReload');
-//     const now = Date.now();
-//     if (!lastReload || now - parseInt(lastReload) > 5000) {
-//         localStorage.setItem('lastErrorReload', now.toString());
-//         setTimeout(() => location.reload(), 2000);
-//     }
-// });
-
-// // IndexedDB specific error handling
-// const originalConsoleError = console.error;
-// console.error = function(...args) {
-//     originalConsoleError.apply(console, args);
-    
-//     // Check for database-related errors
-//     if (args.some(arg => 
-//         typeof arg === 'string' && 
-//         (arg.includes('database') || arg.includes('IndexedDB') || arg.includes('IDB'))
-//     )) {
-//         console.warn('Database error detected, attempting recovery...');
-//         // Clear potentially corrupted database
-//         if ('indexedDB' in window) {
-//             indexedDB.deleteDatabase('divein');
-//             setTimeout(() => location.reload(), 1000);
-//         }
-//     }
-// };
-
-// // Wrap async functions with error handling
-// const originalRoute = route;
-// window.route = async function() {
-//     try {
-//         await originalRoute();
-//     } catch (error) {
-//         console.error('Route error:', error);
-//         document.getElementById('loading').innerHTML = `
-//             <div style="color: red; text-align: center;">
-//                 <h3>Error loading application</h3>
-//                 <p>${error.message}</p>
-//                 <button onclick="location.reload()">Reload</button>
-//             </div>
-//         `;
-//     }
-// };
