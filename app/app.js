@@ -25,8 +25,15 @@ class Note {
         this.children = noteData.children.map((childUuid) => new Note(childUuid, this, this.fontSize * 0.8, false));
         this.createdAt = noteData.createdAt;
         this.updatedAt = noteData.updatedAt;
-        if (this.hasChanged()) db.put("notes", this.createNoteData());
+        this.save();
         return noteData;
+    }
+    async save() {
+        if (await this.hasChanged()) {
+            await db.put("notes", this.createNoteData());
+            return true;
+        }
+        return false;
     }
     createNoteData() {
         return {
@@ -136,16 +143,17 @@ class Note {
     }
     async handleKeyDown(event) {
         this.content = this.contentSpan.textContent.trim();
-        if (await this.hasChanged()) {
-            this.suggestion.update(this.content);
-            db.put("notes", this.createNoteData());
-        }
+        if (this.save()) this.suggestion.update(this.content);
         if (event.key === "Enter") {
             this.handleEnterKey(event);
         } else if (event.key === "Tab") {
             this.handleTabKey(event);
-        } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-            this.handleArrowKey(event);
+        } else if (event.key === "ArrowUp") {
+            this.moveFocus(-1);
+        } else if (event.key === "ArrowDown") {
+            this.moveFocus(1);
+        // } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        //     this.handleArrowKey(event);
         } else if (event.key === "Escape") {
             this.handleEscapeKey(event);
         }
@@ -157,9 +165,8 @@ class Note {
             console.log("Shift + Enter pressed");
         } else {
             console.log("Enter pressed without Shift");
-            const newNoteUuid = crypto.randomUUID();
             const index = this.parentNote.children.indexOf(this);
-            this.parentNote ? this.parentNote.addChild(newNoteUuid, index + 1) : this.addChild(newNoteUuid);
+            this.parentNote ? this.parentNote.createChild(index + 1) : this.createChild();
         }
     }
     handleTabKey(event) {
@@ -179,16 +186,20 @@ class Note {
             }
         }
     }
-    handleArrowKey(event) {
-        event.preventDefault();
-        console.log(`Arrow key pressed: ${event.key}`);
-        if (!this.parentNote) return;
-        const index = this.parentNote.children.indexOf(this);
-        let nextIndex = index;
-        if (event.key === "ArrowUp" && index > 0) nextIndex--;
-        if (event.key === "ArrowDown" && index < this.parentNote.children.length - 1) nextIndex++;
-        this.contentSpan.blur();
-        this.parentNote.children[nextIndex].contentSpan.focus();
+    moveFocus(direction) {
+        // console.log(`Moving focus to ${direction} note`);
+        if (direction === 0) this.contentSpan.focus();
+        if (this.parentNote) {
+            const index = this.parentNote.children.indexOf(this);
+            if ((0 <= index + direction) && (index + direction < this.parentNote.children.length)) {
+                this.parentNote.children[index + direction].contentSpan.focus();
+            } else {
+                const newDirection = direction < 0 ? direction + 1 : direction;
+                this.parentNote.moveFocus(newDirection);
+            }
+        } else if (this.children.length > direction) {
+            this.children[direction].contentSpan.focus();
+        }
     }
     handleEscapeKey(event) {
         event.preventDefault();
@@ -211,54 +222,19 @@ class Note {
             this.contentSpan.textContent = this.content;
         }
     }
-    getRelativeSet(n = 1, noteSet = new Set()) {
-        // n --;
-        noteSet.add(this);
-        if (this.parentNote) {
-            noteSet.add(this.parentNote);
-            this.parentNote.children.forEach((child) => noteSet.add(child));
-        }
-        this.children.forEach((child) => noteSet.add(child));
-        // if (n > 0) {
-        //     noteSet.forEach(note => {
-        //         const relativeSet = note.getRelativeSet(n, noteSet);
-        //         relativeSet.forEach(relativeNote => noteSet.add(relativeNote));
-        //     });
-        // }
-        return noteSet;
-    }
     moveTo(newParent, index = 0) {
         console.log(
             `Moving note ${this.uuid} from ${this.parentNote || "root"} to ${newParent}`
         );
         if (!this.parentNote) return console.warn("Cannot move root note");
         if (!newParent) return console.warn("Cannot move to null parent note");
-        // const noteArray = Array.from(this.getRelativeSet());
-        // this.parentNote.deleteChild(this.uuid);
-        // this.parentNote = noteArray.find(note => note.uuid === newParentUuid);
-        // const elderSibling = this.parentNote.children.find((child, index, siblings) => {
-        //     return siblings(index + 1) === this.uuid;
-        // });
-        // this.parentNote.children = this.parentNote.children.filter(
-        //     (child, index, siblings) => {
-        //         if (child.uuid === this.uuid) {
-        //             child.container.remove();
-        //             return false;
-        //         } else if (siblings[index] && siblings[index].uuid === newParentUuid) {
-        //             // elderSibling = child;
-        //             this.parentNote = child;
-        //             this.parentNote.addChild(this.uuid, index + 1);
-        //         }
-        //         return true;
-        //     }
-        // );
-        // this.parentNote.addChild(this.uuid, elderSibling);
         this.parentNote.children = this.parentNote.children.filter((child) => child !== this);
         this.container.remove();
+        this.parentNote.save();
         this.parentNote = newParent;
         this.parentNote.children.splice(index, 0, this);
-        this.parentNote.childrenDiv.insertBefore(this.container, this.parentNote.childrenDiv.children[index] || null);
-        // this.parentNote.addChild(this.uuid, index);
+        this.parentNote.childrenDiv.insertBefore(this.container, this.parentNote.childrenDiv.children[index]);
+        this.parentNote.save();
     }
     initChildren() {
         this.childrenDiv = document.createElement("div");
@@ -283,8 +259,11 @@ class Note {
         db.put("notes", this.createNoteData());
         childNote.contentSpan.focus();
     }
-    async createChild() {
-        return await this.addChild(new Note(crypto.randomUUID(), this, this.fontSize * 0.8, false));
+    async createChild(index = 0) {
+        const newNoteUuid = crypto.randomUUID();
+        const newFontSize = Math.max(this.fontSize * 0.8, 10);
+        const newNote = new Note(newNoteUuid, this, newFontSize, false);
+        return await this.addChild(newNote, index);
     }
 }
 
