@@ -8,11 +8,11 @@ function setStyles(Element, styles) {
 }
 
 class Note {
-    constructor(uuid, parentNote, fontSize = 30, isExpanded = false) {
+    constructor(uuid, parentNote, fontSize = 30, expand = false) {
         this.uuid = uuid;
         this.parentNote = parentNote;
         this.fontSize = fontSize;
-        this.isExpanded = isExpanded;
+        this.isExpanded = !expand;
         this.childNotes = [];
     }
     async init() {
@@ -56,21 +56,23 @@ class Note {
         this.container = this.createContainerElement();
         this.container.appendChild(this.initContent());
         this.container.appendChild(this.initChildren());
+        this.toggle();
         return this.container;
     }
     createContainerElement() {
         const container = document.createElement("div");
         container.id = this.uuid;
-        container.className = "radius" + (this.isExpanded ? " expanded" : "");
+        // container.className = "radius" + (this.isExpanded ? " expanded" : "");
         setStyles(container, {
             display: "flex",
             flexDirection: "column",
             fontSize: `${this.fontSize}px`,
             overflow: "hidden",
             position: "relative",
-            backgroundColor: "var(--sub-background)",
+            // backgroundColor: "var(--sub-background)",
+            backgroundColor: "var(--main-background)",
             padding: "0.2em",
-            margin: "0.2em",
+            // margin: "0.2em",
             height: this.isExpanded ? "auto" : "fit-content",
         });
         container.addEventListener("dblclick", this.handleDoubleClick.bind(this));
@@ -91,8 +93,9 @@ class Note {
             flexDirection: "row",
             flexGrow: "1",
             position: "relative",
-            padding: "0.2em",
-            backgroundColor: "var(--main-background)",
+            // padding: "0.2em",
+            // backgroundColor: "var(--main-background)",
+            height: "2em",
         });
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(this.initContentSpan());
@@ -110,16 +113,40 @@ class Note {
         this.toggleIcon = document.createElement("img");
         this.toggleIcon.src = "icons/toggle.svg";
         this.toggleIcon.className = "icon button hover";
-        this.toggleIcon.addEventListener("click", () => this.toggle());
+        this.toggleIcon.style.transition = "transform 0.2s ease";
+        this.toggleIcon.addEventListener("click", (event) => {
+            event.stopPropagation();
+            this.toggle();
+        });
         return this.toggleIcon;
     }
     toggle() {
         console.log(
             `Toggling note expansion to ${!this.isExpanded} for UUID: ${this.uuid}`
         );
-        this.isExpanded = !this.isExpanded;
-        this.container.classList.toggle("expanded", this.isExpanded);
-        this.toggleIcon.classList.toggle("expanded", this.isExpanded);
+        if (this.isExpanded) {
+            this.collapse();
+        } else {
+            this.expand();
+        }
+    }
+    expand() {
+        this.isExpanded = true;
+        this.toggleIcon.style.transform = "rotate(90deg)";
+        this.contentDiv.style.height = "auto";
+        // this.contentDiv.style.overflow = "visible";
+        // this.contentSpan.style.height = "auto";
+        this.contentSpan.style.overflow = "auto";
+        this.childrenDiv.style.display = "flex";
+    }
+    collapse() {
+        this.isExpanded = false;
+        this.toggleIcon.style.transform = "rotate(0deg)";
+        this.contentDiv.style.height = "2em";
+        // this.contentDiv.style.overflow = "hidden";
+        // this.contentSpan.style.height = "2em";
+        this.contentSpan.style.overflow = "hidden";
+        this.childrenDiv.style.display = "none";
     }
     initContentSpan() {
         this.contentSpan = document.createElement("span");
@@ -128,7 +155,10 @@ class Note {
             backgroundColor: "var(--sub-background)",
             padding: "0.2em",
             flexGrow: "1",
+            // height: "1em",
             // overflowWrap: "break-word",
+            // overflow: "auto",
+            overflow: "hidden",
         });
         this.contentSpan.setAttribute("contenteditable", "true");
         this.suggestion = new Suggestion(this);
@@ -255,16 +285,21 @@ class Note {
         this.parentNote.children.splice(index, 0, this);
         this.parentNote.childrenDiv.insertBefore(this.container, this.parentNote.childrenDiv.children[index]);
         this.parentNote.save();
+        this.parentNote.expand();
         this.contentSpan.focus();
     }
     initChildren() {
         this.childrenDiv = document.createElement("div");
         this.childrenDiv.className = "";
-        this.childrenDiv.styles = {
-            display: this.isExpanded ? "flex" : "none",
+        setStyles(this.childrenDiv, {
+            display: "none",
             flexDirection: "column",
+            // backgroundColor: "var(--main-background)",
             backgroundColor: "var(--sub-background)",
-        };
+            // padding: "0.2em",
+            marginLeft: "1.5em",
+            // overflow: "hidden",
+        });
         this.children.forEach(async (childNote) =>
             this.childrenDiv.appendChild(await childNote.init())
         );
