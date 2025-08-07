@@ -8,10 +8,11 @@ function setStyles(Element, styles) {
 }
 
 class Note {
-    constructor(uuid, parentNote, fontSize = 30, expand = false) {
+    // constructor(uuid, parentNote, fontSize = 30, expand = false) {
+    constructor(uuid, parentNote, expand = false) {
         this.uuid = uuid;
         this.parentNote = parentNote;
-        this.fontSize = fontSize;
+        // this.fontSize = fontSize;
         this.isExpanded = !expand;
         this.childNotes = [];
     }
@@ -22,7 +23,8 @@ class Note {
     async get() {
         const noteData = await db.getByKey("notes", this.uuid) || this.createNoteData();
         this.content = noteData.content;
-        this.children = noteData.children.map((childUuid) => new Note(childUuid, this, this.fontSize * 0.8, false));
+        // this.children = noteData.children.map((childUuid) => new Note(childUuid, this, this.fontSize * 0.8, false));
+        this.children = noteData.children.map((childUuid) => new Note(childUuid, this, false));
         this.createdAt = noteData.createdAt;
         this.updatedAt = noteData.updatedAt;
         this.save();
@@ -66,12 +68,15 @@ class Note {
         setStyles(container, {
             display: "flex",
             flexDirection: "column",
-            fontSize: `${this.fontSize}px`,
+            // fontSize: `${this.fontSize}px`,
+            // fontSize: "0.8em",
+            // fontSize: "0.7em",
+            fontSize: "max(0.7em, 10px)",
             overflow: "hidden",
             position: "relative",
-            // backgroundColor: "var(--sub-background)",
-            backgroundColor: "var(--main-background)",
-            padding: "0.2em",
+            backgroundColor: "var(--sub-background)",
+            // backgroundColor: "var(--main-background)",
+            // padding: "0.2em",
             // margin: "0.2em",
             height: this.isExpanded ? "auto" : "fit-content",
         });
@@ -93,8 +98,9 @@ class Note {
             flexDirection: "row",
             flexGrow: "1",
             position: "relative",
-            // padding: "0.2em",
-            // backgroundColor: "var(--main-background)",
+            fontSize: "inherit",
+            padding: "0.2em",
+            backgroundColor: "var(--main-background)",
             height: "2em",
         });
         this.contentDiv.appendChild(this.initToggleIcon());
@@ -114,10 +120,8 @@ class Note {
         this.toggleIcon.src = "icons/toggle.svg";
         this.toggleIcon.className = "icon button hover";
         this.toggleIcon.style.transition = "transform 0.2s ease";
-        this.toggleIcon.addEventListener("click", (event) => {
-            event.stopPropagation();
-            this.toggle();
-        });
+        this.toggleIcon.addEventListener("click", (event) => this.toggle());
+        this.toggleIcon.addEventListener("dblclick", (event) => event.stopPropagation());
         return this.toggleIcon;
     }
     toggle() {
@@ -134,8 +138,6 @@ class Note {
         this.isExpanded = true;
         this.toggleIcon.style.transform = "rotate(90deg)";
         this.contentDiv.style.height = "auto";
-        // this.contentDiv.style.overflow = "visible";
-        // this.contentSpan.style.height = "auto";
         this.contentSpan.style.overflow = "auto";
         this.childrenDiv.style.display = "flex";
     }
@@ -143,8 +145,6 @@ class Note {
         this.isExpanded = false;
         this.toggleIcon.style.transform = "rotate(0deg)";
         this.contentDiv.style.height = "2em";
-        // this.contentDiv.style.overflow = "hidden";
-        // this.contentSpan.style.height = "2em";
         this.contentSpan.style.overflow = "hidden";
         this.childrenDiv.style.display = "none";
     }
@@ -153,11 +153,10 @@ class Note {
         this.contentSpan.className = "radius hover";
         setStyles(this.contentSpan, {
             backgroundColor: "var(--sub-background)",
-            padding: "0.2em",
+            // padding: "0.2em",
+            padding: "0.1em 0.5em",
+            fontSize: "inherit",
             flexGrow: "1",
-            // height: "1em",
-            // overflowWrap: "break-word",
-            // overflow: "auto",
             overflow: "hidden",
         });
         this.contentSpan.setAttribute("contenteditable", "true");
@@ -295,9 +294,11 @@ class Note {
             display: "none",
             flexDirection: "column",
             // backgroundColor: "var(--main-background)",
-            backgroundColor: "var(--sub-background)",
+            // backgroundColor: "var(--sub-background)",
             // padding: "0.2em",
             marginLeft: "1.5em",
+            // paddingLeft: "1.5em",
+            fontSize: "inherit",
             // overflow: "hidden",
         });
         this.children.forEach(async (childNote) =>
@@ -317,8 +318,9 @@ class Note {
     }
     async createChild(index = 0) {
         const newNoteUuid = crypto.randomUUID();
-        const newFontSize = Math.max(this.fontSize * 0.8, 10);
-        const newNote = new Note(newNoteUuid, this, newFontSize, false);
+        // const newFontSize = Math.max(this.fontSize * 0.8, 10);
+        // const newNote = new Note(newNoteUuid, this, newFontSize, false);
+        const newNote = new Note(newNoteUuid, this, false);
         return await this.addChild(newNote, index);
     }
 }
@@ -605,6 +607,7 @@ class Settings {
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
+            fontSize: "0.4em",
             padding: "1em",
             zIndex: "1000",
             width: "min(30em, 90vw)",
@@ -903,7 +906,8 @@ async function route() {
         url.searchParams.set("uuid", uuid);
         window.history.replaceState({}, "", url.toString());
     }
-    const note = new Note(uuid, null, 30, true);
+    // const note = new Note(uuid, null, 30, true);
+    const note = new Note(uuid, null, true);
     document.querySelector("main").appendChild(await note.init());
     document.getElementById("loading").style.display = "none";
     return;

@@ -24,9 +24,10 @@
 }
 
 
-body {
+html, body {
     font-family: 'Zen Maru Gothic', sans-serif;
     font-weight: 500;
+    font-size: 50px;
     margin: 0;
     padding: 0;
     background-color: var(--main-background);
@@ -46,7 +47,7 @@ body {
 
 .control {
     position: fixed;
-    font-size: 3em;
+    font-size: 1em;
     right: 1em;
     z-index: 500;
     background-color: var(--sub-background);
