@@ -23,7 +23,6 @@
     --hover-shadow: rgba(0, 0, 0, 0.6);
 }
 
-
 html, body {
     font-family: 'Zen Maru Gothic', sans-serif;
     font-weight: 500;
@@ -63,11 +62,15 @@ html, body {
     background-color: var(--hover-background);
     transition: background-color 0.2s ease-in-out;
 }
-.hover-shadow:hover {
+/* .hover-shadow:hover {
     box-shadow: 0.1em 0.1em 0.5em -0.1em var(--hover-shadow);
     transition: box-shadow 0.2s ease-in-out;
-}
+} */
 
 .radius {
     border-radius: 0.5rem;
+}
+
+.shadow {
+    box-shadow: 0.1em 0.1em 0.5em -0.1em var(--hover-shadow);
 }
