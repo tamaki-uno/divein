@@ -1,43 +1,52 @@
-'use strict';
+"use strict";
+
+
+function setStyles(Element, styles) {
+    Object.entries(styles).forEach(([key, value]) => {
+        Element.style[key] = value;
+    });
+}
 
 class Note {
-    constructor(uuid, parentNote, fontSize = 30, isExpanded = false) {
-        // console.log(`Creating note with UUID: ${uuid}, fontSize: ${fontSize}, isExpanded: ${isExpanded}`);
+    constructor(uuid, parentNote, expand = false) {
         this.uuid = uuid;
         this.parentNote = parentNote;
-        this.fontSize = fontSize;
-        this.isExpanded = isExpanded;
+        this.isExpanded = expand;
         this.childNotes = [];
     }
     async init() {
-        const noteData = await this.get();
-        this.content = noteData.content;
-        this.children = noteData.children.map(childUuid => new Note(childUuid, this, this.fontSize * 0.8, false));
-        this.createdAt = noteData.createdAt;
-        this.updatedAt = noteData.updatedAt;
-        this.save();
+        await this.get();
         return this.initContainer();
     }
     async get() {
-        return await db.getByKey('notes', this.uuid) || this.createNoteData();
+        const noteData = await db.getByKey("notes", this.uuid) || this.createNoteData();
+        this.content = noteData.content;
+        this.children = noteData.children.map((childUuid) => new Note(childUuid, this, false));
+        this.createdAt = noteData.createdAt;
+        this.updatedAt = noteData.updatedAt;
+        this.save();
+        return noteData;
     }
     async save() {
-        if (await this.hasChanged()) await db.put('notes', this.createNoteData());
+        if (await this.hasChanged()) {
+            await db.put("notes", this.createNoteData());
+            return true;
+        }
+        return false;
     }
     createNoteData() {
         return {
             uuid: this.uuid,
-            content: this.content || (this.parentNote ? '' : 'HOME'),
-            children: this.children ? this.children.map(child => child.uuid) : [],
+            content: this.content || (this.parentNote ? "" : "HOME"),
+            children: this.children ? this.children.map((child) => child.uuid) : [],
             createdAt: this.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
         };
     }
     async hasChanged() {
-        const existingNote = await db.getByKey('notes', this.uuid);
+        const existingNote = await db.getByKey("notes", this.uuid);
+        if (!existingNote) return true;
         const noteData = this.createNoteData();
-        const isNewNote = !existingNote;
-        if (isNewNote) return true;
         const isContentChanged = existingNote.content !== noteData.content;
         const isChildrenChanged = JSON.stringify(existingNote.children) !== JSON.stringify(noteData.children);
         return isContentChanged || isChildrenChanged;
@@ -46,72 +55,91 @@ class Note {
         this.container = this.createContainerElement();
         this.container.appendChild(this.initContent());
         this.container.appendChild(this.initChildren());
+        this.isExpanded ? this.expand() : this.collapse();
         return this.container;
     }
     createContainerElement() {
-        const container = document.createElement('div');
+        const container = document.createElement("div");
         container.id = this.uuid;
-        container.className = 'radius flex-column' + (this.isExpanded ? ' expanded' : '');
-        container.style.fontSize = `${this.fontSize}px`;
-        container.style.overflow = 'hidden';
-        container.style.position = 'relative';
-        container.style.backgroundColor = 'var(--sub-background)';
-        container.style.padding = '0.2em';
-        container.style.margin = '0.2em';
-        container.style.height = this.isExpanded ? 'auto' : 'fit-content';
-        container.addEventListener('dblclick', this.handleDoubleClick.bind(this));
+        setStyles(container, {
+            display: "flex",
+            flexDirection: "column",
+            fontSize: "max(0.7em, 16px)",
+            overflow: "hidden",
+            position: "relative",
+            backgroundColor: "var(--sub-background)",
+            margin: "0.1rem",
+            height: this.isExpanded ? "auto" : "fit-content",
+        });
+        container.addEventListener("dblclick", this.handleDoubleClick.bind(this));
         return container;
     }
     handleDoubleClick(event) {
-        console.log('Note double-clicked:', this.uuid);
+        console.log("Note double-clicked:", this.uuid);
         event.preventDefault();
         event.stopPropagation();
         location.search = `?uuid=${this.uuid}`;
         route();
     }
     initContent() {
-        this.contentDiv = this.createContentDiv();
+        this.contentDiv = document.createElement("div");
+        this.contentDiv.className = "radius";
+        setStyles(this.contentDiv, {
+            display: "flex",
+            flexDirection: "row",
+            flexGrow: "1",
+            position: "relative",
+            fontSize: "inherit",
+            padding: "0.1rem",
+            backgroundColor: "var(--main-background)",
+        });
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(this.initContentSpan());
         this.menu = new Menu(this);
         this.contentDiv.appendChild(this.menu.init());
-        this.contentDiv.addEventListener('contextmenu', this.handleContextMenu.bind(this));
+        this.contentDiv.addEventListener("contextmenu", (event) => this.handleContextMenu(event));
         return this.contentDiv;
-    }
-    createContentDiv() {
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'radius flex-row';
-        contentDiv.style.position = 'relative';
-        contentDiv.style.padding = '0.2em';
-        contentDiv.style.backgroundColor = 'var(--main-background)';
-        return contentDiv;
     }
     handleContextMenu(event) {
         event.preventDefault();
-        console.log('Context menu opened for note:', this.uuid);
-        this.menu.style.display = 'block';
+        console.log("Context menu opened for note:", this.uuid);
+        this.menu.style.display = "block";
     }
     initToggleIcon() {
-        this.toggleIcon = this.createToggleIcon();
-        this.toggleIcon.addEventListener('click', () => this.toggle());
+        this.toggleIcon = document.createElement("img");
+        this.toggleIcon.src = "icons/toggle.svg";
+        this.toggleIcon.className = "icon button hover";
+        this.toggleIcon.style.transition = "transform 0.2s ease";
+        this.toggleIcon.addEventListener("click", (event) => (this.isExpanded ? this.collapse() : this.expand()));
+        this.toggleIcon.addEventListener("dblclick", (event) => event.stopPropagation());
         return this.toggleIcon;
     }
-    createToggleIcon() {
-        const toggleIcon = document.createElement('img');
-        toggleIcon.src = 'icons/toggle.svg';
-        toggleIcon.className = 'note-toggle-icon icon button hover';
-        return toggleIcon;
+    expand() {
+        if (this.parentNote) this.parentNote.expand();
+        this.isExpanded = true;
+        this.toggleIcon.style.transform = "rotate(90deg)";
+        this.contentDiv.style.height = "auto";
+        this.contentSpan.style.overflow = "auto";
+        this.childrenDiv.style.display = "flex";
     }
-    toggle() {
-        console.log(`Toggling note expansion to ${!this.isExpanded} for UUID: ${this.uuid}`);
-        this.isExpanded = !this.isExpanded;
-        this.container.classList.toggle('expanded', this.isExpanded);
-        this.toggleIcon.classList.toggle('expanded', this.isExpanded);
+    collapse() {
+        this.isExpanded = false;
+        this.toggleIcon.style.transform = "rotate(0deg)";
+        this.contentDiv.style.height = "1.5em";
+        this.contentSpan.style.overflow = "hidden";
+        this.childrenDiv.style.display = "none";
     }
     initContentSpan() {
-        this.contentSpan = document.createElement('span');
-        this.contentSpan.className = 'note-content-span radius hover';
-        this.contentSpan.setAttribute('contenteditable', 'true');
+        this.contentSpan = document.createElement("span");
+        this.contentSpan.className = "radius hover";
+        setStyles(this.contentSpan, {
+            backgroundColor: "var(--sub-background)",
+            padding: "0.2em 0.5em",
+            fontSize: "0.8em",
+            flexGrow: "1",
+            outline: "none"
+        });
+        this.contentSpan.setAttribute("contenteditable", "true");
         this.suggestion = new Suggestion(this);
         this.contentSpan.appendChild(this.suggestion.div);
         this.addContentSpanEventListeners();
@@ -119,128 +147,157 @@ class Note {
         return this.contentSpan;
     }
     addContentSpanEventListeners() {
-        this.contentSpan.addEventListener('focus', () => this.contentSpan.innerHTML = this.contentSpan.textContent);
-        this.contentSpan.addEventListener('input', this.handleInput.bind(this));
-        this.contentSpan.addEventListener('keydown', this.handleKeyDown.bind(this));
+        this.contentSpan.addEventListener("focus", (event) => this.handleFocus(event));
+        this.contentSpan.addEventListener("keydown", (event) => this.handleKeyDown(event));
+        this.contentSpan.addEventListener("input", (event) => this.handleInput(event));
+        this.contentSpan.addEventListener("blur", (event) => this.handleBlur(event));
     }
-    handleInput() {
-        this.suggestion.update(this.contentSpan.textContent);
-        this.content = this.contentSpan.textContent.trim();
-        this.save();
+    handleFocus(event) {
+        this.contentSpan.innerHTML = this.content;
+        this.contentSpan.focus();
+        this.suggestion.update(this.content);
     }
     handleKeyDown(event) {
-        if (event.key === 'Enter') {
+        if (event.key === "Enter") {
             this.handleEnterKey(event);
-        } else if (event.key === 'Tab') {
+        } else if (event.key === "Tab") {
             this.handleTabKey(event);
-        } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-            this.handleArrowKey(event);
+        } else if (event.key === "ArrowUp") {
+            this.moveFocus(-1);
+        } else if (event.key === "ArrowDown") {
+            this.moveFocus(1);
+        } else if (event.key === "Escape") {
+            this.handleEscapeKey(event);
         }
     }
     handleEnterKey(event) {
         event.preventDefault();
         this.contentSpan.blur();
-        this.save();
         if (event.shiftKey) {
-            console.log('Shift + Enter pressed');
+            console.log("Shift + Enter pressed");
         } else {
-            console.log('Enter pressed without Shift');
-            const newNoteUuid = crypto.randomUUID();
-            this.parentNote ? this.parentNote.addChild(newNoteUuid, this.uuid) : this.addChild(newNoteUuid);
+            console.log("Enter pressed without Shift");
+            if (this.parentNote) {
+                const index = this.parentNote.children.indexOf(this);
+                this.parentNote.createChild(index + 1);
+            } else {
+                this.createChild();
+            }
         }
     }
     handleTabKey(event) {
         event.preventDefault();
-        this.save();
         if (event.shiftKey) {
-            console.log('Shift + Tab pressed');
+            console.log("Shift + Tab pressed");
+            const grandparentNote = this.parentNote.parentNote;
+            if (grandparentNote) {
+                const index = grandparentNote.children.indexOf(this.parentNote);
+                this.moveTo(grandparentNote, index - 1);
+            }
         } else {
-            console.log('Tab pressed without Shift');
+            console.log("Tab pressed without Shift");
             if (this.parentNote) {
                 const index = this.parentNote.children.indexOf(this);
-                this.moveTo(this.parentNote.children[index - 1].uuid);
+                this.moveTo(this.parentNote.children[index - 1]);
             }
         }
     }
-    handleArrowKey(event) {
-        event.preventDefault();
-        console.log(`Arrow key pressed: ${event.key}`);
-        this.save();
-        if (!this.parentNote) return;
-        const index = this.parentNote.children.indexOf(this);
-        let nextIndex = index;
-        if (event.key === 'ArrowUp' && index > 0) nextIndex--;
-        if (event.key === 'ArrowDown' && index < this.parentNote.children.length - 1) nextIndex++;
+    moveFocus(direction) {
         this.contentSpan.blur();
-        this.parentNote.children[nextIndex].contentSpan.focus();
+        if (direction === 0) {
+            this.contentSpan.focus();
+        } else if (0 < direction && direction <= this.children.length) {
+            const index = direction - 1;
+            const target = this.children[index];
+            target.contentSpan.focus();
+            this.collapse();
+            target.expand();
+        } else if (this.parentNote) {
+            const index = this.parentNote.children.indexOf(this);
+            let newDirection = direction + (index + 1);
+            if (0 < direction) newDirection -= this.children.length;
+            this.parentNote.moveFocus(newDirection);
+        } else {
+            console.warn("Cannot move focus, no note found");
+            this.contentSpan.focus();
+        }
+    }
+    handleEscapeKey(event) {
+        event.preventDefault();
+        this.contentSpan.blur();
+    }
+    async handleInput(event) {
+        this.content = this.contentSpan.textContent.trim();
+        if (await this.save()) {
+            this.suggestion.update(this.content);
+        }
+    }
+    handleBlur(event) {
+        this.content = this.contentSpan.textContent.trim();
+        this.save();
+        this.renderContent();
+        this.suggestion.div.style.display = "none";
     }
     renderContent() {
-        this.contentSpan.innerHTML = '';
-        if (this.content.startsWith('http://') || this.content.startsWith('https://')) {
-            const link = document.createElement('a');
+        this.contentSpan.innerHTML = "";
+        if (
+            this.content.startsWith("http://") ||
+            this.content.startsWith("https://")
+        ) {
+            const link = document.createElement("a");
             link.href = this.content;
             link.textContent = this.content;
-            link.target = '_blank';
+            link.target = "_blank";
             this.contentSpan.appendChild(link);
         } else if (false) {
-            console.log('how did you get here?');
+            console.log("how did you get here?");
         } else {
             this.contentSpan.textContent = this.content;
         }
     }
-    getRelativeSet(n=1, noteSet = new Set()) {
-        // n --;
-        noteSet.add(this);
-        if (this.parentNote) {
-            noteSet.add(this.parentNote);
-            this.parentNote.children.forEach(child => noteSet.add(child));
-        }
-        this.children.forEach(child => noteSet.add(child));
-        // if (n > 0) {
-        //     noteSet.forEach(note => {
-        //         const relativeSet = note.getRelativeSet(n, noteSet);
-        //         relativeSet.forEach(relativeNote => noteSet.add(relativeNote));
-        //     });
-        // }
-        return noteSet;
-    }
-    moveTo(newParentUuid, index = 0) {
-        console.log(`Moving note ${this.uuid} from ${this.parentNote ? this.parentNote.uuid : 'root'} to ${newParentUuid}`);
-        if (!this.parentNote) return console.warn('Cannot move root note');
-        const noteArray = Array.from(this.getRelativeSet());
-        // this.parentNote.deleteChild(this.uuid);
-        // this.parentNote = noteArray.find(note => note.uuid === newParentUuid);
-        // const elderSibling = this.parentNote.children.find((child, index, siblings) => {
-        //     return siblings(index + 1) === this.uuid;
-        // });
-        this.parentNote.children = this.parentNote.children.filter((child, index, siblings) => {
-            if (child.uuid === this.uuid) {
-                child.container.remove();
-                return false;
-            } else if (siblings[index] && siblings[index].uuid === newParentUuid) {
-                // elderSibling = child;
-                this.parentNote = child;
-                this.parentNote.addChild(this.uuid, siblings[index + 1].uuid, -1);
-            }
-            return true;
-        })
-        // this.parentNote.addChild(this.uuid, elderSibling);
+    moveTo(newParent, index = 0) {
+        console.log(
+            `Moving note ${this.uuid} from ${this.parentNote || "root"} to ${newParent}`
+        );
+        if (!this.parentNote) return console.warn("Cannot move root note");
+        if (!newParent) return console.warn("Cannot move to null parent note");
+        this.parentNote.children = this.parentNote.children.filter((child) => child !== this);
+        this.container.remove();
+        this.parentNote.save();
+        this.parentNote = newParent;
+        this.parentNote.children.splice(index, 0, this);
+        this.parentNote.childrenDiv.insertBefore(this.container, this.parentNote.childrenDiv.children[index]);
+        this.parentNote.save();
+        this.parentNote.expand();
+        this.contentSpan.focus();
     }
     initChildren() {
-        this.childrenDiv = document.createElement('div');
-        this.childrenDiv.className = 'note-children';
-        this.children.forEach(async (childNote) => this.childrenDiv.appendChild(await childNote.init()));
+        this.childrenDiv = document.createElement("div");
+        this.childrenDiv.className = "";
+        setStyles(this.childrenDiv, {
+            flexDirection: "column",
+            marginLeft: "1.5em",
+            fontSize: "inherit",
+        });
+        this.children.forEach(async (childNote) =>
+            this.childrenDiv.appendChild(await childNote.init())
+        );
         return this.childrenDiv;
     }
-    async addChild(childUuid, siblingUuid) {
+    async addChild(childNote, index = 0) {
         console.log(`Adding child note to ${this.uuid}`);
-        const uuid = childUuid;
-        const index = siblingUuid ? this.children.findIndex(child => child.uuid === siblingUuid) + 1 : 0;
-        const childNote = new Note(uuid, this, this.fontSize * 0.8, false);
         this.children.splice(index, 0, childNote);
-        this.childrenDiv.insertBefore(await childNote.init(), this.childrenDiv.children[index] || null);
-        this.save();
+        this.childrenDiv.insertBefore(
+            await childNote.init(),
+            this.childrenDiv.children[index] || null
+        );
+        db.put("notes", this.createNoteData());
         childNote.contentSpan.focus();
+    }
+    async createChild(index = 0) {
+        const newNoteUuid = crypto.randomUUID();
+        const newNote = new Note(newNoteUuid, this, false);
+        return await this.addChild(newNote, index);
     }
 }
 
@@ -249,9 +306,9 @@ class Menu {
         this.note = note;
     }
     init() {
-        this.div = document.createElement('div');
-        this.div.className = 'note-menu radius hover';
-        this.div.style.display = 'none';
+        this.div = document.createElement("div");
+        this.div.className = "note-menu radius hover";
+        this.div.style.display = "none";
         this.div.appendChild(this.initAddChildButton());
         this.div.appendChild(this.initDeleteButton());
         this.div.appendChild(this.initSyncButton());
@@ -259,42 +316,38 @@ class Menu {
         return this.div;
     }
     initAddChildButton() {
-        this.addChildButton = document.createElement('img');
-        this.addChildButton.src = 'icons/add.svg';
-        this.addChildButton.className = 'button hover';
-        this.addChildButton.addEventListener('click', () => {
-            console.log('Add child button clicked for note:', this.note.uuid);
-            this.note.addChild();
+        this.addChildButton = document.createElement("img");
+        this.addChildButton.src = "icons/add.svg";
+        this.addChildButton.className = "button hover";
+        this.addChildButton.addEventListener("click", () => {
+            console.log("Add child button clicked for note:", this.note.uuid);
         });
         return this.addChildButton;
     }
     initDeleteButton() {
-        this.deleteButton = document.createElement('img');
-        this.deleteButton.src = 'icons/delete.svg';
-        this.deleteButton.className = 'button hover';
-        this.deleteButton.addEventListener('click', () => {
-            console.log('Delete button clicked for note:', this.note.uuid);
-            this.note.delete();
+        this.deleteButton = document.createElement("img");
+        this.deleteButton.src = "icons/delete.svg";
+        this.deleteButton.className = "button hover";
+        this.deleteButton.addEventListener("click", () => {
+            console.log("Delete button clicked for note:", this.note.uuid);
         });
         return this.deleteButton;
     }
     initSyncButton() {
-        this.syncButton = document.createElement('img');
-        this.syncButton.src = 'icons/sync.svg';
-        this.syncButton.className = 'button hover';
-        this.syncButton.addEventListener('click', () => {
-            console.log('Sync button clicked for note:', this.note.uuid);
-            this.note.sync();
+        this.syncButton = document.createElement("img");
+        this.syncButton.src = "icons/sync.svg";
+        this.syncButton.className = "button hover";
+        this.syncButton.addEventListener("click", () => {
+            console.log("Sync button clicked for note:", this.note.uuid);
         });
         return this.syncButton;
     }
     initDownloadButton() {
-        this.downloadButton = document.createElement('img');
-        this.downloadButton.src = 'icons/download.svg';
-        this.downloadButton.className = 'button hover';
-        this.downloadButton.addEventListener('click', () => {
-            console.log('Download button clicked for note:', this.note.uuid);
-            this.note.download();
+        this.downloadButton = document.createElement("img");
+        this.downloadButton.src = "icons/download.svg";
+        this.downloadButton.className = "button hover";
+        this.downloadButton.addEventListener("click", () => {
+            console.log("Download button clicked for note:", this.note.uuid);
         });
         return this.downloadButton;
     }
@@ -308,19 +361,19 @@ class Suggestion {
     }
     async update(content) {
         // console.log('Updating suggestion with content:', content);
-        this.result = await db.search('notes', content.trim());
+        this.result = await db.search("notes", content.trim());
         this.renderSuggestion();
     }
     renderSuggestion() {
-        this.div = document.createElement('div');
-        this.div.className = 'suggestion';
-        this.div.style.display = this.result.length > 0 ? 'block' : 'none';
+        this.div = document.createElement("div");
+        this.div.className = "suggestion";
+        this.div.style.display = this.result.length > 0 ? "block" : "none";
         for (const note of this.result) {
-            const noteDiv = document.createElement('div');
-            noteDiv.className = 'suggestion-note';
+            const noteDiv = document.createElement("div");
+            noteDiv.className = "suggestion-note";
             noteDiv.textContent = note.content;
-            noteDiv.addEventListener('click', () => {
-                console.log('Suggestion clicked:', note.uuid);
+            noteDiv.addEventListener("click", () => {
+                console.log("Suggestion clicked:", note.uuid);
                 this.note.uuid = note.uuid;
                 this.note.renderContent();
             });
@@ -329,6 +382,7 @@ class Suggestion {
     }
 }
 
+// IndexedDB wrapper class
 class IDB {
     static db = null;
     constructor(dbName, version = 1) {
@@ -336,7 +390,7 @@ class IDB {
         this.version = version;
     }
     async init(schemas) {
-        if (IDB.db) return this.db = IDB.db;
+        if (IDB.db) return (this.db = IDB.db);
         this.schemas = schemas;
         const request = window.indexedDB.open(this.dbName, this.version);
         request.onupgradeneeded = (event) => {
@@ -345,38 +399,45 @@ class IDB {
                 if (!this.db.objectStoreNames.contains(name)) {
                     console.log(`Creating object store: ${name}`);
                     const objectStore = this.db.createObjectStore(name, schema.options);
-                    schema.indexes.forEach(index => objectStore.createIndex(index.name, index.name, { unique: index.unique }));
+                    schema.indexes.forEach((index) =>
+                        objectStore.createIndex(index.name, index.name, {
+                            unique: index.unique,
+                        })
+                    );
                 }
             });
-            console.log('Object stores created:', this.db.objectStoreNames);
-        }
+            console.log("Object stores created:", this.db.objectStoreNames);
+        };
         return new Promise((resolve, reject) => {
             request.onsuccess = (event) => {
                 this.db = event.target.result;
-                console.log('Database opened successfully:', this.db);
+                console.log("Database opened successfully:", this.db);
                 resolve(this.db);
             };
             request.onerror = (event) => {
-                console.error('Error opening database:', event.target.error);
+                console.error("Error opening database:", event.target.error);
                 reject(event.target.error);
             };
         });
     }
     createObjectStore(storeName, options) {
-        const transaction = this.db.transaction(this.db.objectStoreNames, 'versionchange');
+        const transaction = this.db.transaction(
+            this.db.objectStoreNames,
+            "versionchange"
+        );
         const objectStore = transaction.objectStore(storeName);
         if (!objectStore) {
             console.log(`Creating object store: ${storeName}`);
             const newObjectStore = this.db.createObjectStore(storeName, options);
         }
     }
-    getObjectStore(storeName, mode = 'readonly') {
-        if (!this.db) throw new Error('Database not initialized');
+    getObjectStore(storeName, mode = "readonly") {
+        if (!this.db) throw new Error("Database not initialized");
         const transaction = this.db.transaction(storeName, mode);
         return transaction.objectStore(storeName);
     }
     async getByKey(storeName, key) {
-        const objectStore = await this.getObjectStore(storeName, 'readonly');
+        const objectStore = await this.getObjectStore(storeName, "readonly");
         // return new Promise((resolve, reject) => {
         //     const request = objectStore.get(key);
         //     request.onsuccess = (event) => resolve(event.target.result);
@@ -389,13 +450,13 @@ class IDB {
         return new Promise((resolve, reject) => {
             request.onsuccess = (event) => resolve(event.target.result);
             request.onerror = (event) => {
-                console.error('Error getting data:', event.target.error);
+                console.error("Error getting data:", event.target.error);
                 reject(event.target.error);
             };
         });
     }
     async search(storeName, query) {
-        const objectStore = await this.getObjectStore(storeName, 'readonly');
+        const objectStore = await this.getObjectStore(storeName, "readonly");
         return new Promise((resolve, reject) => {
             const results = [];
             const request = objectStore.openCursor();
@@ -411,62 +472,62 @@ class IDB {
                 }
             };
             request.onerror = (event) => {
-                console.error('Error searching data:', event.target.error);
+                console.error("Error searching data:", event.target.error);
                 reject(event.target.error);
             };
         });
     }
     async getAll(storeName) {
-        const objectStore = await this.getObjectStore(storeName, 'readonly');
+        const objectStore = await this.getObjectStore(storeName, "readonly");
         return new Promise((resolve, reject) => {
             const request = objectStore.getAll();
             request.onsuccess = (event) => resolve(event.target.result);
             request.onerror = (event) => {
-                console.error('Error getting all data:', event.target.error);
+                console.error("Error getting all data:", event.target.error);
                 reject(event.target.error);
             };
         });
     }
     async add(storeName, data) {
-        const objectStore = await this.getObjectStore(storeName, 'readwrite');
+        const objectStore = await this.getObjectStore(storeName, "readwrite");
         return new Promise((resolve, reject) => {
             const request = objectStore.add(data);
             request.onsuccess = (event) => resolve(event.target.result);
             request.onerror = (event) => {
-                console.error('Error adding data:', event.target.error);
+                console.error("Error adding data:", event.target.error);
                 reject(event.target.error);
             };
         });
     }
     async put(storeName, data) {
-        const objectStore = await this.getObjectStore(storeName, 'readwrite');
+        const objectStore = await this.getObjectStore(storeName, "readwrite");
         return new Promise((resolve, reject) => {
             const request = objectStore.put(data);
             request.onsuccess = (event) => resolve(event.target.result);
             request.onerror = (event) => {
-                console.error('Error putting data:', event.target.error);
+                console.error("Error putting data:", event.target.error);
                 reject(event.target.error);
             };
         });
     }
     async delete(storeName, key) {
-        const objectStore = await this.getObjectStore(storeName, 'readwrite');
+        const objectStore = await this.getObjectStore(storeName, "readwrite");
         return new Promise((resolve, reject) => {
             const request = objectStore.delete(key);
             request.onsuccess = (event) => resolve(event.target.result);
             request.onerror = (event) => {
-                console.error('Error deleting data:', event.target.error);
+                console.error("Error deleting data:", event.target.error);
                 reject(event.target.error);
             };
         });
     }
     async clear(storeName) {
-        const objectStore = await this.getObjectStore(storeName, 'readwrite');
+        const objectStore = await this.getObjectStore(storeName, "readwrite");
         return new Promise((resolve, reject) => {
             const request = objectStore.clear();
             request.onsuccess = (event) => resolve(event.target.result);
             request.onerror = (event) => {
-                console.error('Error clearing data:', event.target.error);
+                console.error("Error clearing data:", event.target.error);
                 reject(event.target.error);
             };
         });
@@ -475,109 +536,129 @@ class IDB {
 
 // button handlers
 function home() {
-    console.log('Home button clicked');
-    const homeUuid = localStorage.getItem('homeUuid');
+    console.log("Home button clicked");
+    const homeUuid = localStorage.getItem("homeUuid");
     if (homeUuid) {
-        console.log('Navigating to home UUID:', homeUuid);
+        console.log("Navigating to home UUID:", homeUuid);
         location.search = `?uuid=${homeUuid}`;
         route();
     } else {
-        location.search = '';
+        location.search = "";
         route();
     }
 }
 class Settings {
-    constructor(show = false) {
-        console.log(`Initializing Settings (show: ${show})`);
-        if (document.getElementById('settingsDiv')) {
-            this.div = document.getElementById('settingsDiv');
-        } else {
-            // document.body.appendChild(this.initDiv());
-            this.initDiv();
+    static instance = null;
+    constructor(isShowing = false) {
+        if (Settings.instance) {
+            console.warn(
+                "Settings instance already exists, returning existing instance"
+            );
+            return Settings.instance;
         }
-        if (show) this.toggle();
+        Settings.instance = this;
+        this.isShowing = isShowing;
+        this.initDiv();
     }
     async initDiv() {
-        this.div = document.createElement('div');
-        this.div.className = 'settingsDiv radius hover-shadow';
-        this.div.style.display = 'none';
-        this.div.id = 'settingsDiv';
-        const title = document.createElement('h2');
-        title.textContent = 'Settings';
-        this.div.appendChild(title);
+        this.div = this.createDiv();
+        this.isShowing ? this.show() : this.hide();
+        this.div.appendChild(document.createElement("h2")).textContent = "Settings";
         this.div.appendChild(this.initCloseButton());
-        const urlsTitle = document.createElement('h3');
-        urlsTitle.textContent = 'API URLs';
-        this.div.appendChild(urlsTitle);
         this.div.appendChild(await this.initUrlList());
-        this.div.appendChild(document.createElement('h3')).textContent = 'Theme';
         this.div.appendChild(this.initThemeButton());
-        // return this.div;
         document.body.appendChild(this.div);
     }
+    createDiv() {
+        this.div = document.createElement("div");
+        this.div.id = "settingsDiv";
+        this.div.className = "radius hover-shadow";
+        setStyles(this.div, {
+            display: "none",
+            flexDirection: "column",
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            fontSize: "0.4em",
+            padding: "1em",
+            zIndex: "1000",
+            width: "min(30em, 90vw)",
+            backgroundColor: "var(--sub-background)",
+        });
+        return this.div;
+    }
     initCloseButton() {
-        this.closeButton = document.createElement('img');
-        this.closeButton.src = 'icons/cancel.svg';
-        this.closeButton.className = 'icon button hover';
-        this.closeButton.style.fontSize = '30px';
-        this.closeButton.style.position = 'absolute';
-        this.closeButton.style.top = '1em';
-        this.closeButton.style.right = '1em';
-        this.closeButton.addEventListener('click', () => this.toggle());
+        this.closeButton = document.createElement("img");
+        this.closeButton.src = "icons/cancel.svg";
+        this.closeButton.className = "icon button hover";
+        setStyles(this.closeButton, {
+            fontSize: "30px",
+            position: "absolute",
+            top: "1em",
+            right: "1em",
+        });
+        this.closeButton.addEventListener("click", () => this.hide());
         return this.closeButton;
     }
-    initThemeButton() {
-        if (!localStorage.getItem('theme')) localStorage.setItem('theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        this.themeButton = document.createElement('img');
-        this.themeButton.src = `icons/${localStorage.getItem('theme') === 'dark' ? 'light' : 'dark'}.svg`;
-        this.themeButton.className = 'icon button hover';
-        this.themeButton.style.fontSize = '30px';
-        this.themeButton.addEventListener('click', () => this.toggleTheme());
-        return this.themeButton;
+    show() {
+        this.isShowing = true;
+        this.div.style.display = "flex";
+        const url = new URL(window.location);
+        url.hash = "#settings";
+        window.history.replaceState({}, "", url.toString());
     }
-    toggleTheme() {
-        this.themeButton.src = `icons/${localStorage.getItem('theme')}.svg`;
-        localStorage.setItem('theme', localStorage.getItem('theme') === 'dark' ? 'light' : 'dark');
-        console.log(`Theme changed to: ${localStorage.getItem('theme')}`);
-        document.documentElement.classList = localStorage.getItem('theme');
+    hide() {
+        this.isShowing = false;
+        this.div.style.display = "none";
+        const url = new URL(window.location);
+        url.hash = "";
+        window.history.replaceState({}, "", url.toString());
     }
     async initUrlList() {
-        this.urlList = document.createElement('div');
-        this.urlList.className = 'api-url-list';
-        this.apiUrls = await db.getAll('apiUrls');
-        this.apiUrls.forEach(apiUrl => {
+        this.urlList = document.createElement("div");
+        const urlListTitle = document.createElement("h3");
+        urlListTitle.textContent = "API URLs";
+        urlListTitle.style.margin = "0.5em 0";
+        this.urlList.appendChild(urlListTitle);
+        this.apiUrls = await db.getAll("apiUrls");
+        this.apiUrls.forEach((apiUrl) => {
             this.urlList.appendChild(this.initUrl(apiUrl));
         });
         this.urlList.appendChild(this.initAddButton());
         return this.urlList;
     }
     initUrl(apiUrl) {
-        const urlDiv = document.createElement('div');
-        urlDiv.className = 'api-url hover radius';
-        urlDiv.style.position = 'relative';
-        urlDiv.style.padding = '0.5em';
-        const urlSpan = document.createElement('span');
-        urlSpan.className = 'api-url-text';
+        const urlDiv = document.createElement("div");
+        urlDiv.className = "hover radius";
+        setStyles(urlDiv, {
+            position: "relative",
+            margin: "0.2em",
+            padding: "0.2em 0.5em",
+            backgroundColor: "var(--main-background)",
+        });
+        const urlSpan = document.createElement("span");
+        urlSpan.className = "api-url-text";
         urlSpan.textContent = apiUrl.url;
         urlDiv.appendChild(urlSpan);
-        const removeButton = document.createElement('img');
-        removeButton.src = 'icons/cancel.svg';
-        removeButton.className = 'icon button hover';
-        removeButton.style.position = 'absolute';
-        removeButton.style.right = '0.5em';
-        removeButton.addEventListener('click', () => {
-            db.delete('apiUrls', apiUrl.url);
+        const removeButton = document.createElement("img");
+        removeButton.src = "icons/cancel.svg";
+        removeButton.className = "icon button hover";
+        removeButton.style.position = "absolute";
+        removeButton.style.right = "0.5em";
+        removeButton.addEventListener("click", () => {
+            db.delete("apiUrls", apiUrl.url);
             urlDiv.remove();
         });
         urlDiv.appendChild(removeButton);
         return urlDiv;
     }
     initAddButton() {
-        const addUrl = document.createElement('img');
-        addUrl.src = 'icons/add.svg';
-        addUrl.className = 'icon button hover';
-        addUrl.addEventListener('click', () => {
-            const url = prompt('Enter API URL:');
+        const addUrl = document.createElement("img");
+        addUrl.src = "icons/add.svg";
+        addUrl.className = "icon button hover";
+        addUrl.addEventListener("click", () => {
+            const url = prompt("Enter API URL:");
             if (url && this.validateAndSaveUrl(url)) {
                 // this.urlList.appendChild(this.initUrl(url));
                 this.urlList.insertBefore(this.initUrl(url), this.urlList.lastChild);
@@ -588,66 +669,88 @@ class Settings {
     validateAndSaveUrl(url) {
         try {
             new URL(url);
-            db.add('apiUrls', { url, addedAt: new Date().toISOString() });
+            db.add("apiUrls", { url, addedAt: new Date().toISOString() });
             return true;
         } catch (e) {
             return false;
         }
     }
-    toggle() {
-        if (this.div.style.display === 'block') {
-            this.div.style.display = 'none';
-            const url = new URL(window.location);
-            url.hash = '';
-            window.history.replaceState({}, '', url.toString());
-        } else {
-            this.div.style.display = 'block';
-            const url = new URL(window.location);
-            url.hash = '#settings';
-            window.history.replaceState({}, '', url.toString());
-        }
+    initThemeButton() {
+        const themeTitle = document.createElement("h3");
+        themeTitle.textContent = "Theme";
+        themeTitle.style.margin = "0.5em 0";
+        this.div.appendChild(themeTitle);
+        if (!localStorage.getItem("theme")) localStorage.setItem("theme", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        this.themeButton = document.createElement("img");
+        this.themeButton.src = `icons/${localStorage.getItem("theme") === "dark" ? "light" : "dark"}.svg`;
+        this.themeButton.className = "icon button hover";
+        setStyles(this.themeButton, {
+            fontSize: "1.5em",
+            margin: "0.5em 1em",
+        });
+        this.themeButton.addEventListener("click", () => this.toggleTheme());
+        return this.themeButton;
+    }
+    toggleTheme() {
+        this.themeButton.src = `icons/${localStorage.getItem("theme")}.svg`;
+        localStorage.setItem("theme", localStorage.getItem("theme") === "dark" ? "light" : "dark");
+        document.documentElement.classList = localStorage.getItem("theme");
     }
 }
 async function syncWithApis() {
-    const urls = await db.getAll('apiUrls').then(urls => urls.map(urlObj => urlObj.url));
-    if (urls.length === 0) return alert('No API URLs configured. Please add an API URL in settings.');
+    const urls = await db
+        .getAll("apiUrls")
+        .then((urls) => urls.map((urlObj) => urlObj.url));
+    if (urls.length === 0)
+        return alert("No API URLs configured. Please add an API URL in settings.");
     console.log(`Syncing with API at ${urls}`);
-    const localNotes = await db.getAll('notes');
+    const localNotes = await db.getAll("notes");
     try {
-        const remoteNotesArray = await Promise.all(urls.map(async url => {
-            const response = await fetch(`${url}/sync`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(localNotes)
-            });
-            if (!response.ok) {
-                throw new Error(`Failed to sync with ${url}: ${response.statusText}`);
-            }
-            const remoteNotes = JSON.parse(await response.text());
-            return remoteNotes;
-        }));
+        const remoteNotesArray = await Promise.all(
+            urls.map(async (url) => {
+                const response = await fetch(`${url}/sync`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(localNotes),
+                });
+                if (!response.ok) {
+                    throw new Error(`Failed to sync with ${url}: ${response.statusText}`);
+                }
+                const remoteNotes = JSON.parse(await response.text());
+                return remoteNotes;
+            })
+        );
         const remoteNotes = remoteNotesArray.flat();
-        await Promise.all(remoteNotes.map(async (remoteNote) => {
-            const localNote = localNotes.find(note => note.uuid === remoteNote.uuid);
-            if (!localNote || new Date(localNote.updatedAt) < new Date(remoteNote.updatedAt)) {
-                await db.put('notes', remoteNote);
-            }
-        }));
+        await Promise.all(
+            remoteNotes.map(async (remoteNote) => {
+                const localNote = localNotes.find(
+                    (note) => note.uuid === remoteNote.uuid
+                );
+                if (
+                    !localNote ||
+                    new Date(localNote.updatedAt) < new Date(remoteNote.updatedAt)
+                ) {
+                    await db.put("notes", remoteNote);
+                }
+            })
+        );
     } catch (error) {
         console.error(error);
     } finally {
-        console.log('Sync completed');
+        console.log("Sync completed");
     }
 }
 async function download() {
-    console.log('Downloading notes...');
-    const notes = await db.getAll('notes');
-    if (notes.length === 0) return alert('No notes to download.');
-    const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
+    console.log("Downloading notes...");
+    const notes = await db.getAll("notes");
+    if (notes.length === 0) return alert("No notes to download.");
+    const blob = new Blob([JSON.stringify(notes, null, 2)], {
+        type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `notes-${new Date().toISOString()}.json`;
     document.body.appendChild(a);
@@ -655,46 +758,57 @@ async function download() {
     document.body.removeChild(a);
 }
 async function upload() {
-    console.log('Uploading notes...');
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.addEventListener('change', async (event) => {
+    console.log("Uploading notes...");
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.addEventListener("change", async (event) => {
         const file = event.target.files[0];
         if (!file) return;
-        if (file.type !== 'application/json') {
-            return alert('Please upload a valid JSON file.');
+        if (file.type !== "application/json") {
+            return alert("Please upload a valid JSON file.");
         }
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const notes = JSON.parse(e.target.result);
                 if (!Array.isArray(notes)) {
-                    return alert('Invalid file format. Please upload a valid JSON file containing an array of notes.');
+                    return alert(
+                        "Invalid file format. Please upload a valid JSON file containing an array of notes."
+                    );
                 }
-                await Promise.all(notes.map(async (note) => {
-                    if (!note.uuid || !note.content || !note.createdAt || !note.updatedAt) {
-                        return alert('Invalid note format in uploaded file.');
-                    }
-                    const existingNote = await db.getByKey('notes', note.uuid);
-                    if (existingNote) {
-                        if (new Date(existingNote.updatedAt) < new Date(note.updatedAt)) {
-                            await db.put('notes', note);
+                await Promise.all(
+                    notes.map(async (note) => {
+                        if (
+                            !note.uuid ||
+                            !note.content ||
+                            !note.createdAt ||
+                            !note.updatedAt
+                        ) {
+                            return alert("Invalid note format in uploaded file.");
                         }
-                    } else {
-                        await db.add('notes', note);
-                    }
-                }));
-                alert('Notes uploaded successfully.');
+                        const existingNote = await db.getByKey("notes", note.uuid);
+                        if (existingNote) {
+                            if (new Date(existingNote.updatedAt) < new Date(note.updatedAt)) {
+                                await db.put("notes", note);
+                            }
+                        } else {
+                            await db.add("notes", note);
+                        }
+                    })
+                );
+                alert("Notes uploaded successfully.");
                 location.reload();
             } catch (error) {
-                console.error('Error uploading notes:', error);
-                alert('Failed to upload notes. Please ensure the file is a valid JSON file.');
+                console.error("Error uploading notes:", error);
+                alert(
+                    "Failed to upload notes. Please ensure the file is a valid JSON file."
+                );
             }
         };
         reader.onerror = (error) => {
-            console.error('Error reading file:', error);
-            alert('Failed to read file. Please try again.');
+            console.error("Error reading file:", error);
+            alert("Failed to read file. Please try again.");
         };
         reader.readAsText(file);
     });
@@ -703,9 +817,9 @@ async function upload() {
 
 // Main initialization function
 async function init() {
-    console.log('Initializing application...');
+    console.log("Initializing application...");
     await Promise.all([
-        new Promise(resolve => addEventListener('DOMContentLoaded', resolve)),
+        new Promise((resolve) => addEventListener("DOMContentLoaded", resolve)),
         initDB(),
     ]);
     await route();
@@ -713,76 +827,77 @@ async function init() {
 const dbSchemas = {
     notes: {
         options: {
-            keyPath: 'uuid',
-            autoIncrement: false
+            keyPath: "uuid",
+            autoIncrement: false,
         },
         indexes: [
-            { name: 'uuid', unique: true },
-            { name: 'content', unique: false },
-            { name: 'createdAt', unique: false },
-            { name: 'updatedAt', unique: false }
-        ]
+            { name: "uuid", unique: true },
+            { name: "content", unique: false },
+            { name: "createdAt", unique: false },
+            { name: "updatedAt", unique: false },
+        ],
     },
     apiUrls: {
         options: {
-            keyPath: 'url'
+            keyPath: "url",
         },
-        indexes: [
-            { name: 'url', unique: true }
-        ]
-    }
+        indexes: [{ name: "url", unique: true }],
+    },
 };
 const defaultApiUrls = [
     {
-        url: 'https://api.example.com/sync',
-        name: 'Example API',
-        addedAt: new Date().toISOString()
+        url: "https://api.example.com/sync",
+        name: "Example API",
+        addedAt: new Date().toISOString(),
     },
     {
-        url: 'https://api.anotherexample.com/sync',
-        name: 'Another Example API',
-        addedAt: new Date().toISOString()
-    }
+        url: "https://api.anotherexample.com/sync",
+        name: "Another Example API",
+        addedAt: new Date().toISOString(),
+    },
 ];
 async function initDB() {
     await db.init(dbSchemas);
-    await Promise.all(defaultApiUrls.map(async apiUrl => {
-        const existingUrl = await db.getByKey('apiUrls', apiUrl.url);
-        if (!existingUrl) await db.add('apiUrls', apiUrl);
-        return;
-    }));
+    await Promise.all(
+        defaultApiUrls.map(async (apiUrl) => {
+            const existingUrl = await db.getByKey("apiUrls", apiUrl.url);
+            if (!existingUrl) await db.add("apiUrls", apiUrl);
+            return;
+        })
+    );
 }
 async function route() {
-    document.documentElement.classList = localStorage.getItem('theme');
+    document.documentElement.classList = localStorage.getItem("theme");
     const url = new URL(window.location);
-    initEventListeners(url.hash === '#settings');
+    initEventListeners(url.hash === "#settings");
     let uuid;
-    if (url.searchParams.has('uuid')) {
-        uuid = url.searchParams.get('uuid');
+    if (url.searchParams.has("uuid")) {
+        uuid = url.searchParams.get("uuid");
     } else {
-        uuid = localStorage.getItem('homeUuid') || crypto.randomUUID();
-        if (!localStorage.getItem('homeUuid')) localStorage.setItem('homeUuid', uuid);
-        url.searchParams.set('uuid', uuid);
-        window.history.replaceState({}, '', url.toString());
+        uuid = localStorage.getItem("homeUuid") || crypto.randomUUID();
+        if (!localStorage.getItem("homeUuid"))
+            localStorage.setItem("homeUuid", uuid);
+        url.searchParams.set("uuid", uuid);
+        window.history.replaceState({}, "", url.toString());
     }
-    const note = new Note(uuid, null, 30, true);
-    document.querySelector('main').appendChild(await note.init());
-    document.getElementById('loading').style.display = 'none';
+    const note = new Note(uuid, null, true);
+    document.querySelector("main").appendChild(await note.init());
+    document.getElementById("loading").style.display = "none";
     return;
 }
 function initEventListeners(isSettings) {
-    console.log('Initializing event listeners... (isSettings:', isSettings, ')');
-    addEventListener('hashchange', route);
-    addEventListener('popstate', route);
-    addEventListener('DOMContentLoaded', route);
+    console.log("Initializing event listeners... (isSettings:", isSettings, ")");
+    addEventListener("hashchange", route);
+    addEventListener("popstate", route);
+    addEventListener("DOMContentLoaded", route);
     const settings = new Settings(isSettings);
-    document.getElementById('home').addEventListener('click', home);
-    document.getElementById('settings').addEventListener('click', () => settings.toggle());
-    document.getElementById('sync').addEventListener('click', syncWithApis);
-    document.getElementById('download').addEventListener('click', download);
-    document.getElementById('upload').addEventListener('click', upload);
+    document.getElementById("home").addEventListener("click", home);
+    document.getElementById("settings").addEventListener("click", () => settings.show());
+    document.getElementById("sync").addEventListener("click", syncWithApis);
+    document.getElementById("download").addEventListener("click", download);
+    document.getElementById("upload").addEventListener("click", upload);
     return;
 }
 
-const db = new IDB('divein', 1);
+const db = new IDB("divein", 1);
 init();
