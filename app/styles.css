@@ -59,8 +59,6 @@ body {
 
 
 .hover:hover {
-    /* box-shadow: 0.1em 0.1em 0.5em -0.1em rgba(0, 0, 0, 0.5);
-    transition: box-shadow 0.2s ease-in-out; */
     background-color: var(--hover-background);
     transition: background-color 0.2s ease-in-out;
 }
@@ -68,8 +66,6 @@ body {
     box-shadow: 0.1em 0.1em 0.5em -0.1em var(--hover-shadow);
     transition: box-shadow 0.2s ease-in-out;
 }
-
-/* .hover */
 
 .radius {
     border-radius: 0.5rem;
@@ -81,68 +77,10 @@ body {
     height: auto;
 }
 
-.flex {
-    display: flex;
-}
-.flex-column {
-    display: flex;
-    flex-direction: column;
-}
-.flex-row {
-    display: flex;
-    flex-direction: row;
-}
-.none {
-    display: none;
+.padding {
+    padding: 0.2em;
 }
 
-.note-content {
-    display: flex;
-    flex-direction: row;
-    flex-grow: 1;
-    padding: 0.2em;
-    line-height: 1.5em;
-    /* height: 10em; */
-    background-color: var(--sub-background);
-    overflow: hidden;
-    outline: none;
-}
-.toggle-icon {
-    width: 1em;
-    height: 1em;
-    margin-right: 0.2em;
-    cursor: pointer;
-    transition: transform 0.2s ease-in-out;
-}
 img.toggle-icon.expanded {
     transform: rotate(90deg);
-}
-.note-content-span {
-    flex-grow: 1;
-    overflow: hidden;
-    /* text-overflow: ellipsis; */
-    padding: 0.2em;
-    white-space: nowrap;
-    background-color: var(--sub-background);
-}
-.note-children {
-    display: flex;
-    flex-direction: column;
-    padding-left: 1em;
-    /* background-color: lightblue; */
-    background-color: var(--sub-background);
-}
-
-.settingsDiv {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
-    /* height: 20em; */
-    width: 20em;
-    padding: 1em;
-    background-color: var(--sub-background);
 }
