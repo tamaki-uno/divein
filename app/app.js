@@ -110,7 +110,7 @@ class Note {
         this.toggleIcon.src = "icons/toggle.svg";
         this.toggleIcon.className = "icon button hover";
         this.toggleIcon.style.transition = "transform 0.2s ease";
-        this.toggleIcon.addEventListener("click", (event) => this.isExpanded ? this.collapse() : this.expand());
+        this.toggleIcon.addEventListener("click", (event) => (this.isExpanded ? this.collapse() : this.expand()));
         this.toggleIcon.addEventListener("dblclick", (event) => event.stopPropagation());
         return this.toggleIcon;
     }
@@ -137,8 +137,7 @@ class Note {
             padding: "0.2em 0.5em",
             fontSize: "0.8em",
             flexGrow: "1",
-            outline: "none",
-
+            outline: "none"
         });
         this.contentSpan.setAttribute("contenteditable", "true");
         this.suggestion = new Suggestion(this);
@@ -156,7 +155,6 @@ class Note {
     handleFocus(event) {
         this.contentSpan.innerHTML = this.content;
         this.contentSpan.focus();
-        // this.expand();
         this.suggestion.update(this.content);
     }
     handleKeyDown(event) {
@@ -239,7 +237,6 @@ class Note {
         this.save();
         this.renderContent();
         this.suggestion.div.style.display = "none";
-        // this.collapse();
     }
     renderContent() {
         this.contentSpan.innerHTML = "";
