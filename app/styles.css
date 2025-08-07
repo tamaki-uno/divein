@@ -59,7 +59,6 @@ html, body {
     filter: var(--icon-filter);
 }
 
-
 .hover:hover {
     background-color: var(--hover-background);
     transition: background-color 0.2s ease-in-out;
@@ -71,8 +70,4 @@ html, body {
 
 .radius {
     border-radius: 0.5rem;
-}
-
-.padding {
-    padding: 0.2em;
 }

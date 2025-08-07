@@ -8,12 +8,10 @@ function setStyles(Element, styles) {
 }
 
 class Note {
-    // constructor(uuid, parentNote, fontSize = 30, expand = false) {
     constructor(uuid, parentNote, expand = false) {
         this.uuid = uuid;
         this.parentNote = parentNote;
-        // this.fontSize = fontSize;
-        this.isExpanded = !expand;
+        this.isExpanded = expand;
         this.childNotes = [];
     }
     async init() {
@@ -23,7 +21,6 @@ class Note {
     async get() {
         const noteData = await db.getByKey("notes", this.uuid) || this.createNoteData();
         this.content = noteData.content;
-        // this.children = noteData.children.map((childUuid) => new Note(childUuid, this, this.fontSize * 0.8, false));
         this.children = noteData.children.map((childUuid) => new Note(childUuid, this, false));
         this.createdAt = noteData.createdAt;
         this.updatedAt = noteData.updatedAt;
@@ -58,26 +55,20 @@ class Note {
         this.container = this.createContainerElement();
         this.container.appendChild(this.initContent());
         this.container.appendChild(this.initChildren());
-        this.toggle();
+        this.isExpanded ? this.expand() : this.collapse();
         return this.container;
     }
     createContainerElement() {
         const container = document.createElement("div");
         container.id = this.uuid;
-        // container.className = "radius" + (this.isExpanded ? " expanded" : "");
         setStyles(container, {
             display: "flex",
             flexDirection: "column",
-            // fontSize: `${this.fontSize}px`,
-            // fontSize: "0.8em",
-            // fontSize: "0.7em",
-            fontSize: "max(0.7em, 10px)",
+            fontSize: "max(0.7em, 16px)",
             overflow: "hidden",
             position: "relative",
             backgroundColor: "var(--sub-background)",
-            // backgroundColor: "var(--main-background)",
-            // padding: "0.2em",
-            // margin: "0.2em",
+            margin: "0.1rem",
             height: this.isExpanded ? "auto" : "fit-content",
         });
         container.addEventListener("dblclick", this.handleDoubleClick.bind(this));
@@ -99,9 +90,8 @@ class Note {
             flexGrow: "1",
             position: "relative",
             fontSize: "inherit",
-            padding: "0.2em",
+            padding: "0.1rem",
             backgroundColor: "var(--main-background)",
-            height: "2em",
         });
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(this.initContentSpan());
@@ -120,21 +110,12 @@ class Note {
         this.toggleIcon.src = "icons/toggle.svg";
         this.toggleIcon.className = "icon button hover";
         this.toggleIcon.style.transition = "transform 0.2s ease";
-        this.toggleIcon.addEventListener("click", (event) => this.toggle());
+        this.toggleIcon.addEventListener("click", (event) => this.isExpanded ? this.collapse() : this.expand());
         this.toggleIcon.addEventListener("dblclick", (event) => event.stopPropagation());
         return this.toggleIcon;
     }
-    toggle() {
-        console.log(
-            `Toggling note expansion to ${!this.isExpanded} for UUID: ${this.uuid}`
-        );
-        if (this.isExpanded) {
-            this.collapse();
-        } else {
-            this.expand();
-        }
-    }
     expand() {
+        if (this.parentNote) this.parentNote.expand();
         this.isExpanded = true;
         this.toggleIcon.style.transform = "rotate(90deg)";
         this.contentDiv.style.height = "auto";
@@ -144,7 +125,7 @@ class Note {
     collapse() {
         this.isExpanded = false;
         this.toggleIcon.style.transform = "rotate(0deg)";
-        this.contentDiv.style.height = "2em";
+        this.contentDiv.style.height = "1.5em";
         this.contentSpan.style.overflow = "hidden";
         this.childrenDiv.style.display = "none";
     }
@@ -153,11 +134,11 @@ class Note {
         this.contentSpan.className = "radius hover";
         setStyles(this.contentSpan, {
             backgroundColor: "var(--sub-background)",
-            // padding: "0.2em",
-            padding: "0.1em 0.5em",
-            fontSize: "inherit",
+            padding: "0.2em 0.5em",
+            fontSize: "0.8em",
             flexGrow: "1",
-            overflow: "hidden",
+            outline: "none",
+
         });
         this.contentSpan.setAttribute("contenteditable", "true");
         this.suggestion = new Suggestion(this);
@@ -175,6 +156,7 @@ class Note {
     handleFocus(event) {
         this.contentSpan.innerHTML = this.content;
         this.contentSpan.focus();
+        // this.expand();
         this.suggestion.update(this.content);
     }
     handleKeyDown(event) {
@@ -228,7 +210,10 @@ class Note {
             this.contentSpan.focus();
         } else if (0 < direction && direction <= this.children.length) {
             const index = direction - 1;
-            this.children[index].contentSpan.focus();
+            const target = this.children[index];
+            target.contentSpan.focus();
+            this.collapse();
+            target.expand();
         } else if (this.parentNote) {
             const index = this.parentNote.children.indexOf(this);
             let newDirection = direction + (index + 1);
@@ -253,6 +238,8 @@ class Note {
         this.content = this.contentSpan.textContent.trim();
         this.save();
         this.renderContent();
+        this.suggestion.div.style.display = "none";
+        // this.collapse();
     }
     renderContent() {
         this.contentSpan.innerHTML = "";
@@ -291,15 +278,9 @@ class Note {
         this.childrenDiv = document.createElement("div");
         this.childrenDiv.className = "";
         setStyles(this.childrenDiv, {
-            display: "none",
             flexDirection: "column",
-            // backgroundColor: "var(--main-background)",
-            // backgroundColor: "var(--sub-background)",
-            // padding: "0.2em",
             marginLeft: "1.5em",
-            // paddingLeft: "1.5em",
             fontSize: "inherit",
-            // overflow: "hidden",
         });
         this.children.forEach(async (childNote) =>
             this.childrenDiv.appendChild(await childNote.init())
@@ -318,8 +299,6 @@ class Note {
     }
     async createChild(index = 0) {
         const newNoteUuid = crypto.randomUUID();
-        // const newFontSize = Math.max(this.fontSize * 0.8, 10);
-        // const newNote = new Note(newNoteUuid, this, newFontSize, false);
         const newNote = new Note(newNoteUuid, this, false);
         return await this.addChild(newNote, index);
     }
@@ -586,13 +565,10 @@ class Settings {
     }
     async initDiv() {
         this.div = this.createDiv();
-        // if (this.isShowing) this.toggle();
-        this.isShowing = !this.isShowing;
-        this.toggle();
+        this.isShowing ? this.show() : this.hide();
         this.div.appendChild(document.createElement("h2")).textContent = "Settings";
         this.div.appendChild(this.initCloseButton());
         this.div.appendChild(await this.initUrlList());
-        this.div.appendChild(document.createElement("h3")).textContent = "Theme";
         this.div.appendChild(this.initThemeButton());
         document.body.appendChild(this.div);
     }
@@ -619,41 +595,34 @@ class Settings {
         this.closeButton = document.createElement("img");
         this.closeButton.src = "icons/cancel.svg";
         this.closeButton.className = "icon button hover";
-        this.closeButton.style.fontSize = "30px";
-        this.closeButton.style.position = "absolute";
-        this.closeButton.style.top = "1em";
-        this.closeButton.style.right = "1em";
-        this.closeButton.addEventListener("click", () => this.toggle());
+        setStyles(this.closeButton, {
+            fontSize: "30px",
+            position: "absolute",
+            top: "1em",
+            right: "1em",
+        });
+        this.closeButton.addEventListener("click", () => this.hide());
         return this.closeButton;
     }
-    initThemeButton() {
-        if (!localStorage.getItem("theme"))
-            localStorage.setItem(
-                "theme",
-                matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-            );
-        this.themeButton = document.createElement("img");
-        this.themeButton.src = `icons/${localStorage.getItem("theme") === "dark" ? "light" : "dark"
-            }.svg`;
-        this.themeButton.className = "icon button hover";
-        this.themeButton.style.fontSize = "30px";
-        this.themeButton.addEventListener("click", () => this.toggleTheme());
-        return this.themeButton;
+    show() {
+        this.isShowing = true;
+        this.div.style.display = "flex";
+        const url = new URL(window.location);
+        url.hash = "#settings";
+        window.history.replaceState({}, "", url.toString());
     }
-    toggleTheme() {
-        this.themeButton.src = `icons/${localStorage.getItem("theme")}.svg`;
-        localStorage.setItem(
-            "theme",
-            localStorage.getItem("theme") === "dark" ? "light" : "dark"
-        );
-        console.log(`Theme changed to: ${localStorage.getItem("theme")}`);
-        document.documentElement.classList = localStorage.getItem("theme");
+    hide() {
+        this.isShowing = false;
+        this.div.style.display = "none";
+        const url = new URL(window.location);
+        url.hash = "";
+        window.history.replaceState({}, "", url.toString());
     }
     async initUrlList() {
         this.urlList = document.createElement("div");
-        // this.urlList.className = "";
         const urlListTitle = document.createElement("h3");
         urlListTitle.textContent = "API URLs";
+        urlListTitle.style.margin = "0.5em 0";
         this.urlList.appendChild(urlListTitle);
         this.apiUrls = await db.getAll("apiUrls");
         this.apiUrls.forEach((apiUrl) => {
@@ -664,9 +633,13 @@ class Settings {
     }
     initUrl(apiUrl) {
         const urlDiv = document.createElement("div");
-        urlDiv.className = "api-url hover radius";
-        urlDiv.style.position = "relative";
-        urlDiv.style.padding = "0.5em";
+        urlDiv.className = "hover radius";
+        setStyles(urlDiv, {
+            position: "relative",
+            margin: "0.2em",
+            padding: "0.2em 0.5em",
+            backgroundColor: "var(--main-background)",
+        });
         const urlSpan = document.createElement("span");
         urlSpan.className = "api-url-text";
         urlSpan.textContent = apiUrl.url;
@@ -705,22 +678,26 @@ class Settings {
             return false;
         }
     }
-    toggle() {
-        // if (this.div.style.display === "block") {
-        if( this.isShowing ) {
-            this.isShowing = false;
-            this.div.style.display = "none";
-            const url = new URL(window.location);
-            url.hash = "";
-            window.history.replaceState({}, "", url.toString());
-        } else {
-            this.isShowing = true;
-            // this.div.style.display = "block";
-            this.div.style.display = "flex";
-            const url = new URL(window.location);
-            url.hash = "#settings";
-            window.history.replaceState({}, "", url.toString());
-        }
+    initThemeButton() {
+        const themeTitle = document.createElement("h3");
+        themeTitle.textContent = "Theme";
+        themeTitle.style.margin = "0.5em 0";
+        this.div.appendChild(themeTitle);
+        if (!localStorage.getItem("theme")) localStorage.setItem("theme", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        this.themeButton = document.createElement("img");
+        this.themeButton.src = `icons/${localStorage.getItem("theme") === "dark" ? "light" : "dark"}.svg`;
+        this.themeButton.className = "icon button hover";
+        setStyles(this.themeButton, {
+            fontSize: "1.5em",
+            margin: "0.5em 1em",
+        });
+        this.themeButton.addEventListener("click", () => this.toggleTheme());
+        return this.themeButton;
+    }
+    toggleTheme() {
+        this.themeButton.src = `icons/${localStorage.getItem("theme")}.svg`;
+        localStorage.setItem("theme", localStorage.getItem("theme") === "dark" ? "light" : "dark");
+        document.documentElement.classList = localStorage.getItem("theme");
     }
 }
 async function syncWithApis() {
@@ -906,7 +883,6 @@ async function route() {
         url.searchParams.set("uuid", uuid);
         window.history.replaceState({}, "", url.toString());
     }
-    // const note = new Note(uuid, null, 30, true);
     const note = new Note(uuid, null, true);
     document.querySelector("main").appendChild(await note.init());
     document.getElementById("loading").style.display = "none";
@@ -919,9 +895,7 @@ function initEventListeners(isSettings) {
     addEventListener("DOMContentLoaded", route);
     const settings = new Settings(isSettings);
     document.getElementById("home").addEventListener("click", home);
-    document
-        .getElementById("settings")
-        .addEventListener("click", () => settings.toggle());
+    document.getElementById("settings").addEventListener("click", () => settings.show());
     document.getElementById("sync").addEventListener("click", syncWithApis);
     document.getElementById("download").addEventListener("click", download);
     document.getElementById("upload").addEventListener("click", upload);
