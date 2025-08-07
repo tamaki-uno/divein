@@ -138,12 +138,17 @@ class Note {
         return this.contentSpan;
     }
     addContentSpanEventListeners() {
-        this.contentSpan.addEventListener("focus", () => (this.contentSpan.innerHTML = this.contentSpan.textContent));
+        this.contentSpan.addEventListener("focus", (event) => this.handleFocus(event));
         this.contentSpan.addEventListener("keydown", (event) => this.handleKeyDown(event));
+        this.contentSpan.addEventListener("input", (event) => this.handleInput(event));
+        this.contentSpan.addEventListener("blur", (event) => this.handleBlur(event));
     }
-    async handleKeyDown(event) {
-        this.content = this.contentSpan.textContent.trim();
-        if (this.save()) this.suggestion.update(this.content);
+    handleFocus(event) {
+        this.contentSpan.innerHTML = this.content;
+        this.contentSpan.focus();
+        this.suggestion.update(this.content);
+    }
+    handleKeyDown(event) {
         if (event.key === "Enter") {
             this.handleEnterKey(event);
         } else if (event.key === "Tab") {
@@ -152,8 +157,6 @@ class Note {
             this.moveFocus(-1);
         } else if (event.key === "ArrowDown") {
             this.moveFocus(1);
-        // } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-        //     this.handleArrowKey(event);
         } else if (event.key === "Escape") {
             this.handleEscapeKey(event);
         }
@@ -165,8 +168,12 @@ class Note {
             console.log("Shift + Enter pressed");
         } else {
             console.log("Enter pressed without Shift");
-            const index = this.parentNote.children.indexOf(this);
-            this.parentNote ? this.parentNote.createChild(index + 1) : this.createChild();
+            if (this.parentNote) {
+                const index = this.parentNote.children.indexOf(this);
+                this.parentNote.createChild(index + 1);
+            } else {
+                this.createChild();
+            }
         }
     }
     handleTabKey(event) {
@@ -187,23 +194,36 @@ class Note {
         }
     }
     moveFocus(direction) {
-        // console.log(`Moving focus to ${direction} note`);
-        if (direction === 0) this.contentSpan.focus();
-        if (this.parentNote) {
+        this.contentSpan.blur();
+        if (direction === 0) {
+            this.contentSpan.focus();
+        } else if (0 < direction && direction <= this.children.length) {
+            const index = direction - 1;
+            this.children[index].contentSpan.focus();
+        } else if (this.parentNote) {
             const index = this.parentNote.children.indexOf(this);
-            if ((0 <= index + direction) && (index + direction < this.parentNote.children.length)) {
-                this.parentNote.children[index + direction].contentSpan.focus();
-            } else {
-                const newDirection = direction < 0 ? direction + 1 : direction;
-                this.parentNote.moveFocus(newDirection);
-            }
-        } else if (this.children.length > direction) {
-            this.children[direction].contentSpan.focus();
+            let newDirection = direction + (index + 1);
+            if (0 < direction) newDirection -= this.children.length;
+            this.parentNote.moveFocus(newDirection);
+        } else {
+            console.warn("Cannot move focus, no note found");
+            this.contentSpan.focus();
         }
     }
     handleEscapeKey(event) {
         event.preventDefault();
         this.contentSpan.blur();
+    }
+    async handleInput(event) {
+        this.content = this.contentSpan.textContent.trim();
+        if (await this.save()) {
+            this.suggestion.update(this.content);
+        }
+    }
+    handleBlur(event) {
+        this.content = this.contentSpan.textContent.trim();
+        this.save();
+        this.renderContent();
     }
     renderContent() {
         this.contentSpan.innerHTML = "";
@@ -235,6 +255,7 @@ class Note {
         this.parentNote.children.splice(index, 0, this);
         this.parentNote.childrenDiv.insertBefore(this.container, this.parentNote.childrenDiv.children[index]);
         this.parentNote.save();
+        this.contentSpan.focus();
     }
     initChildren() {
         this.childrenDiv = document.createElement("div");
