@@ -7,7 +7,7 @@ function setStyles(Element, styles) {
     });
 }
 
-function addEventListners(Element, events) {
+function addEventListeners(Element, events) {
     Object.entries(events).forEach(([event, handler]) => {
         Element.addEventListener(event, handler);
     });
@@ -70,18 +70,13 @@ class Note {
         return isContentChanged || isChildrenChanged;
     }
     initContainer() {
-        // this.baseZIndex = this.parentNote ? this.parentNote.baseZIndex-- : "auto";
-        // this.baseZIndex = "auto";
-        // this.container = this.createContainerElement();
         this.container = document.createElement("div");
         this.container.id = this.uuid;
         setStyles(this.container, {
             display: "flex",
             flexDirection: "column",
             fontSize: "max(0.7em, 16px)",
-            // overflow: "hidden",
             position: "relative",
-            // zIndex: this.baseZIndex,
             backgroundColor: "var(--sub-background)",
             margin: "0.1rem",
         });
@@ -91,23 +86,6 @@ class Note {
         this.isExpanded ? this.expand() : this.collapse();
         return this.container;
     }
-    // createContainerElement() {
-    //     const container = document.createElement("div");
-    //     container.id = this.uuid;
-    //     setStyles(container, {
-    //         display: "flex",
-    //         flexDirection: "column",
-    //         fontSize: "max(0.7em, 16px)",
-    //         overflow: "hidden",
-    //         position: "relative",
-    //         zIndex: this.parentNote ? this.parentNote.zIndex - 1 : "auto",
-    //         backgroundColor: "var(--sub-background)",
-    //         margin: "0.1rem",
-    //         height: this.isExpanded ? "auto" : "fit-content",
-    //     });
-    //     container.addEventListener("dblclick", this.handleDoubleClick.bind(this));
-    //     return container;
-    // }
     handleDoubleClick(event) {
         console.log("Note double-clicked:", this.uuid);
         event.preventDefault();
@@ -123,8 +101,6 @@ class Note {
             flexDirection: "row",
             flexGrow: "1",
             position: "relative",
-            // zIndex: "1000",
-            // zIndex: this.baseZIndex + 1,
             fontSize: "inherit",
             padding: "0.1em",
             backgroundColor: "var(--main-background)",
@@ -155,9 +131,6 @@ class Note {
         if (this.parentNote) this.parentNote.expand();
         this.isExpanded = true;
         this.toggleIcon.style.transform = "rotate(90deg)";
-        this.container.style.height = "auto";
-        // this.contentDiv.style.height = "auto";
-        // this.contentSpan.style.height = "auto";
         this.contentSpan.style.height = "auto";
         this.contentSpan.style.overflow = "auto";
         this.childrenDiv.style.display = "flex";
@@ -165,11 +138,6 @@ class Note {
     collapse() {
         this.isExpanded = false;
         this.toggleIcon.style.transform = "rotate(0deg)";
-        // this.container.style.height = "fit-content";
-        // this.container.style.height = 1 + 0.2*2 + 0.1*2 + "em";
-        this.container.style.height = "2em";
-        // this.contentDiv.style.height = "1.5em";
-        // this.contentSpan.style.height = "1.5em";
         this.contentSpan.style.height = "1.5em";
         this.contentSpan.style.overflow = "hidden";
         this.childrenDiv.style.display = "none";
@@ -180,30 +148,21 @@ class Note {
         setStyles(this.contentSpan, {
             backgroundColor: "var(--sub-background)",
             padding: "0.2em 0.5em",
-            // fontSize: "0.8em",
             flexGrow: "1",
             outline: "none"
         });
         this.contentSpan.setAttribute("contenteditable", "true");
-        // this.suggestion = new Suggestion(this);
-        // this.contentSpan.appendChild(this.suggestion.init());
-        // console.log("suggestion appended to contentSpan", this.contentSpan);
-        // this.contentSpan.addEventListener("focus", (event) => this.handleFocus(event));
-        // this.contentSpan.addEventListener("keydown", (event) => this.handleKeyDown(event));
-        // this.contentSpan.addEventListener("input", (event) => this.handleInput(event));
-        // this.contentSpan.addEventListener("blur", (event) => this.handleBlur(event));
-        addEventListners(this.contentSpan, {
+        addEventListeners(this.contentSpan, {
             focus: (event) => this.handleFocus(event),
             keydown: (event) => this.handleKeyDown(event),
             input: (event) => this.handleInput(event),
             blur: (event) => this.handleBlur(event)
         });
         this.renderContent();
-        // console.log("ContentSpan initialized", this.contentSpan);
         return this.contentSpan;
     }
     handleFocus(event) {
-        // this.contentSpan.innerHTML = this.content;
+        this.contentSpan.innerHTML = this.content;
         this.renderContent(["none"]);
         this.contentSpan.focus();
         this.suggestion.update(this.content);
@@ -290,23 +249,19 @@ class Note {
         this.renderContent();
         this.suggestion.hide();
     }
-    renderContent(styles = ["render"]) {
+    renderContent(styles = []) {
         this.contentSpan.innerHTML = "";
-        if (styles.includes("render")) {
-            if (
-                this.content.startsWith("http://") ||
-                this.content.startsWith("https://")
-            ) {
-                const link = document.createElement("a");
-                link.href = this.content;
-                link.textContent = this.content;
-                link.target = "_blank";
-                this.contentSpan.appendChild(link);
-            } else if (false) {
-                console.log("how did you get here?");
-            } else {
-                this.contentSpan.textContent = this.content;
-            }
+        if (
+            this.content.startsWith("http://") ||
+            this.content.startsWith("https://")
+        ) {
+            const link = document.createElement("a");
+            link.href = this.content;
+            link.textContent = this.content;
+            link.target = "_blank";
+            this.contentSpan.appendChild(link);
+        } else if (false) {
+            console.log("how did you get here?");
         } else {
             this.contentSpan.textContent = this.content;
         }
@@ -332,7 +287,6 @@ class Note {
         this.childrenDiv.className = "";
         setStyles(this.childrenDiv, {
             flexDirection: "column",
-            // display: "sticky",
             marginLeft: "1.5em",
             fontSize: "inherit",
         });
@@ -360,12 +314,11 @@ class Note {
 
 class Suggestion {
     constructor(note) {
-        // console.log('Creating suggestion for note:', note);
         this.note = note;
         this.results = [];
         this.div = this.div || this.initDiv();
         this.renderSuggestion();
-        this.div.style.display = "none"; // Initially hide the suggestion div
+        this.hide();
     }
     async update(content) {
         this.results = await db.search("notes", content.trim());
@@ -373,22 +326,16 @@ class Suggestion {
             return a.content.localeCompare(b.content);
         });
         this.renderSuggestion();
-        console.log("Suggestion updated with results:", this.results);
-        console.log("Suggestion div:", this.div);
-        console.log("note content div:", this.note.contentDiv);
     }
     initDiv() {
         this.div = document.createElement("div");
         this.div.className = "radius shadow";
         setStyles(this.div, {
             position: "absolute",
-            // position: "relative",
             top: "100%",
-            // left: "0",
-            left: "1.5em",
-            // width: "100%",
-            width: "20em",
-            maxHeight: "20em",
+            left: "2em",
+            width: "10rem",
+            maxHeight: "10rem",
             overflowX: "hidden",
             overflowY: "auto",
             backgroundColor: "var(--sub-background)",
@@ -399,22 +346,6 @@ class Suggestion {
     renderSuggestion() {
         this.div.innerHTML = "";
         this.div.style.display = "block";
-        // setStyles(this.div, {
-        //     display: "block",
-        //     position: "absolute",
-        //     top: "100%",
-        //     // left: "0",
-        //     left: "1.5em",
-        //     // width: "100%",
-        //     width: "20em",
-        //     maxHeight: "20em",
-        //     overflowX: "hidden",
-        //     // overflowY: "auto",
-        //     overflowY: "scroll",
-        //     backgroundColor: "var(--sub-background)",
-        //     zIndex: "1000",
-        // });
-        // this.div.appendChild(document.createElement("h3")).textContent = "Suggestions";
         this.results.forEach((note) => this.div.appendChild(this.createNoteDiv(note)));
         this.note.contentDiv.appendChild(this.div);
     }
@@ -430,14 +361,12 @@ class Suggestion {
             cursor: "pointer",
         });
         noteDiv.addEventListener("click", () => {
-            console.log("Suggestion clicked:", note.uuid);
             this.note.uuid = note.uuid;
             this.note.renderContent();
         });
         return noteDiv;
     }
     hide() {
-        console.log("Hiding suggestion ", this.div);
         this.div.style.display = "none";
     }
 }
