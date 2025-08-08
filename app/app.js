@@ -316,7 +316,7 @@ class Suggestion {
     constructor(note) {
         this.note = note;
         this.results = [];
-        this.div = this.div || this.initDiv();
+        this.div = this.initDiv();
         this.renderSuggestion();
         this.hide();
     }
