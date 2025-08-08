@@ -69,7 +69,7 @@ class Note {
         }
         return isContentChanged || isChildrenChanged;
     }
-    initContainer() {
+    async initContainer() {
         this.container = document.createElement("div");
         this.container.id = this.uuid;
         setStyles(this.container, {
@@ -82,8 +82,7 @@ class Note {
         });
         this.container.addEventListener("dblclick", (event) => this.handleDoubleClick(event));
         this.container.appendChild(this.initContent());
-        // this.container.appendChild(this.initChildren());
-        this.isExpanded ? this.expand() : this.collapse();
+        this.isExpanded ? await this.expand() : this.collapse();
         return this.container;
     }
     handleDoubleClick(event) {
@@ -302,7 +301,6 @@ class Note {
             this.childrenDiv.children[index] || null
         );
         this.save();
-        db.put("notes", this.createNoteData());
         childNote.contentSpan.focus();
     }
     async createChild(index = 0) {
