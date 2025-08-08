@@ -70,28 +70,44 @@ class Note {
         return isContentChanged || isChildrenChanged;
     }
     initContainer() {
-        this.container = this.createContainerElement();
+        // this.baseZIndex = this.parentNote ? this.parentNote.baseZIndex-- : "auto";
+        // this.baseZIndex = "auto";
+        // this.container = this.createContainerElement();
+        this.container = document.createElement("div");
+        this.container.id = this.uuid;
+        setStyles(this.container, {
+            display: "flex",
+            flexDirection: "column",
+            fontSize: "max(0.7em, 16px)",
+            // overflow: "hidden",
+            position: "relative",
+            // zIndex: this.baseZIndex,
+            backgroundColor: "var(--sub-background)",
+            margin: "0.1rem",
+        });
+        this.container.addEventListener("dblclick", (event) => this.handleDoubleClick(event));
         this.container.appendChild(this.initContent());
         this.container.appendChild(this.initChildren());
         this.isExpanded ? this.expand() : this.collapse();
         return this.container;
     }
-    createContainerElement() {
-        const container = document.createElement("div");
-        container.id = this.uuid;
-        setStyles(container, {
-            display: "flex",
-            flexDirection: "column",
-            fontSize: "max(0.7em, 16px)",
-            overflow: "hidden",
-            position: "relative",
-            backgroundColor: "var(--sub-background)",
-            margin: "0.1rem",
-            height: this.isExpanded ? "auto" : "fit-content",
-        });
-        container.addEventListener("dblclick", this.handleDoubleClick.bind(this));
-        return container;
-    }
+    // createContainerElement() {
+    //     const container = document.createElement("div");
+    //     container.id = this.uuid;
+    //     setStyles(container, {
+    //         display: "flex",
+    //         flexDirection: "column",
+    //         fontSize: "max(0.7em, 16px)",
+    //         overflow: "hidden",
+    //         position: "relative",
+    //         zIndex: this.parentNote ? this.parentNote.zIndex - 1 : "auto",
+    //         backgroundColor: "var(--sub-background)",
+    //         margin: "0.1rem",
+    //         height: this.isExpanded ? "auto" : "fit-content",
+    //     });
+    //     container.addEventListener("dblclick", this.handleDoubleClick.bind(this));
+    //     return container;
+    // }
     handleDoubleClick(event) {
         console.log("Note double-clicked:", this.uuid);
         event.preventDefault();
@@ -107,8 +123,10 @@ class Note {
             flexDirection: "row",
             flexGrow: "1",
             position: "relative",
+            // zIndex: "1000",
+            // zIndex: this.baseZIndex + 1,
             fontSize: "inherit",
-            padding: "0.1rem",
+            padding: "0.1em",
             backgroundColor: "var(--main-background)",
         });
         this.contentDiv.appendChild(this.initToggleIcon());
@@ -137,7 +155,9 @@ class Note {
         if (this.parentNote) this.parentNote.expand();
         this.isExpanded = true;
         this.toggleIcon.style.transform = "rotate(90deg)";
+        this.container.style.height = "auto";
         // this.contentDiv.style.height = "auto";
+        // this.contentSpan.style.height = "auto";
         this.contentSpan.style.height = "auto";
         this.contentSpan.style.overflow = "auto";
         this.childrenDiv.style.display = "flex";
@@ -145,7 +165,11 @@ class Note {
     collapse() {
         this.isExpanded = false;
         this.toggleIcon.style.transform = "rotate(0deg)";
+        // this.container.style.height = "fit-content";
+        // this.container.style.height = 1 + 0.2*2 + 0.1*2 + "em";
+        this.container.style.height = "2em";
         // this.contentDiv.style.height = "1.5em";
+        // this.contentSpan.style.height = "1.5em";
         this.contentSpan.style.height = "1.5em";
         this.contentSpan.style.overflow = "hidden";
         this.childrenDiv.style.display = "none";
@@ -156,7 +180,7 @@ class Note {
         setStyles(this.contentSpan, {
             backgroundColor: "var(--sub-background)",
             padding: "0.2em 0.5em",
-            fontSize: "0.8em",
+            // fontSize: "0.8em",
             flexGrow: "1",
             outline: "none"
         });
@@ -286,7 +310,6 @@ class Note {
         } else {
             this.contentSpan.textContent = this.content;
         }
-        // this.contentSpan.appendChild(this.suggestion.div);
     }
     moveTo(newParent, index = 0) {
         console.log(
@@ -309,6 +332,7 @@ class Note {
         this.childrenDiv.className = "";
         setStyles(this.childrenDiv, {
             flexDirection: "column",
+            // display: "sticky",
             marginLeft: "1.5em",
             fontSize: "inherit",
         });
@@ -339,19 +363,10 @@ class Suggestion {
         // console.log('Creating suggestion for note:', note);
         this.note = note;
         this.results = [];
-        // this.initDiv();
         this.div = this.div || this.initDiv();
         this.renderSuggestion();
         this.div.style.display = "none"; // Initially hide the suggestion div
     }
-    // init() {
-    //     if (this.div) {
-    //         console.warn("Suggestion div already initialized, returning existing div");
-    //         return this.div;
-    //     }
-    //     // console.log("suggestion initialized ", this.div);
-    //     return this.div;
-    // }
     async update(content) {
         this.results = await db.search("notes", content.trim());
         this.results.sort((a, b) => {
@@ -365,7 +380,27 @@ class Suggestion {
     initDiv() {
         this.div = document.createElement("div");
         this.div.className = "radius shadow";
+        setStyles(this.div, {
+            position: "absolute",
+            // position: "relative",
+            top: "100%",
+            // left: "0",
+            left: "1.5em",
+            // width: "100%",
+            width: "20em",
+            maxHeight: "20em",
+            overflowX: "hidden",
+            overflowY: "auto",
+            backgroundColor: "var(--sub-background)",
+            zIndex: "10",
+        });
+        return this.div;
+    }
+    renderSuggestion() {
+        this.div.innerHTML = "";
+        this.div.style.display = "block";
         // setStyles(this.div, {
+        //     display: "block",
         //     position: "absolute",
         //     top: "100%",
         //     // left: "0",
@@ -374,30 +409,11 @@ class Suggestion {
         //     width: "20em",
         //     maxHeight: "20em",
         //     overflowX: "hidden",
-        //     overflowY: "auto",
+        //     // overflowY: "auto",
+        //     overflowY: "scroll",
         //     backgroundColor: "var(--sub-background)",
         //     zIndex: "1000",
         // });
-        return this.div;
-    }
-    renderSuggestion() {
-        this.div.innerHTML = "";
-        // this.div.style.display = "block";
-        setStyles(this.div, {
-            display: "block",
-            position: "absolute",
-            top: "100%",
-            // left: "0",
-            left: "1.5em",
-            // width: "100%",
-            width: "20em",
-            maxHeight: "20em",
-            overflowX: "hidden",
-            // overflowY: "auto",
-            overflowY: "scroll",
-            backgroundColor: "var(--sub-background)",
-            zIndex: "1000",
-        });
         // this.div.appendChild(document.createElement("h3")).textContent = "Suggestions";
         this.results.forEach((note) => this.div.appendChild(this.createNoteDiv(note)));
         this.note.contentDiv.appendChild(this.div);
