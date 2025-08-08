@@ -137,14 +137,16 @@ class Note {
         if (this.parentNote) this.parentNote.expand();
         this.isExpanded = true;
         this.toggleIcon.style.transform = "rotate(90deg)";
-        this.contentDiv.style.height = "auto";
+        // this.contentDiv.style.height = "auto";
+        this.contentSpan.style.height = "auto";
         this.contentSpan.style.overflow = "auto";
         this.childrenDiv.style.display = "flex";
     }
     collapse() {
         this.isExpanded = false;
         this.toggleIcon.style.transform = "rotate(0deg)";
-        this.contentDiv.style.height = "1.5em";
+        // this.contentDiv.style.height = "1.5em";
+        this.contentSpan.style.height = "1.5em";
         this.contentSpan.style.overflow = "hidden";
         this.childrenDiv.style.display = "none";
     }
@@ -255,6 +257,7 @@ class Note {
         this.content = this.contentSpan.textContent.trim();
         if (await this.save()) {
             this.suggestion.update(this.content);
+            console.log("Note saved and suggestion updated", this.content);
         }
     }
     handleBlur(event) {
@@ -336,19 +339,20 @@ class Suggestion {
         // console.log('Creating suggestion for note:', note);
         this.note = note;
         this.results = [];
-        this.initDiv();
+        // this.initDiv();
+        this.div = this.div || this.initDiv();
         this.renderSuggestion();
+        this.div.style.display = "none"; // Initially hide the suggestion div
     }
-    init() {
-        if (this.div) {
-            console.warn("Suggestion div already initialized, returning existing div");
-            return this.div;
-        }
-        // console.log("suggestion initialized ", this.div);
-        return this.div;
-    }
+    // init() {
+    //     if (this.div) {
+    //         console.warn("Suggestion div already initialized, returning existing div");
+    //         return this.div;
+    //     }
+    //     // console.log("suggestion initialized ", this.div);
+    //     return this.div;
+    // }
     async update(content) {
-        // console.log('Updating suggestion with content:', content);
         this.results = await db.search("notes", content.trim());
         this.results.sort((a, b) => {
             return a.content.localeCompare(b.content);
@@ -356,62 +360,47 @@ class Suggestion {
         this.renderSuggestion();
         console.log("Suggestion updated with results:", this.results);
         console.log("Suggestion div:", this.div);
-        // console.log("note content span:", this.note.contentSpan);
         console.log("note content div:", this.note.contentDiv);
     }
     initDiv() {
         this.div = document.createElement("div");
-        // this.div.id = "suggestionOf" + this.note.uuid;
-        // this.div.className = "suggestion";
         this.div.className = "radius shadow";
+        // setStyles(this.div, {
+        //     position: "absolute",
+        //     top: "100%",
+        //     // left: "0",
+        //     left: "1.5em",
+        //     // width: "100%",
+        //     width: "20em",
+        //     maxHeight: "20em",
+        //     overflowX: "hidden",
+        //     overflowY: "auto",
+        //     backgroundColor: "var(--sub-background)",
+        //     zIndex: "1000",
+        // });
+        return this.div;
+    }
+    renderSuggestion() {
+        this.div.innerHTML = "";
+        // this.div.style.display = "block";
         setStyles(this.div, {
-            // position: "absolute",
-            // top: "100%",
-            // left: "0",
-            // width: "100%",
-            // maxHeight: "200px",
-            // overflowY: "auto",
-            // backgroundColor: "var(--sub-background)",
-            // zIndex: "1000",
+            display: "block",
             position: "absolute",
-            // top: "0",
             top: "100%",
-            left: "0",
+            // left: "0",
+            left: "1.5em",
             // width: "100%",
             width: "20em",
             maxHeight: "20em",
-            overflowY: "auto",
+            overflowX: "hidden",
+            // overflowY: "auto",
+            overflowY: "scroll",
             backgroundColor: "var(--sub-background)",
             zIndex: "1000",
         });
-        // this.note.contentSpan.appendChild(this.div);
-    }
-    renderSuggestion() {
-        // console.log("Rendering suggestion with results:", this.results);
-        this.div.innerHTML = "";
-        // this.div.style.display = this.results.length > 0 ? "block" : "none";
-        this.div.style.display = "block";
-        // for (const note of this.results) {
-        //     const noteDiv = document.createElement("div");
-        //     // noteDiv.className = "";
-        //     setStyles(noteDiv, {
-        //         padding: "0.5em 1em",
-        //         overflow: "hidden",
-        //         borderBottom: "1px solid var(--border-color)",
-        //         cursor: "pointer",
-        //     });
-        //     noteDiv.textContent = note.content;
-        //     noteDiv.addEventListener("click", () => {
-        //         console.log("Suggestion clicked:", note.uuid);
-        //         this.note.uuid = note.uuid;
-        //         this.note.renderContent();
-        //     });
-        //     this.div.appendChild(noteDiv);
-        // }
+        // this.div.appendChild(document.createElement("h3")).textContent = "Suggestions";
         this.results.forEach((note) => this.div.appendChild(this.createNoteDiv(note)));
-        // this.note.contentSpan.appendChild(this.div);
         this.note.contentDiv.appendChild(this.div);
-        // console.log("Suggestion rendered ", this.div);
     }
     createNoteDiv(note) {
         const noteDiv = document.createElement("div");
@@ -432,6 +421,7 @@ class Suggestion {
         return noteDiv;
     }
     hide() {
+        console.log("Hiding suggestion ", this.div);
         this.div.style.display = "none";
     }
 }
