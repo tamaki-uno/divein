@@ -7,6 +7,18 @@ function setStyles(Element, styles) {
     });
 }
 
+function addEventListners(Element, events) {
+    Object.entries(events).forEach(([event, handler]) => {
+        Element.addEventListener(event, handler);
+    });
+}
+
+function appendChildren(Element, children) {
+    children.forEach(child => {
+        Element.appendChild(child);
+    });
+}
+
 class Note {
     constructor(uuid, parentNote, expand = false) {
         this.uuid = uuid;
@@ -49,6 +61,12 @@ class Note {
         const noteData = this.createNoteData();
         const isContentChanged = existingNote.content !== noteData.content;
         const isChildrenChanged = JSON.stringify(existingNote.children) !== JSON.stringify(noteData.children);
+        if (isContentChanged) {
+            console.log(`Content changed for note ${this.uuid}:`, existingNote.content, "->", noteData.content);
+        }
+        if (isChildrenChanged) {
+            console.log(`Children changed for note ${this.uuid}:`, existingNote.children, "->", noteData.children);
+        }
         return isContentChanged || isChildrenChanged;
     }
     initContainer() {
@@ -95,6 +113,7 @@ class Note {
         });
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(this.initContentSpan());
+        this.suggestion = new Suggestion(this);
         this.menu = new Menu(this);
         this.contentDiv.appendChild(this.menu.init());
         this.contentDiv.addEventListener("contextmenu", (event) => this.handleContextMenu(event));
@@ -140,20 +159,26 @@ class Note {
             outline: "none"
         });
         this.contentSpan.setAttribute("contenteditable", "true");
-        this.suggestion = new Suggestion(this);
-        this.contentSpan.appendChild(this.suggestion.div);
-        this.addContentSpanEventListeners();
+        // this.suggestion = new Suggestion(this);
+        // this.contentSpan.appendChild(this.suggestion.init());
+        // console.log("suggestion appended to contentSpan", this.contentSpan);
+        // this.contentSpan.addEventListener("focus", (event) => this.handleFocus(event));
+        // this.contentSpan.addEventListener("keydown", (event) => this.handleKeyDown(event));
+        // this.contentSpan.addEventListener("input", (event) => this.handleInput(event));
+        // this.contentSpan.addEventListener("blur", (event) => this.handleBlur(event));
+        addEventListners(this.contentSpan, {
+            focus: (event) => this.handleFocus(event),
+            keydown: (event) => this.handleKeyDown(event),
+            input: (event) => this.handleInput(event),
+            blur: (event) => this.handleBlur(event)
+        });
         this.renderContent();
+        // console.log("ContentSpan initialized", this.contentSpan);
         return this.contentSpan;
     }
-    addContentSpanEventListeners() {
-        this.contentSpan.addEventListener("focus", (event) => this.handleFocus(event));
-        this.contentSpan.addEventListener("keydown", (event) => this.handleKeyDown(event));
-        this.contentSpan.addEventListener("input", (event) => this.handleInput(event));
-        this.contentSpan.addEventListener("blur", (event) => this.handleBlur(event));
-    }
     handleFocus(event) {
-        this.contentSpan.innerHTML = this.content;
+        // this.contentSpan.innerHTML = this.content;
+        this.renderContent(["none"]);
         this.contentSpan.focus();
         this.suggestion.update(this.content);
     }
@@ -236,24 +261,29 @@ class Note {
         this.content = this.contentSpan.textContent.trim();
         this.save();
         this.renderContent();
-        this.suggestion.div.style.display = "none";
+        this.suggestion.hide();
     }
-    renderContent() {
+    renderContent(styles = ["render"]) {
         this.contentSpan.innerHTML = "";
-        if (
-            this.content.startsWith("http://") ||
-            this.content.startsWith("https://")
-        ) {
-            const link = document.createElement("a");
-            link.href = this.content;
-            link.textContent = this.content;
-            link.target = "_blank";
-            this.contentSpan.appendChild(link);
-        } else if (false) {
-            console.log("how did you get here?");
+        if (styles.includes("render")) {
+            if (
+                this.content.startsWith("http://") ||
+                this.content.startsWith("https://")
+            ) {
+                const link = document.createElement("a");
+                link.href = this.content;
+                link.textContent = this.content;
+                link.target = "_blank";
+                this.contentSpan.appendChild(link);
+            } else if (false) {
+                console.log("how did you get here?");
+            } else {
+                this.contentSpan.textContent = this.content;
+            }
         } else {
             this.contentSpan.textContent = this.content;
         }
+        // this.contentSpan.appendChild(this.suggestion.div);
     }
     moveTo(newParent, index = 0) {
         console.log(
@@ -301,6 +331,110 @@ class Note {
     }
 }
 
+class Suggestion {
+    constructor(note) {
+        // console.log('Creating suggestion for note:', note);
+        this.note = note;
+        this.results = [];
+        this.initDiv();
+        this.renderSuggestion();
+    }
+    init() {
+        if (this.div) {
+            console.warn("Suggestion div already initialized, returning existing div");
+            return this.div;
+        }
+        // console.log("suggestion initialized ", this.div);
+        return this.div;
+    }
+    async update(content) {
+        // console.log('Updating suggestion with content:', content);
+        this.results = await db.search("notes", content.trim());
+        this.results.sort((a, b) => {
+            return a.content.localeCompare(b.content);
+        });
+        this.renderSuggestion();
+        console.log("Suggestion updated with results:", this.results);
+        console.log("Suggestion div:", this.div);
+        // console.log("note content span:", this.note.contentSpan);
+        console.log("note content div:", this.note.contentDiv);
+    }
+    initDiv() {
+        this.div = document.createElement("div");
+        // this.div.id = "suggestionOf" + this.note.uuid;
+        // this.div.className = "suggestion";
+        this.div.className = "radius shadow";
+        setStyles(this.div, {
+            // position: "absolute",
+            // top: "100%",
+            // left: "0",
+            // width: "100%",
+            // maxHeight: "200px",
+            // overflowY: "auto",
+            // backgroundColor: "var(--sub-background)",
+            // zIndex: "1000",
+            position: "absolute",
+            // top: "0",
+            top: "100%",
+            left: "0",
+            // width: "100%",
+            width: "20em",
+            maxHeight: "20em",
+            overflowY: "auto",
+            backgroundColor: "var(--sub-background)",
+            zIndex: "1000",
+        });
+        // this.note.contentSpan.appendChild(this.div);
+    }
+    renderSuggestion() {
+        // console.log("Rendering suggestion with results:", this.results);
+        this.div.innerHTML = "";
+        // this.div.style.display = this.results.length > 0 ? "block" : "none";
+        this.div.style.display = "block";
+        // for (const note of this.results) {
+        //     const noteDiv = document.createElement("div");
+        //     // noteDiv.className = "";
+        //     setStyles(noteDiv, {
+        //         padding: "0.5em 1em",
+        //         overflow: "hidden",
+        //         borderBottom: "1px solid var(--border-color)",
+        //         cursor: "pointer",
+        //     });
+        //     noteDiv.textContent = note.content;
+        //     noteDiv.addEventListener("click", () => {
+        //         console.log("Suggestion clicked:", note.uuid);
+        //         this.note.uuid = note.uuid;
+        //         this.note.renderContent();
+        //     });
+        //     this.div.appendChild(noteDiv);
+        // }
+        this.results.forEach((note) => this.div.appendChild(this.createNoteDiv(note)));
+        // this.note.contentSpan.appendChild(this.div);
+        this.note.contentDiv.appendChild(this.div);
+        // console.log("Suggestion rendered ", this.div);
+    }
+    createNoteDiv(note) {
+        const noteDiv = document.createElement("div");
+        noteDiv.textContent = note.content;
+        noteDiv.className = "hover";
+        setStyles(noteDiv, {
+            fontSize: "0.8em",
+            padding: "0.5em 1em",
+            overflow: "hidden",
+            borderBottom: "1px solid var(--border-color)",
+            cursor: "pointer",
+        });
+        noteDiv.addEventListener("click", () => {
+            console.log("Suggestion clicked:", note.uuid);
+            this.note.uuid = note.uuid;
+            this.note.renderContent();
+        });
+        return noteDiv;
+    }
+    hide() {
+        this.div.style.display = "none";
+    }
+}
 class Menu {
     constructor(note) {
         this.note = note;
@@ -350,35 +484,6 @@ class Menu {
             console.log("Download button clicked for note:", this.note.uuid);
         });
         return this.downloadButton;
-    }
-}
-class Suggestion {
-    constructor(note) {
-        // console.log('Creating suggestion for note:', note);
-        this.note = note;
-        this.result = [];
-        this.renderSuggestion();
-    }
-    async update(content) {
-        // console.log('Updating suggestion with content:', content);
-        this.result = await db.search("notes", content.trim());
-        this.renderSuggestion();
-    }
-    renderSuggestion() {
-        this.div = document.createElement("div");
-        this.div.className = "suggestion";
-        this.div.style.display = this.result.length > 0 ? "block" : "none";
-        for (const note of this.result) {
-            const noteDiv = document.createElement("div");
-            noteDiv.className = "suggestion-note";
-            noteDiv.textContent = note.content;
-            noteDiv.addEventListener("click", () => {
-                console.log("Suggestion clicked:", note.uuid);
-                this.note.uuid = note.uuid;
-                this.note.renderContent();
-            });
-            this.div.appendChild(noteDiv);
-        }
     }
 }
 
