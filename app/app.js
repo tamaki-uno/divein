@@ -667,7 +667,7 @@ class Settings {
     createDiv() {
         this.div = document.createElement("div");
         this.div.id = "settingsDiv";
-        this.div.className = "radius hover-shadow";
+        this.div.className = "radius shadow";
         setStyles(this.div, {
             display: "none",
             flexDirection: "column",
@@ -780,8 +780,7 @@ class Settings {
         this.themeButton.src = `icons/${localStorage.getItem("theme") === "dark" ? "light" : "dark"}.svg`;
         this.themeButton.className = "icon button hover";
         setStyles(this.themeButton, {
-            fontSize: "1.5em",
-            margin: "0.5em 1em",
+            fontSize: "2em",
         });
         this.themeButton.addEventListener("click", () => this.toggleTheme());
         return this.themeButton;
