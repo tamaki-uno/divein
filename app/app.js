@@ -31,6 +31,7 @@ class Note {
         return this.initContainer();
     }
     async get() {
+        // console.log(`Fetching note data for UUID: ${this.uuid}`);
         const noteData = await db.getByKey("notes", this.uuid) || this.createNoteData();
         this.content = noteData.content;
         this.children = noteData.children.map((childUuid) => new Note(childUuid, this, false));
@@ -42,6 +43,7 @@ class Note {
     async save() {
         if (await this.hasChanged()) {
             await db.put("notes", this.createNoteData());
+            // console.log(`Note ${this.uuid} saved successfully.`);
             return true;
         }
         return false;
@@ -240,7 +242,6 @@ class Note {
         this.content = this.contentSpan.textContent.trim();
         if (await this.save()) {
             this.suggestion.update(this.content);
-            console.log("Note saved and suggestion updated", this.content);
         }
     }
     handleBlur(event) {
@@ -296,12 +297,12 @@ class Note {
         return this.childrenDiv;
     }
     async addChild(childNote, index = 0) {
-        console.log(`Adding child note to ${this.uuid}`);
         this.children.splice(index, 0, childNote);
         this.childrenDiv.insertBefore(
             await childNote.init(),
             this.childrenDiv.children[index] || null
         );
+        this.save();
         db.put("notes", this.createNoteData());
         childNote.contentSpan.focus();
     }
@@ -346,25 +347,51 @@ class Suggestion {
     renderSuggestion() {
         this.div.innerHTML = "";
         this.div.style.display = "block";
-        this.results.forEach((note) => this.div.appendChild(this.createNoteDiv(note)));
+        this.results.forEach((note) => this.div.appendChild(this.createResultDiv(note)));
+        // this.div.addEventListener("click", (event) => console.log("Click event triggered on resultDiv:", event.target));
         this.note.contentDiv.appendChild(this.div);
     }
-    createNoteDiv(note) {
-        const noteDiv = document.createElement("div");
-        noteDiv.textContent = note.content;
-        noteDiv.className = "hover";
-        setStyles(noteDiv, {
+    createResultDiv(note) {
+        const resultDiv = document.createElement("div");
+        resultDiv.textContent = note.content + " (" + note.uuid.slice(0, 8) + ")";
+        resultDiv.className = "hover radius";
+        setStyles(resultDiv, {
             fontSize: "0.8em",
             padding: "0.5em 1em",
             overflow: "hidden",
-            borderBottom: "1px solid var(--border-color)",
+            // borderBottom: "1px solid var(--border-color)",
             cursor: "pointer",
+            // border: "1px solid red",
         });
-        noteDiv.addEventListener("click", () => {
-            this.note.uuid = note.uuid;
-            this.note.renderContent();
-        });
-        return noteDiv;
+        // console.log("Adding click event listener to resultDiv:", resultDiv);
+        // resultDiv.addEventListener("mouseover", (event) => console.log("Suggestion note hovered:", note.uuid));
+        // resultDiv.addEventListener("pointerdown", (event) => console.log("Pointer down on resultDiv:", note.uuid));
+        resultDiv.addEventListener("pointerdown", (event) => this.handlePointerDown(event, note));
+        // resultDiv.addEventListener("click", (event) => {
+        //     console.log("Click event triggered on noteDiv");
+        //     // this.handleClick(event, note);
+        // });
+        // console.log("Event listeners added to resultDiv:", resultDiv);
+        return resultDiv;
+    }
+    async handlePointerDown (event, note) {
+        console.log("Suggestion note clicked:", note);
+        // alert("Suggestion note clicked: " + note.uuid);
+        event.preventDefault(); // Prevent default behavior
+        event.stopPropagation(); // Stop propagation to parent elements
+        this.note.uuid = note.uuid;
+        await this.note.get();
+        // this.note.initContainer();
+        // this.note.renderContent();
+        // this.note.initChildren();
+        const index = this.note.parentNote.children.indexOf(this.note);
+        // this.note.parentNote.children = this.note.parentNote.children.filter((child) => child.uuid !== this.note.uuid);
+        this.note.parentNote.children.splice(index, 1, this.note);
+        // this.note.parentNote.childrenDiv.insertBefore(this.note.container, this.note.parentNote.childrenDiv.firstChild);
+        this.note.initContainer();
+        this.note.parentNote.childrenDiv.replaceChild(this.note.container, this.note.parentNote.childrenDiv.children[index]);
+        console.log("Note updated with suggestion:", this.note);
+        this.hide();
     }
     hide() {
         this.div.style.display = "none";
