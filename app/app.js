@@ -7,6 +7,18 @@ function setStyles(Element, styles) {
     });
 }
 
+function addEventListeners(Element, events) {
+    Object.entries(events).forEach(([event, handler]) => {
+        Element.addEventListener(event, handler);
+    });
+}
+
+function appendChildren(Element, children) {
+    children.forEach(child => {
+        Element.appendChild(child);
+    });
+}
+
 class Note {
     constructor(uuid, parentNote, expand = false) {
         this.uuid = uuid;
@@ -49,30 +61,29 @@ class Note {
         const noteData = this.createNoteData();
         const isContentChanged = existingNote.content !== noteData.content;
         const isChildrenChanged = JSON.stringify(existingNote.children) !== JSON.stringify(noteData.children);
+        if (isContentChanged) {
+            console.log(`Content changed for note ${this.uuid}:`, existingNote.content, "->", noteData.content);
+        }
+        if (isChildrenChanged) {
+            console.log(`Children changed for note ${this.uuid}:`, existingNote.children, "->", noteData.children);
+        }
         return isContentChanged || isChildrenChanged;
     }
-    initContainer() {
-        this.container = this.createContainerElement();
-        this.container.appendChild(this.initContent());
-        this.container.appendChild(this.initChildren());
-        this.isExpanded ? this.expand() : this.collapse();
-        return this.container;
-    }
-    createContainerElement() {
-        const container = document.createElement("div");
-        container.id = this.uuid;
-        setStyles(container, {
+    async initContainer() {
+        this.container = document.createElement("div");
+        this.container.id = this.uuid;
+        setStyles(this.container, {
             display: "flex",
             flexDirection: "column",
             fontSize: "max(0.7em, 16px)",
-            overflow: "hidden",
             position: "relative",
             backgroundColor: "var(--sub-background)",
             margin: "0.1rem",
-            height: this.isExpanded ? "auto" : "fit-content",
         });
-        container.addEventListener("dblclick", this.handleDoubleClick.bind(this));
-        return container;
+        this.container.addEventListener("dblclick", (event) => this.handleDoubleClick(event));
+        this.container.appendChild(this.initContent());
+        this.isExpanded ? await this.expand() : this.collapse();
+        return this.container;
     }
     handleDoubleClick(event) {
         console.log("Note double-clicked:", this.uuid);
@@ -90,11 +101,12 @@ class Note {
             flexGrow: "1",
             position: "relative",
             fontSize: "inherit",
-            padding: "0.1rem",
+            padding: "0.1em",
             backgroundColor: "var(--main-background)",
         });
         this.contentDiv.appendChild(this.initToggleIcon());
         this.contentDiv.appendChild(this.initContentSpan());
+        this.suggestion = new Suggestion(this);
         this.menu = new Menu(this);
         this.contentDiv.appendChild(this.menu.init());
         this.contentDiv.addEventListener("contextmenu", (event) => this.handleContextMenu(event));
@@ -114,20 +126,20 @@ class Note {
         this.toggleIcon.addEventListener("dblclick", (event) => event.stopPropagation());
         return this.toggleIcon;
     }
-    expand() {
-        if (this.parentNote) this.parentNote.expand();
+    async expand() {
+        // if (this.parentNote) this.parentNote.expand();
         this.isExpanded = true;
         this.toggleIcon.style.transform = "rotate(90deg)";
-        this.contentDiv.style.height = "auto";
+        this.contentSpan.style.height = "auto";
         this.contentSpan.style.overflow = "auto";
-        this.childrenDiv.style.display = "flex";
+        this.container.appendChild(await this.initChildren());
     }
     collapse() {
         this.isExpanded = false;
         this.toggleIcon.style.transform = "rotate(0deg)";
-        this.contentDiv.style.height = "1.5em";
+        this.contentSpan.style.height = "1.5em";
         this.contentSpan.style.overflow = "hidden";
-        this.childrenDiv.style.display = "none";
+        if (this.childrenDiv) this.childrenDiv.remove();
     }
     initContentSpan() {
         this.contentSpan = document.createElement("span");
@@ -135,25 +147,22 @@ class Note {
         setStyles(this.contentSpan, {
             backgroundColor: "var(--sub-background)",
             padding: "0.2em 0.5em",
-            fontSize: "0.8em",
             flexGrow: "1",
             outline: "none"
         });
         this.contentSpan.setAttribute("contenteditable", "true");
-        this.suggestion = new Suggestion(this);
-        this.contentSpan.appendChild(this.suggestion.div);
-        this.addContentSpanEventListeners();
+        addEventListeners(this.contentSpan, {
+            focus: (event) => this.handleFocus(event),
+            keydown: (event) => this.handleKeyDown(event),
+            input: (event) => this.handleInput(event),
+            blur: (event) => this.handleBlur(event)
+        });
         this.renderContent();
         return this.contentSpan;
     }
-    addContentSpanEventListeners() {
-        this.contentSpan.addEventListener("focus", (event) => this.handleFocus(event));
-        this.contentSpan.addEventListener("keydown", (event) => this.handleKeyDown(event));
-        this.contentSpan.addEventListener("input", (event) => this.handleInput(event));
-        this.contentSpan.addEventListener("blur", (event) => this.handleBlur(event));
-    }
     handleFocus(event) {
         this.contentSpan.innerHTML = this.content;
+        this.renderContent(["none"]);
         this.contentSpan.focus();
         this.suggestion.update(this.content);
     }
@@ -236,9 +245,9 @@ class Note {
         this.content = this.contentSpan.textContent.trim();
         this.save();
         this.renderContent();
-        this.suggestion.div.style.display = "none";
+        this.suggestion.hide();
     }
-    renderContent() {
+    renderContent(styles = []) {
         this.contentSpan.innerHTML = "";
         if (
             this.content.startsWith("http://") ||
@@ -271,10 +280,11 @@ class Note {
         this.parentNote.expand();
         this.contentSpan.focus();
     }
-    initChildren() {
+    async initChildren() {
+        await this.get();
         this.childrenDiv = document.createElement("div");
-        this.childrenDiv.className = "";
         setStyles(this.childrenDiv, {
+            display: "flex",
             flexDirection: "column",
             marginLeft: "1.5em",
             fontSize: "inherit",
@@ -285,13 +295,12 @@ class Note {
         return this.childrenDiv;
     }
     async addChild(childNote, index = 0) {
-        console.log(`Adding child note to ${this.uuid}`);
         this.children.splice(index, 0, childNote);
         this.childrenDiv.insertBefore(
             await childNote.init(),
             this.childrenDiv.children[index] || null
         );
-        db.put("notes", this.createNoteData());
+        this.save();
         childNote.contentSpan.focus();
     }
     async createChild(index = 0) {
@@ -301,6 +310,75 @@ class Note {
     }
 }
 
+class Suggestion {
+    constructor(note) {
+        this.note = note;
+        this.results = [];
+        this.div = this.initDiv();
+        this.renderSuggestion();
+        this.hide();
+    }
+    async update(content) {
+        this.results = await db.search("notes", content.trim());
+        this.results.sort((a, b) => {
+            return a.content.localeCompare(b.content);
+        });
+        this.renderSuggestion();
+    }
+    initDiv() {
+        this.div = document.createElement("div");
+        this.div.className = "radius shadow";
+        setStyles(this.div, {
+            position: "absolute",
+            top: "100%",
+            left: "2em",
+            width: "10rem",
+            maxHeight: "10rem",
+            overflowX: "hidden",
+            overflowY: "auto",
+            backgroundColor: "var(--sub-background)",
+            zIndex: "10",
+        });
+        return this.div;
+    }
+    renderSuggestion() {
+        this.div.innerHTML = "";
+        this.div.style.display = "block";
+        this.results.forEach((note) => this.div.appendChild(this.createResultDiv(note)));
+        this.note.contentDiv.appendChild(this.div);
+    }
+    createResultDiv(note) {
+        const resultDiv = document.createElement("div");
+        resultDiv.textContent = note.content + " (" + note.uuid.slice(0, 8) + ")";
+        resultDiv.className = "hover radius";
+        setStyles(resultDiv, {
+            fontSize: "0.8em",
+            padding: "0.5em 1em",
+            overflow: "hidden",
+            // borderBottom: "1px solid var(--border-color)",
+            cursor: "pointer",
+        });
+        resultDiv.addEventListener("pointerdown", (event) => this.handlePointerDown(event, note));
+        return resultDiv;
+    }
+    async handlePointerDown (event, note) {
+        console.log("Suggestion note clicked:", note);
+        event.preventDefault();
+        event.stopPropagation();
+        this.note.uuid = note.uuid;
+        await this.note.get();
+        const index = this.note.parentNote.children.indexOf(this.note);
+        this.note.parentNote.children.splice(index, 1, this.note);
+        this.note.parentNote.save();
+        this.note.initContainer();
+        this.note.parentNote.childrenDiv.replaceChild(this.note.container, this.note.parentNote.childrenDiv.children[index]);
+        console.log("Note updated with suggestion:", this.note);
+        this.hide();
+    }
+    hide() {
+        this.div.style.display = "none";
+    }
+}
 class Menu {
     constructor(note) {
         this.note = note;
@@ -350,35 +428,6 @@ class Menu {
             console.log("Download button clicked for note:", this.note.uuid);
         });
         return this.downloadButton;
-    }
-}
-class Suggestion {
-    constructor(note) {
-        // console.log('Creating suggestion for note:', note);
-        this.note = note;
-        this.result = [];
-        this.renderSuggestion();
-    }
-    async update(content) {
-        // console.log('Updating suggestion with content:', content);
-        this.result = await db.search("notes", content.trim());
-        this.renderSuggestion();
-    }
-    renderSuggestion() {
-        this.div = document.createElement("div");
-        this.div.className = "suggestion";
-        this.div.style.display = this.result.length > 0 ? "block" : "none";
-        for (const note of this.result) {
-            const noteDiv = document.createElement("div");
-            noteDiv.className = "suggestion-note";
-            noteDiv.textContent = note.content;
-            noteDiv.addEventListener("click", () => {
-                console.log("Suggestion clicked:", note.uuid);
-                this.note.uuid = note.uuid;
-                this.note.renderContent();
-            });
-            this.div.appendChild(noteDiv);
-        }
     }
 }
 
