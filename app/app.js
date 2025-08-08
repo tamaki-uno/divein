@@ -101,7 +101,6 @@ class Note {
             flexGrow: "1",
             position: "relative",
             fontSize: "inherit",
-            padding: "0.1em",
             backgroundColor: "var(--main-background)",
         });
         this.contentDiv.appendChild(this.initToggleIcon());
@@ -120,7 +119,7 @@ class Note {
     initToggleIcon() {
         this.toggleIcon = document.createElement("img");
         this.toggleIcon.src = "icons/toggle.svg";
-        this.toggleIcon.className = "icon button hover";
+        this.toggleIcon.className = "icon button";
         this.toggleIcon.style.transition = "transform 0.2s ease";
         this.toggleIcon.addEventListener("click", (event) => (this.isExpanded ? this.collapse() : this.expand()));
         this.toggleIcon.addEventListener("dblclick", (event) => event.stopPropagation());
@@ -145,7 +144,6 @@ class Note {
         this.contentSpan = document.createElement("span");
         this.contentSpan.className = "radius hover";
         setStyles(this.contentSpan, {
-            backgroundColor: "var(--sub-background)",
             padding: "0.2em 0.5em",
             flexGrow: "1",
             outline: "none"
@@ -640,7 +638,7 @@ class Settings {
     initCloseButton() {
         this.closeButton = document.createElement("img");
         this.closeButton.src = "icons/cancel.svg";
-        this.closeButton.className = "icon button hover";
+        this.closeButton.className = "icon button";
         setStyles(this.closeButton, {
             fontSize: "30px",
             position: "absolute",
@@ -666,6 +664,7 @@ class Settings {
     }
     async initUrlList() {
         this.urlList = document.createElement("div");
+        this.urlList.style.margin = "1em";
         const urlListTitle = document.createElement("h3");
         urlListTitle.textContent = "API URLs";
         urlListTitle.style.margin = "0.5em 0";
@@ -682,19 +681,22 @@ class Settings {
         urlDiv.className = "hover radius";
         setStyles(urlDiv, {
             position: "relative",
-            margin: "0.2em",
+            margin: "0.5em 0",
             padding: "0.2em 0.5em",
             backgroundColor: "var(--main-background)",
         });
         const urlSpan = document.createElement("span");
-        urlSpan.className = "api-url-text";
         urlSpan.textContent = apiUrl.url;
         urlDiv.appendChild(urlSpan);
         const removeButton = document.createElement("img");
         removeButton.src = "icons/cancel.svg";
-        removeButton.className = "icon button hover";
-        removeButton.style.position = "absolute";
-        removeButton.style.right = "0.5em";
+        removeButton.className = "icon button";
+        setStyles(removeButton, {
+            position: "absolute",
+            right: "0",
+            top: "50%",
+            transform: "translateY(-50%)",
+        });
         removeButton.addEventListener("click", () => {
             db.delete("apiUrls", apiUrl.url);
             urlDiv.remove();
@@ -705,21 +707,22 @@ class Settings {
     initAddButton() {
         const addUrl = document.createElement("img");
         addUrl.src = "icons/add.svg";
-        addUrl.className = "icon button hover";
+        addUrl.className = "icon button";
         addUrl.addEventListener("click", () => {
             const url = prompt("Enter API URL:");
-            if (url && this.validateAndSaveUrl(url)) {
-                // this.urlList.appendChild(this.initUrl(url));
-                this.urlList.insertBefore(this.initUrl(url), this.urlList.lastChild);
-            }
+            const validatedUrl = this.validateAndSaveUrl(url);
+            if (validatedUrl) this.urlList.insertBefore(this.initUrl(validatedUrl), addUrl);
         });
         return addUrl;
     }
     validateAndSaveUrl(url) {
         try {
-            new URL(url);
-            db.add("apiUrls", { url, addedAt: new Date().toISOString() });
-            return true;
+            const apiUrl = {
+                url: new URL(url).toString(),
+                addedAt: new Date().toISOString(),
+            }
+            db.add("apiUrls", apiUrl);
+            return apiUrl;
         } catch (e) {
             return false;
         }
@@ -731,9 +734,10 @@ class Settings {
         this.div.appendChild(themeTitle);
         this.themeButton = document.createElement("img");
         this.themeButton.src = `icons/${localStorage.getItem("theme") === "dark" ? "light" : "dark"}.svg`;
-        this.themeButton.className = "icon button hover";
+        this.themeButton.className = "icon button";
         setStyles(this.themeButton, {
-            fontSize: "2em",
+            fontSize: "1.5em",
+            margin: "0em 0.5em",
         });
         this.themeButton.addEventListener("click", () => this.toggleTheme());
         return this.themeButton;
