@@ -729,7 +729,6 @@ class Settings {
         themeTitle.textContent = "Theme";
         themeTitle.style.margin = "0.5em 0";
         this.div.appendChild(themeTitle);
-        if (!localStorage.getItem("theme")) localStorage.setItem("theme", matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
         this.themeButton = document.createElement("img");
         this.themeButton.src = `icons/${localStorage.getItem("theme") === "dark" ? "light" : "dark"}.svg`;
         this.themeButton.className = "icon button hover";
@@ -917,6 +916,15 @@ async function initDB() {
 async function route() {
     document.documentElement.classList = localStorage.getItem("theme");
     const url = new URL(window.location);
+    if (!localStorage.getItem("theme")) {
+        if (matchMedia("(prefers-color-scheme: dark)").matches) {
+            localStorage.setItem("theme", "dark");
+            document.documentElement.classList = "dark";
+        } else {
+            localStorage.setItem("theme", "light");
+            document.documentElement.classList = "light";
+        }
+    }
     initEventListeners(url.hash === "#settings");
     let uuid;
     if (url.searchParams.has("uuid")) {
