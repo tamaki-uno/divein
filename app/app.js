@@ -23,17 +23,19 @@ class Note {
     constructor(uuid, parentNote, expand = false) {
         this.uuid = uuid;
         this.parentNote = parentNote;
-        this.isExpanded = expand;
+        this.isExpanded = !expand;
+        this.children = [];
         this.childNotes = [];
     }
     async init() {
         await this.get();
-        return this.initContainer();
+        return;
     }
     async get() {
         const noteData = await db.getByKey("notes", this.uuid) || this.createNoteData();
+        console.log("Fetching note data:", noteData);
         this.content = noteData.content;
-        this.children = noteData.children.map((childUuid) => new Note(childUuid, this, false));
+        this.children = noteData.children;
         this.createdAt = noteData.createdAt;
         this.updatedAt = noteData.updatedAt;
         this.save();
@@ -50,7 +52,7 @@ class Note {
         return {
             uuid: this.uuid,
             content: this.content || (this.parentNote ? "" : "HOME"),
-            children: this.children ? this.children.map((child) => child.uuid) : [],
+            children: this.childNotes.map(childNote => childNote.uuid),
             createdAt: this.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
@@ -82,7 +84,14 @@ class Note {
         });
         this.container.addEventListener("dblclick", (event) => this.handleDoubleClick(event));
         this.container.appendChild(this.initContent());
-        this.isExpanded ? await this.expand() : this.collapse();
+        // this.childNotes = this.children.map(uuid => new Note(uuid, this, false));
+        await Promise.all(
+            this.childNotes.map(async (childNote) => {
+                const childDiv = await childNote.initContainer();
+                this.container.appendChild(childDiv);
+            })
+        );
+        this.isExpanded ? await this.collapse() : await this.expand();
         return this.container;
     }
     handleDoubleClick(event) {
@@ -126,19 +135,32 @@ class Note {
         return this.toggleIcon;
     }
     async expand() {
+        console.log("Expanding note:", this);
+        await this.get();
+        this.renderContent();
+        if (this.isExpanded) return;
         // if (this.parentNote) this.parentNote.expand();
         this.isExpanded = true;
         this.toggleIcon.style.transform = "rotate(90deg)";
         this.contentSpan.style.height = "auto";
         this.contentSpan.style.overflow = "auto";
-        this.container.appendChild(await this.initChildren());
+        // this.renderContent();
+        // this.childNotes = this.children.map(uuid => new Note(uuid, this, false));
+        this.container.appendChild(await this.createChildrenDiv());
+        return console.log("Note expanded:", this.content);
     }
-    collapse() {
+    async collapse() {
+        console.log("Collapsing note:", this.content);
+        await this.get();
+        this.renderContent();
+        if (!this.isExpanded) return;
         this.isExpanded = false;
         this.toggleIcon.style.transform = "rotate(0deg)";
         this.contentSpan.style.height = "1.5em";
         this.contentSpan.style.overflow = "hidden";
+        // this.renderContent();
         if (this.childrenDiv) this.childrenDiv.remove();
+        return console.log("Note collapsed:", this.content);
     }
     initContentSpan() {
         this.contentSpan = document.createElement("span");
@@ -158,9 +180,12 @@ class Note {
         this.renderContent();
         return this.contentSpan;
     }
-    handleFocus(event) {
+    async handleFocus(event) {
+        
+        console.log("Note focused:", this.content);
+        await this.get();
         this.contentSpan.innerHTML = this.content;
-        this.renderContent(["none"]);
+        this.renderContent();
         this.contentSpan.focus();
         this.suggestion.update(this.content);
     }
@@ -185,7 +210,7 @@ class Note {
         } else {
             console.log("Enter pressed without Shift");
             if (this.parentNote) {
-                const index = this.parentNote.children.indexOf(this);
+                const index = this.parentNote.childNotes.indexOf(this);
                 this.parentNote.createChild(index + 1);
             } else {
                 this.createChild();
@@ -198,32 +223,39 @@ class Note {
             console.log("Shift + Tab pressed");
             const grandparentNote = this.parentNote.parentNote;
             if (grandparentNote) {
-                const index = grandparentNote.children.indexOf(this.parentNote);
+                // const index = grandparentNote.children.indexOf(this.parentNote);
+                const index = grandparentNote.childNotes.indexOf(this.parentNote);
                 this.moveTo(grandparentNote, index - 1);
             }
         } else {
             console.log("Tab pressed without Shift");
             if (this.parentNote) {
-                const index = this.parentNote.children.indexOf(this);
-                this.moveTo(this.parentNote.children[index - 1]);
+                const index = this.parentNote.childNotes.indexOf(this);
+                this.moveTo(this.parentNote.childNotes[index - 1]);
             }
         }
     }
-    moveFocus(direction) {
+    async moveFocus(direction) {
         this.contentSpan.blur();
+        console.log("Moving focus in direction:", direction, "for note:", this.content);
         if (direction === 0) {
             this.contentSpan.focus();
-        } else if (0 < direction && direction <= this.children.length) {
+        } else if (0 < direction && direction <= this.childNotes.length) {
+            // console.log("this(before expansion):", this);
+            await this.expand();
+            console.log("this(after expansion):", this);
             const index = direction - 1;
-            const target = this.children[index];
+            console.log("Moving focus to child note at index:", index, "of", this.childNotes.length, "(children: ", this.childNotes.map(child => child.content).join(", "), ")");
+            const target = this.childNotes[index];
+            console.log("Moving focus to child note:", target.content);
             target.contentSpan.focus();
-            this.collapse();
+            await this.collapse();
             target.expand();
         } else if (this.parentNote) {
-            const index = this.parentNote.children.indexOf(this);
+            const index = this.parentNote.childNotes.indexOf(this);
             let newDirection = direction + (index + 1);
-            if (0 < direction) newDirection -= this.children.length;
-            this.parentNote.moveFocus(newDirection);
+            if (0 < direction) newDirection -= this.childNotes.length;
+            await this.parentNote.moveFocus(newDirection);
         } else {
             console.warn("Cannot move focus, no note found");
             this.contentSpan.focus();
@@ -262,24 +294,22 @@ class Note {
             this.contentSpan.textContent = this.content;
         }
     }
-    moveTo(newParent, index = 0) {
-        console.log(
-            `Moving note ${this.uuid} from ${this.parentNote || "root"} to ${newParent}`
-        );
+    async moveTo(newParent, index = 0) {
+        console.log('Moving note:', this, 'from parent:', this.parentNote || 'root', 'to:', newParent);
         if (!this.parentNote) return console.warn("Cannot move root note");
         if (!newParent) return console.warn("Cannot move to null parent note");
         this.parentNote.children = this.parentNote.children.filter((child) => child !== this);
         this.container.remove();
         this.parentNote.save();
         this.parentNote = newParent;
-        this.parentNote.children.splice(index, 0, this);
-        this.parentNote.childrenDiv.insertBefore(this.container, this.parentNote.childrenDiv.children[index]);
-        this.parentNote.save();
         this.parentNote.expand();
+        this.parentNote.children.splice(index, 0, this);
+        this.parentNote.save();
+        this.container = await this.initContainer();
+        this.parentNote.childrenDiv.insertBefore(this.container, this.parentNote.childrenDiv.children[index]);
         this.contentSpan.focus();
     }
-    async initChildren() {
-        await this.get();
+    async createChildrenDiv() {  
         this.childrenDiv = document.createElement("div");
         setStyles(this.childrenDiv, {
             display: "flex",
@@ -287,16 +317,26 @@ class Note {
             marginLeft: "1.5em",
             fontSize: "inherit",
         });
-        this.children.forEach(async (childNote) =>
-            this.childrenDiv.appendChild(await childNote.init())
+        // this.children.forEach(async (childNote) =>
+        //     this.childrenDiv.appendChild(await childNote.init())
+        // );
+        await Promise.all(
+            this.childNotes.map(async (childNote) => {
+                const childDiv = await childNote.initContainer();
+                this.childrenDiv.appendChild(childDiv);
+            })
         );
         return this.childrenDiv;
     }
     async addChild(childNote, index = 0) {
-        this.children.splice(index, 0, childNote);
+        await childNote.get();
+        this.childNotes.splice(index, 0, childNote);
+        const childDiv = await childNote.initContainer();
+        const existingChild = this.childrenDiv.length > index ? this.childrenDiv.children[index] : null;
+        console.log("Adding child note:", childNote.content, "at index:", index, "to parent note:", this.content);
         this.childrenDiv.insertBefore(
-            await childNote.init(),
-            this.childrenDiv.children[index] || null
+            childDiv,
+            existingChild
         );
         this.save();
         childNote.contentSpan.focus();
@@ -941,7 +981,8 @@ async function route() {
         window.history.replaceState({}, "", url.toString());
     }
     const note = new Note(uuid, null, true);
-    document.querySelector("main").appendChild(await note.init());
+    await note.get();
+    document.querySelector("main").appendChild(await note.initContainer());
     document.getElementById("loading").style.display = "none";
     return;
 }
