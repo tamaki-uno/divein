@@ -87,39 +87,30 @@ class IDB {
         this.dbName = dbName;
         this.version = version;
     }
+    async #eventWrapper(request, eventType = 'success') {
+        return new Promise((resolve, reject) => {
+            request.addEventListener(eventType, (event) => resolve(event.target.result));
+            request.addEventListener('error', (event) => reject(event.target.error));
+        });
+    }
     async init(schemas) {
         if (IDB.db) return (this.db = IDB.db);
         this.schemas = schemas;
         const request = window.indexedDB.open(this.dbName, this.version);
         console.log('Opening database request created:', request);
-        // request.onupgradeneeded = (event) => {
-        //     this.db = event.target.result;
-        //     Object.entries(this.schemas).forEach(([name, schema]) => {
-        //         if (this.db.objectStoreNames.contains(name)) return;
-        //         console.log(`Creating object store: ${name}`);
-        //         const objectStore = this.db.createObjectStore(name, schema.options);
-        //         schema.indexes.forEach((index) =>
-        //             objectStore.createIndex(index.name, index.name, {
-        //                 unique: index.unique,
-        //             })
-        //         );
-        //     });
-        //     console.log("Object stores created:", this.db.objectStoreNames);
-        // };
-        // return new Promise((resolve, reject) => {
-        //     request.onsuccess = (event) => {
-        //         this.db = event.target.result;
-        //         console.log("Database opened successfully:", this.db);
-        //         resolve(this.db);
-        //     };
-        //     request.onerror = (event) => {
-        //         console.error("Error opening database:", event.target.error);
-        //         reject(event.target.error);
-        //     };
-        // });
-        const db = await this.#eventHandler(request, "onupgradeneeded");
-        console.log("Database opened request upgraded:", db);
-        schemas.forEach((schema) => {
+        request.addEventListener('upgradeneeded', (event) => this.#handleUpgrade(event));
+        try {
+            this.db = await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error opening database:", error);
+        }
+        console.log("Object stores created:", this.db.objectStoreNames);
+        return this.db;
+    }
+    #handleUpgrade(event) {
+        const db = event.target.result;
+        console.log("Database upgrade needed:", db);
+        this.schemas.forEach((schema) => {
             if (db.objectStoreNames.contains(schema.name)) return;
             console.log(`Creating object store: ${schema.name}`);
             const objectStore = db.createObjectStore(schema.name, schema.options);
@@ -129,70 +120,66 @@ class IDB {
                 })
             );
         });
-        return this.db = await this.#eventHandler(request, "success");
+        console.log("Object stores created:", db.objectStoreNames);
     }
-    handleUpgradeNeeded(event) {
-        this.db = event.target.result;
-        this.schemas.forEach((schema) => {
-            if (this.db.objectStoreNames.contains(schema.name)) return;
-            console.log(`Creating object store: ${schema.name}`);
-            const objectStore = this.db.createObjectStore(schema.name, schema.options);
-            schema.indexes.forEach((index) =>
-                objectStore.createIndex(index.name, index.name, {
-                    unique: index.unique,
-                })
-            );
-        });
-        console.log("Object stores created:", this.db.objectStoreNames);
+    async add(storeName, data) {
+        try {
+            const transaction = this.db.transaction(storeName, "readwrite");
+            const objectStore = transaction.objectStore(storeName);
+            const request = objectStore.add(data);
+            return await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error adding data:", error);
+            throw error;
+        }
     }
-    handle
-    #getObjectStore(storeName, mode = "readonly") {
-        if (!this.db) throw new Error("Database not initialized");
-        const transaction = this.db.transaction(storeName, mode);
-        return transaction.objectStore(storeName);
+    async put(storeName, data) {
+        try {
+            const transaction = this.db.transaction(storeName, "readwrite");
+            const objectStore = transaction.objectStore(storeName);
+            const request = objectStore.put(data);
+            return await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error putting data:", error);
+            throw error;
+        }
     }
-    async #eventHandler(request, eventType = 'onsuccess') {
-        console.log(`Waiting for event: ${eventType}`);
-        // request.addEventListener(eventType, (event) => resolve(event.target.result));
-        // request.addEventListener("error", (event) => reject(event.target.error));
-        return new Promise((resolve, reject) => {
-            // request.addEventListener(eventType, (event) => resolve(event.target.result));
-            // request.addEventListener("error", (event) => reject(event.target.error));
-            // request[eventType] = (event) => console.log(resolve(event.target.result))
-            // request[eventType] = (event) => {
-            request.onsuccess = (event) => {
-                console.log(`Event ${eventType} triggered successfully`);
-                resolve(event.target.result);
-            };
-            request.onupgradeneeded = (event) => {
-                console.log(`Event ${eventType} triggered on upgrade needed`);
-                resolve(event.target.result);
-            };
-            request.onerror = (event) => reject(event.target.error);
-        });
+    async upsert(storeName, data) {
+        try {
+            const transaction = this.db.transaction(storeName, "readwrite");
+            const objectStore = transaction.objectStore(storeName);
+            const getRequest = objectStore.get(data[objectStore.keyPath]);
+            const existingData = await this.#eventWrapper(getRequest, "success");
+            if (existingData) {
+                const updatedData = { ...existingData, ...data };
+                if (JSON.stringify(existingData) === JSON.stringify(updatedData)) return existingData;
+                const request = objectStore.put(updatedData);
+                return await this.#eventWrapper(request, "success");
+            } else {
+                const request = objectStore.add(data);
+                return await this.#eventWrapper(request, "success");
+            }
+        } catch (error) {
+            console.error("Error upserting data:", error);
+            throw error;
+        }
     }
     async getByKey(storeName, key) {
-        const objectStore = await this.#getObjectStore(storeName, "readonly");
-        // return new Promise((resolve, reject) => {
-        //     const request = objectStore.get(key);
-        //     request.onsuccess = (event) => resolve(event.target.result);
-        //     request.onerror = (event) => {
-        //         console.error('Error getting data:', event.target.error);
-        //         reject(event.target.error);
-        //     };
-        // });
-        const request = objectStore.get(key);
-        return new Promise((resolve, reject) => {
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error getting data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
+        try {
+            const transaction = this.db.transaction(storeName, "readonly");
+            const objectStore = transaction.objectStore(storeName);
+            const request = objectStore.get(key);
+            const result = await this.#eventWrapper(request, "success");
+            return result;
+        } catch (error) {
+            console.error("Error getting data:", error);
+            throw error;
+        }
     }
     async search(storeName, query) {
-        const objectStore = await this.#getObjectStore(storeName, "readonly");
-        return new Promise((resolve, reject) => {
+        try {
+            const transaction = this.db.transaction(storeName, "readonly");
+            const objectStore = transaction.objectStore(storeName);
             const results = [];
             const request = objectStore.openCursor();
             request.onsuccess = (event) => {
@@ -203,14 +190,37 @@ class IDB {
                     }
                     cursor.continue();
                 } else {
-                    resolve(results);
+                    return results;
                 }
             };
             request.onerror = (event) => {
                 console.error("Error searching data:", event.target.error);
-                reject(event.target.error);
+                throw event.target.error;
             };
-        });
+        } catch (error) {
+            console.error("Error searching data:", error);
+            throw error;
+        }
+        // const objectStore = await this.#getObjectStore(storeName, "readonly");
+        // return new Promise((resolve, reject) => {
+        //     const results = [];
+        //     const request = objectStore.openCursor();
+        //     request.onsuccess = (event) => {
+        //         const cursor = event.target.result;
+        //         if (cursor) {
+        //             if (cursor.value.content.includes(query)) {
+        //                 results.push(cursor.value);
+        //             }
+        //             cursor.continue();
+        //         } else {
+        //             resolve(results);
+        //         }
+        //     };
+        //     request.onerror = (event) => {
+        //         console.error("Error searching data:", event.target.error);
+        //         reject(event.target.error);
+        //     };
+        // });
     }
     async getAll(storeName) {
         const objectStore = await this.#getObjectStore(storeName, "readonly");
@@ -222,41 +232,6 @@ class IDB {
                 reject(event.target.error);
             };
         });
-    }
-    async add(storeName, data) {
-        const objectStore = await this.#getObjectStore(storeName, "readwrite");
-        return new Promise((resolve, reject) => {
-            const request = objectStore.add(data);
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error adding data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-    async put(storeName, data) {
-        const objectStore = await this.#getObjectStore(storeName, "readwrite");
-        return new Promise((resolve, reject) => {
-            const request = objectStore.put(data);
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error putting data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-    async upsert(storeName, data) {
-        const objectStore = await this.#getObjectStore(storeName, "readwrite");
-        const getRequest = objectStore.get(data[objectStore.keyPath]);
-        const existingData = await this.#eventHandler(getRequest);
-        if (existingData) {
-            const updatedData = { ...existingData, ...data };
-            const request = objectStore.put(updatedData);
-            return await this.#eventHandler(request);
-        } else {
-            const request = objectStore.add(data);
-            return await this.#eventHandler(request);
-        }
     }
     async delete(storeName, key) {
         const objectStore = await this.#getObjectStore(storeName, "readwrite");
