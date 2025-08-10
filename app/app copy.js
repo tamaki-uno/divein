@@ -169,111 +169,76 @@ class IDB {
             const transaction = this.db.transaction(storeName, "readonly");
             const objectStore = transaction.objectStore(storeName);
             const request = objectStore.get(key);
-            const result = await this.#eventWrapper(request, "success");
-            return result;
+            return await this.#eventWrapper(request, "success");
         } catch (error) {
             console.error("Error getting data:", error);
             throw error;
         }
     }
-    async search(storeName, query) {
+    async getAll(storeName) {
+        try {
+            const transaction = this.db.transaction(storeName, "readonly");
+            const objectStore = transaction.objectStore(storeName);
+            const request = objectStore.getAll();
+            return await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error getting all data:", error);
+            throw error;
+        }
+    }
+    async find(storeName, key, query) {
         try {
             const transaction = this.db.transaction(storeName, "readonly");
             const objectStore = transaction.objectStore(storeName);
             const results = [];
             const request = objectStore.openCursor();
-            request.onsuccess = (event) => {
-                const cursor = event.target.result;
-                if (cursor) {
-                    if (cursor.value.content.includes(query)) {
-                        results.push(cursor.value);
+            return new Promise((resolve, reject) => {
+                request.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        if (cursor.value[key].includes(query)) {
+                            results.push(cursor.value);
+                        }
+                        cursor.continue();
+                    } else {
+                        resolve(results);
                     }
-                    cursor.continue();
-                } else {
-                    return results;
-                }
-            };
-            request.onerror = (event) => {
-                console.error("Error searching data:", event.target.error);
-                throw event.target.error;
-            };
+                };
+                request.onerror = (event) => {
+                    console.error("Error searching data:", event.target.error);
+                    reject(event.target.error);
+                };
+            });
         } catch (error) {
             console.error("Error searching data:", error);
             throw error;
         }
-        // const objectStore = await this.#getObjectStore(storeName, "readonly");
-        // return new Promise((resolve, reject) => {
-        //     const results = [];
-        //     const request = objectStore.openCursor();
-        //     request.onsuccess = (event) => {
-        //         const cursor = event.target.result;
-        //         if (cursor) {
-        //             if (cursor.value.content.includes(query)) {
-        //                 results.push(cursor.value);
-        //             }
-        //             cursor.continue();
-        //         } else {
-        //             resolve(results);
-        //         }
-        //     };
-        //     request.onerror = (event) => {
-        //         console.error("Error searching data:", event.target.error);
-        //         reject(event.target.error);
-        //     };
-        // });
-    }
-    async getAll(storeName) {
-        const objectStore = await this.#getObjectStore(storeName, "readonly");
-        return new Promise((resolve, reject) => {
-            const request = objectStore.getAll();
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error getting all data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
     }
     async delete(storeName, key) {
-        const objectStore = await this.#getObjectStore(storeName, "readwrite");
-        return new Promise((resolve, reject) => {
+        try {
+            const transaction = this.db.transaction(storeName, "readwrite");
+            const objectStore = transaction.objectStore(storeName);
             const request = objectStore.delete(key);
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error deleting data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
+            return await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error deleting data:", error);
+            throw error;
+        }
     }
     async clear(storeName) {
-        const objectStore = await this.#getObjectStore(storeName, "readwrite");
-        return new Promise((resolve, reject) => {
+        try {
+            const transaction = this.db.transaction(storeName, "readwrite");
+            const objectStore = transaction.objectStore(storeName);
             const request = objectStore.clear();
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error clearing data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
+            return await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error clearing data:", error);
+            throw error;
+        }
     }
 }
 
 const db = new IDB('divein', 1);
-// const schemas = {
-//     notes: {
-//         options: { keyPath: 'uuid' },
-//         indexes: [
-//             { name: 'content', unique: false },
-//             { name: 'children', unique: false },
-//         ],
-//     },
-//     apiUrls: {
-//         options: { keyPath: 'url' },
-//         indexes: [
-//             { name: 'url', unique: true },
-//             { name: 'data', unique: false },
-//         ],
-//     }
-// };
 const schemas = [
     {
         name: 'notes',
