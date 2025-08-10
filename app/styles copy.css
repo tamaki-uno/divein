@@ -26,7 +26,7 @@
     --hover-background: #444;
     /* --accent-background: #24b; */
     --hover-shadow: rgba(0, 0, 0, 0.6);
-    --shadow: 0.1em 0.1em 0.5em -0.1em rgba(0, 0, 0, 0.6);
+    --shadow: 0.1em 0.1em 0.5em -0.1em rgba(255, 255, 255, 0.6);
 }
 
 html, body {
@@ -41,17 +41,19 @@ html, body {
 
 body > .control {
     font-size: 0.75em;
+    display: inline-block;
     position: fixed;
     top: 1em;
     z-index: 500;
-    /* box-shadow: var(--shadow); */
-    box-shadow: 0.1em 0.1em 0.5em -0.1em var(--hover-shadow);
+    /* box-shadow: 0.1em 0.1em 0.5em -0.1em var(--hover-shadow); */
     cursor: pointer;
     width: 1em;
     height: 1em;
     padding: 0.5em;
     border-radius: 50%;
     filter: var(--icon-filter);
+    background-color: white;
+    box-shadow: var(--shadow);
     transition: filter 0.1s ease-in-out;
 }
 body > .control:hover {
@@ -90,7 +92,7 @@ body > .control:hover {
     height: 1.5em;
     overflow: hidden;
     flex-grow: 1;
-    padding: 0.5em;
+    padding: 0.2em 0.5em;
     outline: none;
     border-radius: 0.5em;
     transition: background-color 0.2s ease-in-out;

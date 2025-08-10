@@ -19,6 +19,66 @@ function appendChildren(Element, children) {
     });
 }
 
+const customEvents = {
+    expand: new CustomEvent('expand', { bubbles: true, cancelable: true }),
+    collapse: new CustomEvent('collapse', { bubbles: true, cancelable: true }),
+};
+
+async function createNoteDiv(uuid) {
+    const div = document.createElement('div');
+    div.className = 'note ' + uuid;
+    div.addEventListener('dblclick', (event) => {
+        event.stopPropagation();
+        route(uuid);
+    });
+    div.addEventListener('expand', (event) => {
+        event.stopPropagation();
+        expand(uuid);
+    });
+    div.addEventListener('collapse', (event) => {
+        event.stopPropagation();
+        collapse(uuid);
+    });
+    const noteData = await db.getByKey('notes', uuid);
+    div.append(createContentDiv(noteData.content));
+    return div;
+}
+async function createContentDiv(content) {
+    const div = document.createElement('div');
+    div.className = 'content';
+    const img = document.createElement('img');
+    img.src = 'icons/toggle.svg';
+    const span = document.createElement('span');
+    span.setAttribute('contenteditable', 'true');
+    div.append(img, span);
+    collapse(div);
+    return div;
+}
+async function collapse(uuid) {
+    const noteDiv = document.querySelector(`.note.${uuid}`);
+    noteDiv.classList.remove('expanded');
+    const noteData = await db.getByKey('notes', uuid);
+    noteDiv.querySelector('.content > span').textContent = noteData.content;
+    noteDiv.querySelector('.children')?.remove();
+    return noteData;
+}
+async function expand(uuid) {
+    const noteDiv = document.querySelector(`.note.${uuid}`);
+    const noteData = await collapse(uuid);
+    noteDiv.classList.add('expanded');
+    noteDiv.append(createChildrenDiv(noteData.children));
+}
+async function createChildrenDiv(children) {
+    const div = document.createElement('div');
+    div.className = 'children';
+    div.append(
+        ...children.map(async (childUuid) => await createNoteDiv(childUuid))
+    );
+    return div;
+}
+
+
+
 class Note {
     constructor(uuid, parentNote) {
         this.uuid = uuid;
@@ -46,7 +106,7 @@ class Note {
         return noteData;
     }
     async renderExpand() {
-        
+
     }
     async save() {
         if (await this.hasChanged()) {
