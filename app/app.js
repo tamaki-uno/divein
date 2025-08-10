@@ -20,19 +20,23 @@ function appendChildren(Element, children) {
 }
 
 class Note {
-    constructor(uuid, parentNote, expand = false) {
+    constructor(uuid, parentNote) {
         this.uuid = uuid;
         this.parentNote = parentNote;
-        this.isExpanded = !expand;
         this.children = [];
         this.childNotes = [];
     }
-    async init() {
-        await this.get();
-        return;
+    #createNoteData() {
+        return {
+            uuid: this.uuid,
+            content: this.content || (this.parentNote ? "" : "HOME"),
+            children: this.childNotes.map(childNote => childNote.uuid),
+            createdAt: this.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
     }
-    async get() {
-        const noteData = await db.getByKey("notes", this.uuid) || this.createNoteData();
+    async #get() {
+        const noteData = await db.getByKey("notes", this.uuid) || this.#createNoteData();
         console.log("Fetching note data:", noteData);
         this.content = noteData.content;
         this.children = noteData.children;
@@ -41,21 +45,15 @@ class Note {
         this.save();
         return noteData;
     }
+    async renderExpand() {
+        
+    }
     async save() {
         if (await this.hasChanged()) {
-            await db.put("notes", this.createNoteData());
+            await db.put("notes", this.#createNoteData());
             return true;
         }
         return false;
-    }
-    createNoteData() {
-        return {
-            uuid: this.uuid,
-            content: this.content || (this.parentNote ? "" : "HOME"),
-            children: this.childNotes.map(childNote => childNote.uuid),
-            createdAt: this.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
     }
     async hasChanged() {
         const existingNote = await db.getByKey("notes", this.uuid);
@@ -181,7 +179,7 @@ class Note {
         return this.contentSpan;
     }
     async handleFocus(event) {
-        
+
         console.log("Note focused:", this.content);
         await this.get();
         this.contentSpan.innerHTML = this.content;
