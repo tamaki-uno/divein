@@ -4,8 +4,10 @@ const customEvents = {
     expand: new CustomEvent('expand', { bubbles: true, cancelable: true }),
     collapse: new CustomEvent('collapse', { bubbles: false, cancelable: true }),
 };
-
-function createNoteDiv(uuid, initEvent = customEvents.collapse) {
+async function renderNote(uuid) {
+    
+}
+function createNoteDiv(uuid, expand, content = '') {
     const div = document.createElement('div');
     div.className = 'note ' + uuid;
     div.addEventListener('dblclick', (event) => {
@@ -15,37 +17,47 @@ function createNoteDiv(uuid, initEvent = customEvents.collapse) {
     div.addEventListener('expand', handleExpand);
     div.addEventListener('collapse', handleCollapse);
     div.append(createContentDiv());
-    div.dispatchEvent(initEvent);
+    updateDOM(div, expand, content);
     return div;
-}    
+}
+async function updateDOM(noteDiv, expand) {
+    const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
+    const noteData = await db.get('notes', uuid);
+    console.log('updating DOM for ', noteDiv, '\nwith ', noteData);
+    noteDiv.querySelector('.content > span').textContent = noteData.content;
+    noteDiv.querySelector('.content > span').focus();
+    if (expand) {
+        noteDiv.classList.add('expanded');
+        const childrenDiv = noteDiv.querySelector('.children') || document.createElement('div');
+        childrenDiv.className = 'children';
+        childrenDiv.append(...noteData.children.map((childUuid) => {
+            // const existingNoteDiv = childrenDiv.querySelector(`.note.${childUuid}`);
+            const existingNoteDiv = childrenDiv.querySelector(`.note.${CSS.escape(childUuid)}`);
+            if (existingNoteDiv) { 
+                return existingNoteDiv.dispatchEvent(
+                    existingNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
+                );
+            }
+            return createNoteDiv(childUuid);
+        }));
+        noteDiv.append(childrenDiv);
+    } else {
+        noteDiv.classList.remove('expanded');
+        noteDiv.querySelector('.children')?.remove();
+    }
+
+}
 async function handleCollapse(event) {
     console.log('collapsed!!', event);
     const noteDiv = event.currentTarget;
     const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
-    noteDiv.classList.remove('expanded');
-    const noteData = await db.get('notes', uuid) || {
-        uuid: uuid,
-        content: 'home',
-        children: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-    noteDiv.querySelector('.content > span').textContent = noteData.content;
-    noteDiv.querySelector('.content > span').focus();
-    noteDiv.querySelector('.children')?.remove();
-    return noteData;
+    updateDOM(noteDiv, false);
 }
 async function handleExpand(event) {
     console.log('expanded!!', event);
     const noteDiv = event.currentTarget;
-    const noteData = await handleCollapse(event);
-    noteDiv.classList.add('expanded');
-    const childrenDiv = document.createElement('div');
-    childrenDiv.className = 'children';
-    childrenDiv.append(
-        ...noteData.children.map(childUuid => createNoteDiv(childUuid))
-    );
-    noteDiv.append(childrenDiv);
+    const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
+    updateDOM(noteDiv, true);
 }
 function createContentDiv() {
     const div = document.createElement('div');
@@ -60,31 +72,43 @@ function createContentDiv() {
     });
     const span = document.createElement('span');
     span.setAttribute('contenteditable', 'true');
-    span.addEventListener('input', handleInput);
+    // span.addEventListener('input', handleInput);
+    span.addEventListener('keydown', handleKeyDown);
     div.append(img, span);
     return div;
 }
-async function handleInput(event) {
+async function handleKeyDown(event) {
     const span = event.currentTarget;
     const noteDiv = span.closest('.note');
-    const parentNoteDiv = noteDiv.parentNode.closest('.note');
     const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
     const noteData = await db.upsert('notes', { uuid: uuid, content: span.textContent });
+    const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
     if (event.key === "Enter") {
         event.preventDefault();
         span.blur();
-        const targetNoteDiv = parentNoteDiv || noteDiv;
-        const nextSibling = parentNoteDiv ? (event.shiftKey ? noteDiv : noteDiv.nextSibling) : noteDiv.querySelector('.children').firstChild;
-        targetNoteDiv.querySelector('.children').insertBefore(createNoteDiv(crypto.randomUUID()), nextSibling);
-        targetNoteDiv.dispatchEvent(customEvents.expand);
-        // if (parentNoteDiv) {
-        //     const nextSibling = event.shiftKey ? noteDiv : noteDiv.nextSibling;
-        //     parentNoteDiv.querySelector('.children').insertBefore(createNoteDiv(uuid), nextSibling);
-        //     parentNoteDiv.dispatchEvent(customEvents.expand);
-        // } else {
-        //     noteDiv.querySelector('.children').insertBefore(createNoteDiv(uuid), noteDiv.querySelector('.children').firstChild);
-        //     noteDiv.dispatchEvent(customEvents.expand);
-        // }
+        // const targetNoteDiv = parentNoteDiv || noteDiv;
+        // const nextSibling = parentNoteDiv ? (event.shiftKey ? noteDiv : noteDiv.nextSibling) : noteDiv.querySelector('.children')?.firstChild;
+        // console.log('targetNode:', targetNoteDiv, 'nextSibling:', nextSibling);
+        // targetNoteDiv.querySelector('.children').insertBefore(createNoteDiv(crypto.randomUUID()), nextSibling);
+        // targetNoteDiv.dispatchEvent(customEvents.expand);
+        const parentUuid = parentNoteDiv.className.split(' ').find(cls => cls !== 'note');
+        const parentData = await db.get('notes', parentUuid);
+        const index = parentData.children.findIndex(child => child.uuid === uuid);
+        const newChildUuid = crypto.randomUUID();
+        const updates = {
+            uuid: parentUuid,
+            children: [
+                ...parentData.children.slice(0, index + 1),
+                newChildUuid,
+                ...parentData.children.slice(index + 1)
+            ]
+        };
+        // const newParentData = await db.upsert('notes', updates);
+        await Promise.all([
+            db.add('notes', { ...defaultNoteData, uuid: newChildUuid }),
+            db.upsert('notes', updates)
+        ]);
+        parentNoteDiv.dispatchEvent(customEvents.expand);
     } else if (event.key === "Tab") {
         event.preventDefault();
         const grandParentNoteDiv = parentNoteDiv?.parentNode.closest('.note');
@@ -101,10 +125,6 @@ async function handleInput(event) {
         event.preventDefault();
         span.blur();
         noteDiv.prevSibling?.querySelector('.content > span').focus();
-        // const prevSibling = noteDiv.previousElementSibling;
-        // if (prevSibling) {
-        //     prevSibling.dispatchEvent(customEvents.expand);
-        // }
     } else if (event.key === "ArrowDown") {
         event.preventDefault();
         span.blur();
@@ -117,43 +137,42 @@ async function handleInput(event) {
                     targetNoteDiv.nextSibling.querySelector('.content > span').focus();
                     break;
                 } else targetNoteDiv = targetNoteDiv.parentNode.closest('.note');
-                // const nextSibling = noteDiv.nextSibling;
-                // if (nextSibling) {
-                //     nextSibling.dispatchEvent(customEvents.expand);
-            // } while (noteDiv = noteDiv.parentNode.closest('.note'));
             } while (targetNoteDiv);
         }
-        // const nextSibling = noteDiv.nextElementSibling;
-        // if (nextSibling) {
-        //     nextSibling.dispatchEvent(customEvents.expand);
-        // }
     }
 }
 
 // IndexedDB wrapper class
 class IDB {
+    /**
+     * Create an instance of the IDB class.
+     * @param {string} dbName - The name of the IndexedDB database.
+     * @param {number} version - The version of the IndexedDB database.
+     */
     constructor(dbName, version = 1) {
         this.dbName = dbName;
         this.version = version;
+        this.initialized = new Promise((resolve) => {
+            this.resolveInit = resolve;
+        });
+        this.db = null;
     }
+    /**
+     * Wrap an IndexedDB request in a promise.
+     * @param {IDBRequest} request - The IndexedDB request to wrap.
+     * @param {string} eventType - The event type to listen for (default: 'success').
+     * @returns {Promise} - A promise that resolves with the request result or rejects with an error.
+     */
     async #eventWrapper(request, eventType = 'success') {
         return new Promise((resolve, reject) => {
             request.addEventListener(eventType, (event) => resolve(event.target.result));
             request.addEventListener('error', (event) => reject(event.target.error));
         });
     }
-    async init(schemas) {
-        this.schemas = schemas;
-        try {
-            const request = window.indexedDB.open(this.dbName, this.version);
-            request.addEventListener('upgradeneeded', (event) => this.#handleUpgrade(event));
-            this.db = await this.#eventWrapper(request, "success");
-            console.log("Database opened:", this.db);
-            return this.db;
-        } catch (error) {
-            console.error("Error opening database:", error);
-        }
-    }
+    /**
+     * Handle the database upgrade event.
+     * @param {Event} event - The upgrade event.
+     */
     #handleUpgrade(event) {
         const db = event.target.result;
         console.log("Database upgrade needed:", db);
@@ -167,28 +186,66 @@ class IDB {
         });
         console.log("Object stores created:", db.objectStoreNames);
     }
+    /**
+     * Initialize the database and create object stores.
+     * @param {Array} schemas - An array of schema objects defining the object stores.
+     * @returns {Promise} - A promise that resolves when the database is initialized.
+     */
+    async init(schemas) {
+        this.schemas = schemas;
+        try {
+            const request = window.indexedDB.open(this.dbName, this.version);
+            request.addEventListener('upgradeneeded', (event) => this.#handleUpgrade(event));
+            this.db = await this.#eventWrapper(request, "success");
+            console.log("Database opened:", this.db);
+            this.resolveInit(this.db);
+            return this.db;
+        } catch (error) {
+            console.error("Error opening database:", error);
+        }
+    }
+    /**
+     * Add data to the specified object store.
+     * @param {string} storeName - The name of the object store to add data to.
+     * @param {*} data - The data to add to the object store.
+     * @returns {Promise} - A promise that resolves when the data is added.
+     */
     async add(storeName, data) {
         try {
             const request = this.db.transaction(storeName, "readwrite")
                 .objectStore(storeName)
                 .add(data);
-            return await this.#eventWrapper(request, "success");
+            await this.#eventWrapper(request, "success");
+            return data;
         } catch (error) {
             console.error("Error adding data:", error);
             throw error;
         }
     }
+    /**
+     * Update data in the specified object store.
+     * @param {string} storeName - The name of the object store to update data in.
+     * @param {*} data - The data to update in the object store.
+     * @returns {Promise} - A promise that resolves when the data is updated.
+     */
     async put(storeName, data) {
         try {
             const request = this.db.transaction(storeName, "readwrite")
                 .objectStore(storeName)
                 .put(data);
-            return await this.#eventWrapper(request, "success");
+            await this.#eventWrapper(request, "success");
+            return data;
         } catch (error) {
             console.error("Error putting data:", error);
             throw error;
         }
     }
+    /**
+     * Upsert data in the specified object store.
+     * @param {string} storeName - The name of the object store to upsert data in.
+     * @param {*} data - The data to upsert in the object store.
+     * @returns {Promise} - A promise that resolves when the data is upserted.
+     */
     async upsert(storeName, data) {
         try {
             const objectStore = this.db.transaction(storeName, "readwrite")
@@ -199,16 +256,24 @@ class IDB {
                 const updatedData = { ...existingData, ...data };
                 if (JSON.stringify(existingData) === JSON.stringify(updatedData)) return existingData;
                 const request = objectStore.put(updatedData);
-                return await this.#eventWrapper(request, "success");
+                await this.#eventWrapper(request, "success");
+                return updatedData;
             } else {
                 const request = objectStore.add(data);
-                return await this.#eventWrapper(request, "success");
+                await this.#eventWrapper(request, "success");
+                return data;
             }
         } catch (error) {
             console.error("Error upserting data:", error);
             throw error;
         }
     }
+    /**
+     * Get data from the specified object store by key.
+     * @param {string} storeName - The name of the object store to retrieve data from.
+     * @param {*} key - The key of the data to retrieve.
+     * @returns {Promise} - A promise that resolves to the retrieved data.
+     */
     async get(storeName, key) {
         try {
             const request = this.db.transaction(storeName, "readonly")
@@ -220,6 +285,11 @@ class IDB {
             throw error;
         }
     }
+    /**
+     * Get all data from the specified object store.
+     * @param {string} storeName - The name of the object store to retrieve data from.
+     * @returns {Promise<Array>} - A promise that resolves to an array of all data objects in the store.
+     */
     async getAll(storeName) {
         try {
             const transaction = this.db.transaction(storeName, "readonly");
@@ -231,7 +301,18 @@ class IDB {
             throw error;
         }
     }
-    async find(storeName, key, query) {
+    /**
+     * Find data in the specified object store based on the provided queries.
+     * @param {string} storeName - The name of the object store to search.
+     * @param {Array} queries - An array of query objects, each containing a key and value to match.
+     * @param {string} queries[].key - The key to search for in the data objects.
+     * @param {string} queries[].value - The value to match against the key.
+     * @returns A promise that resolves to an array of matching data objects.
+     * @example
+     * const results = await db.find('notes', { key: 'content', value: 'example' }, { key: 'title', value: 'test' });
+     */
+    async find(storeName, ...queries) {
+        console.log("Finding data in store:", storeName, "with queries:", queries);
         try {
             const results = [];
             const request = this.db.transaction(storeName, "readonly")
@@ -240,8 +321,9 @@ class IDB {
             return new Promise((resolve, reject) => {
                 request.onsuccess = (event) => {
                     const cursor = event.target.result;
-                    if (!cursor) resolve(results);
-                    if (cursor.value[key].includes(query)) results.push(cursor.value);
+                    if (!cursor) return resolve(results);
+                    // if (cursor.value[key].includes(query)) results.push(cursor.value);
+                    if (queries.every(query => cursor.value[query.key]?.includes(query.value))) results.push(cursor.value); // use some instead of every for OR of query
                     cursor.continue();
                 };
                 request.onerror = (event) => {
@@ -254,6 +336,12 @@ class IDB {
             throw error;
         }
     }
+    /**
+     * Delete data from the specified object store by key.
+     * @param {string} storeName - The name of the object store to delete data from.
+     * @param {*} key - The key of the data to delete.
+     * @returns {Promise} - A promise that resolves when the data is deleted.
+     */
     async delete(storeName, key) {
         try {
             const request = this.db.transaction(storeName, "readwrite")
@@ -265,6 +353,11 @@ class IDB {
             throw error;
         }
     }
+    /**
+     * Clear all data from the specified object store.
+     * @param {string} storeName - The name of the object store to clear data from.
+     * @returns {Promise} - A promise that resolves when the data is cleared.
+     */
     async clear(storeName) {
         try {
             const request = this.db.transaction(storeName, "readwrite")
@@ -297,12 +390,17 @@ const schemas = [
         ],
     }
 ];
+const defaultNoteData = {
+    uuid: '',
+    content: '',
+    children: [],
+    style: {
+        expanded: true,
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+};
 async function init() {
-    const url = new URL(location.href);
-    const uuid = url.searchParams.get('uuid') || localStorage.getItem('home') || crypto.randomUUID();
-    localStorage.setItem('home', uuid);
-    url.searchParams.set('uuid', uuid);
-    history.replaceState({}, '', url.toString());
     localStorage.setItem('theme', localStorage.getItem('theme') || matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     body.className = localStorage.getItem('theme');
     await Promise.all([
@@ -316,6 +414,25 @@ async function init() {
     document.getElementById('upload').addEventListener('click', upload);
     document.getElementById('reload').addEventListener('click', reload);
     // document.getElementById('search').addEventListener('click', search);
+    const url = new URL(location.href);
+    if (!url.searchParams.has('uuid')) {
+        console.log('No UUID found in URL. Redirecting to home...');
+        if (!localStorage.getItem('home')) {
+            console.log('No home UUID found in localStorage. Creating a new one...');
+            const uuid = crypto.randomUUID();
+            localStorage.setItem('home', uuid);
+            await db.add('notes', {
+                ...defaultNoteData,
+                uuid: uuid,
+                content: 'home',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+        }
+        url.searchParams.set('uuid', localStorage.getItem('home'));
+        history.replaceState({}, '', url.toString());
+    }
+    const uuid = url.searchParams.get('uuid');
     main.innerHTML = '';
     main.append(createNoteDiv(uuid, customEvents.expand));
     document.getElementById('loading').remove();
@@ -355,4 +472,13 @@ function reload() {
 function search() {
     console.log('Searching...');
     // Implement search logic here
+}
+
+function resetAllAndImSureToDeleteEverything() {
+    // db.clear('notes');
+    // db.clear('apiUrls');
+    indexedDB.deleteDatabase('divein'); // Clear IndexedDB
+    localStorage.clear(); // Clear localStorage
+    history.replaceState({}, '', location.href.split('?')[0]); // Clear URL parameters
+    location.reload(); // Reload the page
 }

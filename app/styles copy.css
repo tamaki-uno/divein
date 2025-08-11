@@ -74,6 +74,7 @@ body > .control:hover {
     display: flex;
     flex-direction: row;
     background-color: var(--main-background);
+    border-radius: 0.5em;
 }
 
 .note > .content > img {
