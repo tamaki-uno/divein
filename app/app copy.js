@@ -4,49 +4,14 @@ const customEvents = {
     expand: new CustomEvent('expand', { bubbles: true, cancelable: true }),
     collapse: new CustomEvent('collapse', { bubbles: false, cancelable: true }),
 };
-// async function render(uuid) {
-//     const noteData = await db.get('notes', uuid);
-//     const noteDiv = createNoteDiv(uuid, customEvents.expand);
-//     main.append(noteDiv);
-// }
-async function renderContent(uuid) {
-    const noteData = await db.get('notes', uuid);
-    const contentSpans = document.querySelectorAll('.note.' + CSS.escape(uuid) + ' .content > span');
-    contentSpans.forEach((span) => {
-        if (span.textContent !== noteData.content) {
-            span.textContent = noteData.content;
-        }
-    });
-}
-async function renderChildren(uuid) {
-    const noteData = await db.get('notes', uuid);
-    const noteDivs = document.querySelectorAll('.note.' + CSS.escape(uuid));
-    noteDivs.forEach((noteDiv) => {
-        if (!noteDiv.classList.contains('expanded')) return;
-        noteData.children.forEach((childUuid, index) => {
-            const childrenNoteDiv = noteDiv.querySelector('.children').children[index];
-            const existingUuid = childrenNoteDiv?.className.split(' ').find(cls => cls !== 'note');
 
-            if (childUuid !== existingUuid) {
-                if (childrenNoteDiv) {
-                    childrenNoteDiv.dispatchEvent(
-                        childrenNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
-                    );
-                } else {
-                    const newNoteDiv = createNoteDiv(childUuid);
-                    noteDiv.querySelector('.children').append(newNoteDiv);
-                }
-            }
-        });
-    });
-}
 function createNoteDiv(uuid, initEvent = customEvents.collapse) {
     const div = document.createElement('div');
     div.className = 'note ' + uuid;
-    div.addEventListener('dblclick', (event) => {
-        event.stopPropagation();
-        init(uuid);
-    });
+    // div.addEventListener('dblclick', (event) => {
+    //     event.stopPropagation();
+    //     init(uuid);
+    // });
     div.addEventListener('expand', handleExpand);
     div.addEventListener('collapse', handleCollapse);
     div.append(createContentDiv());
@@ -56,64 +21,46 @@ function createNoteDiv(uuid, initEvent = customEvents.collapse) {
 async function render(uuid){
     const noteData = await db.get('notes', uuid);
     const noteDivs = document.querySelectorAll('.note.' + CSS.escape(uuid));
-    noteDivs.forEach((noteDiv) => {
-        const contentSpan = noteDiv.querySelector('.content > span');
-        if (contentSpan.textContent !== noteData.content) contentSpan.textContent = noteData.content;
-        const childrenDiv = noteDiv.querySelector('.children');
-        if (childrenDiv) {
-            while (childrenDiv.children.length > noteData.children.length) {
-                childrenDiv.lastChild.remove();
-            }
-            // new Array(Math.max(childrenDiv.children.length, noteData.children.length)).forEach(
-            //     (_, index) => {
-            //         // const childUuid = noteData.children[index];
-            //         // const childNoteDiv = childrenDiv.children[index];
-            //         // const existingUuid = childNoteDiv?.className.split(' ').find(cls => cls !== 'note');
-            //         // if (childUuid !== existingUuid) {
-            //         //     if (childNoteDiv) {
-            //         //         childNoteDiv.dispatchEvent(
-            //         //             childNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
-            //         //         );
-            //         //     } else {
-            //         //         const newNoteDiv = createNoteDiv(childUuid);
-            //         //         childrenDiv.append(newNoteDiv);
-            //         //     }
-            //         // }
-            // });
-            noteData.children.forEach((childUuid, index) => {
-                const childNoteDiv = childrenDiv.children[index];
-                // const existingUuid = childNoteDiv?.className.split(' ').find(cls => cls !== 'note');
-                // if (childUuid !== existingUuid) {
-                    // if (childNoteDiv) {
-                    //     childNoteDiv.dispatchEvent(
-                    //         childNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
-                    //     );
-                    // } else {
-                    //     const newNoteDiv = createNoteDiv(childUuid);
-                    //     childrenDiv.append(newNoteDiv);
-                    // }
-                // }
-                // if (!childNoteDiv || !childNoteDiv.classList.contains(childUuid)) {
-                //     const newNoteDiv = createNoteDiv(childUuid);
-                //     if 
-                // }
-                if (!childNoteDiv) {
-                    childrenDiv.append(createNoteDiv(childUuid));
-                } else if (!childNoteDiv.classList.contains(childUuid)) {
-                    childNoteDiv.replaceWith(createNoteDiv(childUuid));
+    // noteDivs.forEach((noteDiv) => {
+    // await Promise.all(Array.from(noteDivs).map(
+    return await Promise.all(Array.from(noteDivs).map(
+        async (noteDiv) => {
+            const contentSpan = noteDiv.querySelector('.content > span');
+            if (contentSpan.textContent !== noteData.content) contentSpan.textContent = noteData.content;
+            const childrenDiv = noteDiv.querySelector('.children');
+            if (childrenDiv) {
+                while (childrenDiv.children.length > noteData.children.length) {
+                    childrenDiv.lastChild.remove();
                 }
-            });
+                // noteData.children.forEach((childUuid, index) => {
+                //     const childNoteDiv = childrenDiv.children[index];
+                //     if (!childNoteDiv) {
+                //         childrenDiv.append(createNoteDiv(childUuid));
+                //     } else if (!childNoteDiv.classList.contains(childUuid)) {
+                //         childNoteDiv.replaceWith(createNoteDiv(childUuid));
+                //     }
+                // });
+                await Promise.all(noteData.children.map(
+                    async (childUuid, index) => {
+                        const childNoteDiv = childrenDiv.children[index];
+                        if (!childNoteDiv) {
+                            childrenDiv.append(await createNoteDiv(childUuid));
+                        } else if (!childNoteDiv.classList.contains(childUuid)) {
+                            childNoteDiv.replaceWith(await createNoteDiv(childUuid));
+                        }
+                    }
+                ));
+            }
         }
-    });
+    ));
 }
 async function handleCollapse(event) {
     console.log('collapsed!!', event);
     const noteDiv = event.currentTarget;
     const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
-    // updateDOM(noteDiv, false);
     noteDiv.classList.remove('expanded');
     noteDiv.querySelector('.children')?.remove();
-    renderContent(uuid);
+    render(uuid);
 }
 
 let global_debug_anti_inf_counter = 0;
@@ -126,13 +73,11 @@ async function handleExpand(event) {
 
     const noteDiv = event.currentTarget;
     const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
-    // updateDOM(noteDiv, true);
-    renderContent(uuid);
     noteDiv.classList.add('expanded');
     const childrenDiv = noteDiv.querySelector('.children') || document.createElement('div');
     childrenDiv.className = 'children';
     noteDiv.append(childrenDiv);
-    renderChildren(uuid);
+    render(uuid);
 }
 function createContentDiv() {
     const div = document.createElement('div');
@@ -147,20 +92,33 @@ function createContentDiv() {
     });
     const span = document.createElement('span');
     span.setAttribute('contenteditable', 'true');
-    // span.addEventListener('input', handleInput);
+    span.addEventListener('input', (event) => {
+        event.stopPropagation();
+        const noteDiv = event.target.closest('.note');
+        const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
+        db.upsert('notes', { uuid: uuid, content: event.target.textContent });
+        // render(uuid);
+    });
     span.addEventListener('keydown', handleKeyDown);
+    span.addEventListener('blur', (event) => {
+        const noteDiv = event.target.closest('.note');
+        const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
+        render(uuid);
+    });
     div.append(img, span);
     return div;
 }
 async function handleKeyDown(event) {
-    const span = event.currentTarget;
-    const noteDiv = span.closest('.note');
+    // const span = event.currentTarget;
+    // const noteDiv = span.closest('.note');
+    const noteDiv = event.target.closest('.note');
     const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
-    const noteData = await db.upsert('notes', { uuid: uuid, content: span.textContent });
+    // const noteData = await db.upsert('notes', { uuid: uuid, content: span.textContent });
     const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
     if (event.key === "Enter") {
         event.preventDefault();
-        span.blur();
+        // span.blur();
+        event.currentTarget.blur();
         // const targetNoteDiv = parentNoteDiv || noteDiv;
         // const nextSibling = parentNoteDiv ? (event.shiftKey ? noteDiv : noteDiv.nextSibling) : noteDiv.querySelector('.children')?.firstChild;
         // console.log('targetNode:', targetNoteDiv, 'nextSibling:', nextSibling);
@@ -168,7 +126,9 @@ async function handleKeyDown(event) {
         // targetNoteDiv.dispatchEvent(customEvents.expand);
         const parentUuid = parentNoteDiv.className.split(' ').find(cls => cls !== 'note');
         const parentData = await db.get('notes', parentUuid);
-        const index = parentData.children.findIndex(child => child.uuid === uuid);
+        // const index = parentData.children.findIndex(child => child.uuid === uuid);
+        const siblings = Array.from(parentNoteDiv.querySelector('.children').children);
+        const index = siblings.indexOf(noteDiv);
         const newChildUuid = crypto.randomUUID();
         const updates = {
             uuid: parentUuid,
@@ -183,7 +143,10 @@ async function handleKeyDown(event) {
             db.add('notes', { ...defaultNoteData, uuid: newChildUuid }),
             db.upsert('notes', updates)
         ]);
-        parentNoteDiv.dispatchEvent(customEvents.expand);
+        // parentNoteDiv.dispatchEvent(customEvents.expand);
+        // render(newChildUuid);
+        await render(parentUuid);
+        parentNoteDiv.querySelector(`.children > .note.${newChildUuid}`).focus();
     } else if (event.key === "Tab") {
         event.preventDefault();
         const grandParentNoteDiv = parentNoteDiv?.parentNode.closest('.note');
@@ -215,6 +178,9 @@ async function handleKeyDown(event) {
             } while (targetNoteDiv);
         }
     }
+}
+
+createYoungerSibling(uuid) {
 }
 
 // IndexedDB wrapper class
