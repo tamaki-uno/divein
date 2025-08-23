@@ -4,9 +4,11 @@ const customEvents = {
     expand: new CustomEvent('expand', { bubbles: true, cancelable: true }),
     collapse: new CustomEvent('collapse', { bubbles: false, cancelable: true }),
 };
-async function renderNote(uuid) {
-    
-}
+// async function render(uuid) {
+//     const noteData = await db.get('notes', uuid);
+//     const noteDiv = createNoteDiv(uuid, customEvents.expand);
+//     main.append(noteDiv);
+// }
 async function renderContent(uuid) {
     const noteData = await db.get('notes', uuid);
     const contentSpans = document.querySelectorAll('.note.' + CSS.escape(uuid) + ' .content > span');
@@ -19,28 +21,12 @@ async function renderContent(uuid) {
 async function renderChildren(uuid) {
     const noteData = await db.get('notes', uuid);
     const noteDivs = document.querySelectorAll('.note.' + CSS.escape(uuid));
-    // const childrenDivs = document.querySelectorAll('.note.' + CSS.escape(uuid) + ' .children');
-    // childrenDivs.forEach((childrenDiv) => {
     noteDivs.forEach((noteDiv) => {
         if (!noteDiv.classList.contains('expanded')) return;
-
-        // const childrenNoteDivs = childrenDiv.querySelectorAll('.note.' + CSS);
         noteData.children.forEach((childUuid, index) => {
-            // const childrenNoteDiv = childrenDiv.children[index];
             const childrenNoteDiv = noteDiv.querySelector('.children').children[index];
             const existingUuid = childrenNoteDiv?.className.split(' ').find(cls => cls !== 'note');
-            // if (childUuid !== childrenNoteDivs[index]?.className.split(' ').find(cls => cls !== 'note')) {
-            // if (childUuid !== childrenNoteDiv?.className.split(' ').find(cls => cls !== 'note')) {
-            //     const existingNoteDiv = childrenDiv.querySelector(`.note.${CSS.escape(childUuid)}`);
-            //     if (existingNoteDiv) {
-            //         existingNoteDiv.dispatchEvent(
-            //             existingNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
-            //         );
-            //     } else {
-            //         const newNoteDiv = createNoteDiv(childUuid);
-            //         childrenDiv.append(newNoteDiv);
-            //     }
-            // }
+
             if (childUuid !== existingUuid) {
                 if (childrenNoteDiv) {
                     childrenNoteDiv.dispatchEvent(
@@ -54,7 +40,7 @@ async function renderChildren(uuid) {
         });
     });
 }
-function createNoteDiv(uuid, expand, content = '') {
+function createNoteDiv(uuid, initEvent = customEvents.collapse) {
     const div = document.createElement('div');
     div.className = 'note ' + uuid;
     div.addEventListener('dblclick', (event) => {
@@ -64,35 +50,61 @@ function createNoteDiv(uuid, expand, content = '') {
     div.addEventListener('expand', handleExpand);
     div.addEventListener('collapse', handleCollapse);
     div.append(createContentDiv());
-    updateDOM(div, expand, content);
+    div.dispatchEvent(initEvent);
     return div;
 }
-async function updateDOM(noteDiv, expand) {
-    const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
+async function render(uuid){
     const noteData = await db.get('notes', uuid);
-    console.log('updating DOM for ', noteDiv, '\nwith ', noteData);
-    noteDiv.querySelector('.content > span').textContent = noteData.content;
-    noteDiv.querySelector('.content > span').focus();
-    if (expand) {
-        noteDiv.classList.add('expanded');
-        const childrenDiv = noteDiv.querySelector('.children') || document.createElement('div');
-        childrenDiv.className = 'children';
-        childrenDiv.append(...noteData.children.map((childUuid) => {
-            // const existingNoteDiv = childrenDiv.querySelector(`.note.${childUuid}`);
-            const existingNoteDiv = childrenDiv.querySelector(`.note.${CSS.escape(childUuid)}`);
-            if (existingNoteDiv) { 
-                return existingNoteDiv.dispatchEvent(
-                    existingNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
-                );
+    const noteDivs = document.querySelectorAll('.note.' + CSS.escape(uuid));
+    noteDivs.forEach((noteDiv) => {
+        const contentSpan = noteDiv.querySelector('.content > span');
+        if (contentSpan.textContent !== noteData.content) contentSpan.textContent = noteData.content;
+        const childrenDiv = noteDiv.querySelector('.children');
+        if (childrenDiv) {
+            while (childrenDiv.children.length > noteData.children.length) {
+                childrenDiv.lastChild.remove();
             }
-            return createNoteDiv(childUuid);
-        }));
-        noteDiv.append(childrenDiv);
-    } else {
-        noteDiv.classList.remove('expanded');
-        noteDiv.querySelector('.children')?.remove();
-    }
-
+            // new Array(Math.max(childrenDiv.children.length, noteData.children.length)).forEach(
+            //     (_, index) => {
+            //         // const childUuid = noteData.children[index];
+            //         // const childNoteDiv = childrenDiv.children[index];
+            //         // const existingUuid = childNoteDiv?.className.split(' ').find(cls => cls !== 'note');
+            //         // if (childUuid !== existingUuid) {
+            //         //     if (childNoteDiv) {
+            //         //         childNoteDiv.dispatchEvent(
+            //         //             childNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
+            //         //         );
+            //         //     } else {
+            //         //         const newNoteDiv = createNoteDiv(childUuid);
+            //         //         childrenDiv.append(newNoteDiv);
+            //         //     }
+            //         // }
+            // });
+            noteData.children.forEach((childUuid, index) => {
+                const childNoteDiv = childrenDiv.children[index];
+                // const existingUuid = childNoteDiv?.className.split(' ').find(cls => cls !== 'note');
+                // if (childUuid !== existingUuid) {
+                    // if (childNoteDiv) {
+                    //     childNoteDiv.dispatchEvent(
+                    //         childNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
+                    //     );
+                    // } else {
+                    //     const newNoteDiv = createNoteDiv(childUuid);
+                    //     childrenDiv.append(newNoteDiv);
+                    // }
+                // }
+                // if (!childNoteDiv || !childNoteDiv.classList.contains(childUuid)) {
+                //     const newNoteDiv = createNoteDiv(childUuid);
+                //     if 
+                // }
+                if (!childNoteDiv) {
+                    childrenDiv.append(createNoteDiv(childUuid));
+                } else if (!childNoteDiv.classList.contains(childUuid)) {
+                    childNoteDiv.replaceWith(createNoteDiv(childUuid));
+                }
+            });
+        }
+    });
 }
 async function handleCollapse(event) {
     console.log('collapsed!!', event);
