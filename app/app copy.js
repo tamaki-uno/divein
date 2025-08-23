@@ -7,6 +7,53 @@ const customEvents = {
 async function renderNote(uuid) {
     
 }
+async function renderContent(uuid) {
+    const noteData = await db.get('notes', uuid);
+    const contentSpans = document.querySelectorAll('.note.' + CSS.escape(uuid) + ' .content > span');
+    contentSpans.forEach((span) => {
+        if (span.textContent !== noteData.content) {
+            span.textContent = noteData.content;
+        }
+    });
+}
+async function renderChildren(uuid) {
+    const noteData = await db.get('notes', uuid);
+    const noteDivs = document.querySelectorAll('.note.' + CSS.escape(uuid));
+    // const childrenDivs = document.querySelectorAll('.note.' + CSS.escape(uuid) + ' .children');
+    // childrenDivs.forEach((childrenDiv) => {
+    noteDivs.forEach((noteDiv) => {
+        if (!noteDiv.classList.contains('expanded')) return;
+
+        // const childrenNoteDivs = childrenDiv.querySelectorAll('.note.' + CSS);
+        noteData.children.forEach((childUuid, index) => {
+            // const childrenNoteDiv = childrenDiv.children[index];
+            const childrenNoteDiv = noteDiv.querySelector('.children').children[index];
+            const existingUuid = childrenNoteDiv?.className.split(' ').find(cls => cls !== 'note');
+            // if (childUuid !== childrenNoteDivs[index]?.className.split(' ').find(cls => cls !== 'note')) {
+            // if (childUuid !== childrenNoteDiv?.className.split(' ').find(cls => cls !== 'note')) {
+            //     const existingNoteDiv = childrenDiv.querySelector(`.note.${CSS.escape(childUuid)}`);
+            //     if (existingNoteDiv) {
+            //         existingNoteDiv.dispatchEvent(
+            //             existingNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
+            //         );
+            //     } else {
+            //         const newNoteDiv = createNoteDiv(childUuid);
+            //         childrenDiv.append(newNoteDiv);
+            //     }
+            // }
+            if (childUuid !== existingUuid) {
+                if (childrenNoteDiv) {
+                    childrenNoteDiv.dispatchEvent(
+                        childrenNoteDiv.classList.contains('expanded') ? customEvents.expand : customEvents.collapse
+                    );
+                } else {
+                    const newNoteDiv = createNoteDiv(childUuid);
+                    noteDiv.querySelector('.children').append(newNoteDiv);
+                }
+            }
+        });
+    });
+}
 function createNoteDiv(uuid, expand, content = '') {
     const div = document.createElement('div');
     div.className = 'note ' + uuid;
@@ -51,13 +98,29 @@ async function handleCollapse(event) {
     console.log('collapsed!!', event);
     const noteDiv = event.currentTarget;
     const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
-    updateDOM(noteDiv, false);
+    // updateDOM(noteDiv, false);
+    noteDiv.classList.remove('expanded');
+    noteDiv.querySelector('.children')?.remove();
+    renderContent(uuid);
 }
+
+let global_debug_anti_inf_counter = 0;
+
 async function handleExpand(event) {
-    console.log('expanded!!', event);
+    if (global_debug_anti_inf_counter > 1000) throw new Error('Infinite loop detected in handleExpand');
+    // console.log('expanded!!', event);
+    console.log('expand caught at', event.currentTarget, 'from', event.target, '(',event,',', global_debug_anti_inf_counter, ')');
+    global_debug_anti_inf_counter++;
+
     const noteDiv = event.currentTarget;
     const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
-    updateDOM(noteDiv, true);
+    // updateDOM(noteDiv, true);
+    renderContent(uuid);
+    noteDiv.classList.add('expanded');
+    const childrenDiv = noteDiv.querySelector('.children') || document.createElement('div');
+    childrenDiv.className = 'children';
+    noteDiv.append(childrenDiv);
+    renderChildren(uuid);
 }
 function createContentDiv() {
     const div = document.createElement('div');
