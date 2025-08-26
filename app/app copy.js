@@ -21,10 +21,10 @@ function createNoteDiv(uuid, initEvent = customEvents.collapse) {
 async function render(uuid){
     const noteData = await db.get('notes', uuid);
     const noteDivs = document.querySelectorAll('.note.' + CSS.escape(uuid));
-    // noteDivs.forEach((noteDiv) => {
-    // await Promise.all(Array.from(noteDivs).map(
+    console.log('noteData:', noteData, 'noteDivs:', noteDivs);
     return await Promise.all(Array.from(noteDivs).map(
         async (noteDiv) => {
+            if (!noteData) return  noteDiv.remove();
             const contentSpan = noteDiv.querySelector('.content > span');
             if (contentSpan.textContent !== noteData.content) contentSpan.textContent = noteData.content;
             const childrenDiv = noteDiv.querySelector('.children');
@@ -32,14 +32,6 @@ async function render(uuid){
                 while (childrenDiv.children.length > noteData.children.length) {
                     childrenDiv.lastChild.remove();
                 }
-                // noteData.children.forEach((childUuid, index) => {
-                //     const childNoteDiv = childrenDiv.children[index];
-                //     if (!childNoteDiv) {
-                //         childrenDiv.append(createNoteDiv(childUuid));
-                //     } else if (!childNoteDiv.classList.contains(childUuid)) {
-                //         childNoteDiv.replaceWith(createNoteDiv(childUuid));
-                //     }
-                // });
                 await Promise.all(noteData.children.map(
                     async (childUuid, index) => {
                         const childNoteDiv = childrenDiv.children[index];
@@ -115,73 +107,95 @@ async function handleKeyDown(event) {
     const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
     // const noteData = await db.upsert('notes', { uuid: uuid, content: span.textContent });
     const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
-    if (event.key === "Enter") {
-        event.preventDefault();
-        // span.blur();
-        event.currentTarget.blur();
-        // const targetNoteDiv = parentNoteDiv || noteDiv;
-        // const nextSibling = parentNoteDiv ? (event.shiftKey ? noteDiv : noteDiv.nextSibling) : noteDiv.querySelector('.children')?.firstChild;
-        // console.log('targetNode:', targetNoteDiv, 'nextSibling:', nextSibling);
-        // targetNoteDiv.querySelector('.children').insertBefore(createNoteDiv(crypto.randomUUID()), nextSibling);
-        // targetNoteDiv.dispatchEvent(customEvents.expand);
-        const parentUuid = parentNoteDiv.className.split(' ').find(cls => cls !== 'note');
-        const parentData = await db.get('notes', parentUuid);
-        // const index = parentData.children.findIndex(child => child.uuid === uuid);
-        const siblings = Array.from(parentNoteDiv.querySelector('.children').children);
-        const index = siblings.indexOf(noteDiv);
-        const newChildUuid = crypto.randomUUID();
-        const updates = {
-            uuid: parentUuid,
-            children: [
-                ...parentData.children.slice(0, index + 1),
-                newChildUuid,
-                ...parentData.children.slice(index + 1)
-            ]
-        };
-        // const newParentData = await db.upsert('notes', updates);
-        await Promise.all([
-            db.add('notes', { ...defaultNoteData, uuid: newChildUuid }),
-            db.upsert('notes', updates)
-        ]);
-        // parentNoteDiv.dispatchEvent(customEvents.expand);
-        // render(newChildUuid);
-        await render(parentUuid);
-        parentNoteDiv.querySelector(`.children > .note.${newChildUuid}`).focus();
-    } else if (event.key === "Tab") {
-        event.preventDefault();
-        const grandParentNoteDiv = parentNoteDiv?.parentNode.closest('.note');
-        // if (event.shiftKey) parentNoteDiv.parentNode.querySelector('.children').append(noteDiv);
-        if (event.shiftKey && grandParentNoteDiv) {
-            grandParentNoteDiv.querySelector('.children').insertBefore(noteDiv, parentNoteDiv.nextSibling);
-        } else noteDiv.prevSibling?.append(noteDiv);
-        noteDiv.dispatchEvent(customEvents.expand);
-    } else if (event.key === "Backspace" && !span.textContent.trim()) {
-        noteDiv.remove();
-    } else if (event.key === "Escape") {
-        span.blur();
-    } else if (event.key === "ArrowUp") {
-        event.preventDefault();
-        span.blur();
-        noteDiv.prevSibling?.querySelector('.content > span').focus();
-    } else if (event.key === "ArrowDown") {
-        event.preventDefault();
-        span.blur();
-        if (noteDiv.querySelector('.children').firstChild) {
-            noteDiv.querySelector('.children').firstChild.querySelector('.content > span').focus();
-        } else {
-            let targetNoteDiv = noteDiv;
-            do {
-                if (targetNoteDiv.nextSibling) {
-                    targetNoteDiv.nextSibling.querySelector('.content > span').focus();
-                    break;
-                } else targetNoteDiv = targetNoteDiv.parentNode.closest('.note');
-            } while (targetNoteDiv);
-        }
+    if (event.key === "Enter") handleEnter(event);
+    else if (event.key === "Tab") handleTab(event);
+        // event.preventDefault();
+        // const grandParentNoteDiv = parentNoteDiv?.parentNode.closest('.note');
+        // // if (event.shiftKey) parentNoteDiv.parentNode.querySelector('.children').append(noteDiv);
+        // if (event.shiftKey && grandParentNoteDiv) {
+        //     grandParentNoteDiv.querySelector('.children').insertBefore(noteDiv, parentNoteDiv.nextSibling);
+        // } else noteDiv.prevSibling?.append(noteDiv);
+        // noteDiv.dispatchEvent(customEvents.expand);
+    else if (event.key === "Backspace" && !span.textContent.trim()) noteDiv.remove();
+    else if (event.key === "Escape") span.blur();
+    else if (event.key === "ArrowUp") moveFocus(noteDiv, -1);
+    else if (event.key === "ArrowDown") moveFocus(noteDiv, 1);
+    // else if (event.key === "ArrowUp") {
+    //     event.preventDefault();
+    //     span.blur();
+    //     noteDiv.prevSibling?.querySelector('.content > span').focus();
+    // } else if (event.key === "ArrowDown") {
+    //     event.preventDefault();
+    //     span.blur();
+    //     if (noteDiv.querySelector('.children').firstChild) {
+    //         noteDiv.querySelector('.children').firstChild.querySelector('.content > span').focus();
+    //     } else {
+    //         let targetNoteDiv = noteDiv;
+    //         do {
+    //             if (targetNoteDiv.nextSibling) {
+    //                 targetNoteDiv.nextSibling.querySelector('.content > span').focus();
+    //                 break;
+    //             } else targetNoteDiv = targetNoteDiv.parentNode.closest('.note');
+    //         } while (targetNoteDiv);
+    //     }
+    // }
+}
+
+async function handleEnter(event) {
+    event.preventDefault();
+    const noteDiv = event.target.closest('.note');
+    const uuid = crypto.randomUUID();
+    const parentNoteDiv = noteDiv.parentNode.closest('.note');
+    let parentNoteUuid, index;
+    if (parentNoteDiv) {
+        parentNoteUuid = parentNoteDiv.className.split(' ').find(cls => cls !== 'note');
+        index = Array.from(parentNoteDiv.querySelector('.children').children).indexOf(noteDiv);
+    } else {
+        parentNoteUuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
+        index = 0;
+    }
+    const parentData = await db.get('notes', parentNoteUuid);
+    const updates = {
+        uuid: parentNoteUuid,
+        children: [
+            ...parentData.children.slice(0, index + 1),
+            uuid,
+            ...parentData.children.slice(index + 1)
+        ]
+    };
+    await db.upsert('notes', updates);
+    await render(parentNoteUuid);
+    parentNoteDiv.querySelector(`.children > .note.${uuid}`).focus();
+}
+
+async function handleTab(event) {
+    event.preventDefault();
+    const noteDiv = event.target.closest('.note');
+    const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
+    const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
+    const grandParentNoteDiv = parentNoteDiv?.parentNode.closest('.note');
+    if (event.shiftKey && grandParentNoteDiv) {
+        grandParentNoteDiv.querySelector('.children').insertBefore(noteDiv, parentNoteDiv.nextSibling);
+    } else noteDiv.prevSibling?.append(noteDiv);
+    noteDiv.dispatchEvent(customEvents.expand);
+}
+
+async function moveFocus(div, direction) {
+    console.log('move focus', direction, 'from:', div);
+    const parentDiv = div.parentNode.closest('.note');
+    const childrenDivs = div.querySelector('.children')?.children;
+    if (direction === 0) div.querySelector('.content > span').focus();
+    else if (0 < direction && childrenDivs && direction <= childrenDivs.length) {
+        childrenDivs[direction - 1].querySelector('.content > span').focus();
+    } else if (parentDiv) {
+        const index = Array.from(parentDiv.querySelector('.children').children).indexOf(div);
+        let newDirection = direction + 1 + (index)
+        moveFocus(parentDiv, newDirection);
+    } else {
+        console.log('no more parents');
     }
 }
 
-createYoungerSibling(uuid) {
-}
 
 // IndexedDB wrapper class
 class IDB {
