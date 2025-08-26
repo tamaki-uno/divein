@@ -118,3 +118,10 @@ body > .control:hover {
 .note.expanded > .children {
     display: flex;
 }
+
+.context-menu {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+
+}
