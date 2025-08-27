@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 
 function setStyles(Element, styles) {
@@ -26,6 +26,56 @@ class Note {
         this.isExpanded = expand;
         this.childNotes = [];
     }
+    createContainer() {
+        this.container = document.createElement('div');
+        setStyles(this.container, {
+            display: 'flex',
+            flexDirection: 'column',
+            fontSize: 'max(0.7em, 16px)',
+            position: 'relative',
+            backgroundColor: 'var(--sub-background)',
+            margin: '0.1rem',
+        });
+        this.container.append(this.createContentDiv());
+        this.container.append(this.createChildrenDiv());
+        return this.container;
+    }
+    createContentDiv() {
+        this.contentDiv = document.createElement('div');
+        this.contentDiv.className = 'note-content';
+        setStyles(this.contentDiv, {
+            padding: '0.5rem',
+            borderBottom: '1px solid var(--border-color)',
+        });
+        const icon = document.createElement('img');
+        icon.src = 'icons/toggle.svg';
+        setStyles(icon, {
+            width: '1em',
+            height: '1em'
+        });
+        this.contentDiv.append(icon);
+        const span = document.createElement('span');
+        span.setAttribute('contenteditable', 'true');
+        setStyles(span, {
+            display: 'flex',
+            alignItems: 'center',
+        });
+        this.contentDiv.append(span);
+        return this.contentDiv;
+    }
+    createChildrenDiv() {
+        this.childrenDiv = document.createElement('div');
+        setStyles(this.childrenDiv, {
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '0.5rem',
+        });
+        return this.childrenDiv;
+    }
+    async updateDOMtoDB() {
+        const 
+    }
+
     async init() {
         await this.get();
         return this.initContainer();
