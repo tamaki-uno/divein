@@ -9,9 +9,11 @@ const noteData = {
     uuid: '',
     content: '',
     children: [],
-    // style: {
-    // 
-    // }
+    style: {
+        expanded: false,
+        done: false,
+        strong: false
+    }
     // createdAt: new Date().toISOString(),
     // updatedAt: new Date().toISOString()
 }
@@ -28,34 +30,61 @@ function noteIndexOf(noteDiv, parentNoteDiv) {
     const children = Array.from(parentNoteDiv.querySelector('.children').children);
     return children.indexOf(noteDiv);
 }
-async function createNoteDiv(uuid, expansion = false) {
+// async function createNoteDiv(uuid, expansion = false) {
+async function createNoteDiv(uuid) {
     const div = document.createElement('div');
     div.className = 'note ' + uuid;
-    div.addEventListener('expand', async (event) => renderNote(event.currentTarget, await db.get('notes', uuidOf(event.currentTarget)), true));
-    div.addEventListener('collapse', async (event) => renderNote(event.currentTarget, await db.get('notes', uuidOf(event.currentTarget)), false));
+    // div.addEventListener('expand', async (event) => renderNote(event.currentTarget, await db.get('notes', uuidOf(event.currentTarget)), true));
+    // div.addEventListener('collapse', async (event) => renderNote(event.currentTarget, await db.get('notes', uuidOf(event.currentTarget)), false));
+    div.addEventListener('expand', async (event) => {
+        const update = {style: { expanded: true }};
+        // await db.upsert('notes', { uuid: uuidOf(event.currentTarget), ...update });
+        // render(event.currentTarget, await db.get('notes', uuidOf(event.currentTarget)));
+        const noteData = await db.get('notes', uuidOf(event.currentTarget));
+        render(event.currentTarget, noteData);
+    });
+    div.addEventListener('collapse', async (event) => {
+        const update = {style: { expanded: false }};
+        const noteData = await db.upsert('notes', { uuid: uuidOf(event.currentTarget), ...update });
+        render(event.currentTarget, noteData);
+    });
     const noteData = await db.get('notes', uuid);
-    await renderNote(div, noteData, expansion);
+    // await renderNote(div, noteData, expansion);
+    render(div, noteData);
     return div;
 }
-async function renderNote(div, noteData, expansion = false) {
+// async function renderNote(div, noteData, expansion = false) {
+async function render(div, noteData) {
     // console.log('rendering', div, 'with noteData:', noteData, 'and expansion:', expansion);
     console.log('rendering...', uuidOf(div).split('-')[0]);
-    if (!noteData) return div.remove();
+    // if (!noteData) return div.remove();
+    if (!noteData) {
+        console.warn('Note data not found for UUID:', uuidOf(div), 'Removing note div.');
+        div.remove();
+        throw new Error('Note data not found for UUID: ' + uuidOf(div));
+    }
     const contentDiv = div.querySelector('.content') || createContentDiv(div);
-    // div.append(contentDiv);
+
+    div.append(contentDiv);
+
     const contentSpan = contentDiv.querySelector('span');
     if (contentSpan.textContent !== noteData.content) contentSpan.textContent = noteData.content;
-    if (expansion) {
+    // if (expansion) {
+    if (noteData.style.expanded) {
         div.classList.add('expanded');
         const childrenDiv = div.querySelector('.children') || createChildrenDiv(div);
-        // div.append(childrenDiv);
+
+        div.append(childrenDiv);
+        
         while (childrenDiv.children.length > noteData.children.length) childrenDiv.lastChild.remove();
         await Promise.all(noteData.children.map(
             async (childUuid, index) => {
                 const childDiv = childrenDiv.children[index];
                 if (!childDiv) {
+                    console.log('Creating child note:', childUuid);
                     childrenDiv.append(await createNoteDiv(childUuid));
                 } else if (!childDiv.classList.contains(childUuid)) {
+                    console.log('Replacing child note:', childDiv.className, 'with:', childUuid);
                     childDiv.replaceWith(await createNoteDiv(childUuid));
                 }
             }
@@ -75,11 +104,16 @@ function createContentDiv(noteDiv) {
     div.addEventListener('dblclick', handleDoubleClick);
     const img = document.createElement('img');
     img.src = 'icons/toggle.svg';
-    img.addEventListener('click', (event) => {
+    img.addEventListener('click', async (event) => {
         event.stopPropagation();
         const noteDiv = event.target.closest('.note');
-        const eventType = noteDiv.classList.contains('expanded') ? 'collapse' : 'expand';
-        event.target.dispatchEvent(customEvents[eventType]);
+        const noteData = await db.get('notes', uuidOf(noteDiv));
+        console.log('Toggling note:', noteData);
+        const dataUpdate = { style: { expanded: !noteData.style.expanded } };
+        const newNoteData = await db.upsert('notes', { uuid: uuidOf(noteDiv), ...dataUpdate });
+        await update(uuidOf(noteDiv));
+        // const eventType = noteDiv.classList.contains('expanded') ? 'collapse' : 'expand';
+        // event.target.dispatchEvent(customEvents[eventType]);
     });
     const span = document.createElement('span');
     span.setAttribute('contenteditable', 'true');
@@ -109,8 +143,10 @@ async function update(uuid){
     const noteData = await db.get('notes', uuid);
     const noteDivs = document.querySelectorAll('.note.' + CSS.escape(uuid));
     // console.log('noteData:', noteData, 'noteDivs:', noteDivs);
+    console.log('Updating note:', uuid, 'with data:', noteData, 'and divs:', noteDivs);
     return await Promise.all(Array.from(noteDivs).map(
-        async (noteDiv) => renderNote(noteDiv, noteData, noteDiv.classList.contains('expanded'))
+        // async (noteDiv) => renderNote(noteDiv, noteData, noteDiv.classList.contains('expanded'))
+        async (noteDiv) => render(noteDiv, noteData)
     ));
 }
 function handleContextMenu(event) {
@@ -153,68 +189,52 @@ async function handleEnter(event) {
         ...noteData,
         uuid: crypto.randomUUID()
     };
-    await spliceNote(parentNoteUuid, index + 1, 0, newNoteData.uuid);
-    // const parentUpdate = {
-    //     uuid: parentNoteUuid,
-    //     children: [
-    //         ...parentData.children.slice(0, index + 1),
-    //         newNoteData.uuid,
-    //         ...parentData.children.slice(index + 1)
-    //     ]
-    // };
-    // console.log('Inserting new note', newNoteData, 'into parent', parentData.content, '(', parentData.uuid.split('-')[0], ') at index', index + 1);
-    // await db.upsert('notes', parentUpdate);
     await db.add('notes', newNoteData);
-    await update(parentNoteUuid);
-    // parentNoteDiv.querySelector(`.children > .note.${CSS.escape(newNoteData.uuid)} .content > span`).focus();
+    console.log('Added new note:', newNoteData);
+    await spliceNote(parentNoteUuid, index + 1, 0, newNoteData.uuid);
     moveFocus(noteDiv, 1);
 }
 
 async function handleTab(event) {
     event.preventDefault();
     console.log('Tab key pressed on note:', uuidOf(event.target.closest('.note')), '(', event, ')');
-    // const noteDiv = event.target.closest('.note');
-    // // const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
-    // const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
-    // const grandParentNoteDiv = parentNoteDiv?.parentNode.closest('.note');
-    // if (event.shiftKey && grandParentNoteDiv) {
-    //     grandParentNoteDiv.querySelector('.children').insertBefore(noteDiv, parentNoteDiv.nextSibling);
-    // } else noteDiv.prevSibling?.append(noteDiv);
-    // noteDiv.dispatchEvent(customEvents.expand);
     const noteDiv = event.target.closest('.note');
     const parentNoteDiv = noteDiv.parentNode?.closest('.note');
     if (!parentNoteDiv) return console.warn('Could not move note, due to missing parent');
+    // await update(uuidOf(parentNoteDiv));
     // if (event.shiftKey) {
     //     const grandParentDiv = parentNoteDiv.parentNode?.closest('.note');
     //     if (grandParentDiv) {
+    //         const parentIndex = noteIndexOf(parentNoteDiv, grandParentDiv);
+    //         await spliceNote(uuidOf(grandParentDiv), parentIndex + 1, 0, uuidOf(noteDiv));
+    //         await update(uuidOf(grandParentDiv));
+    //         // moveFocus(noteDiv, 0);
+    //         moveFocus(parentNoteDiv, 1);
     //     }
+    // } else {
+    //     const newParentNoteDiv = noteDiv.previousSibling;
+    //     if (!newParentNoteDiv) return console.warn('Could not find new parent note');
+    //     await spliceNote(uuidOf(newParentNoteDiv), 0, 0, uuidOf(noteDiv));
+    //     await update(uuidOf(parentNoteDiv));
+    //     await update(uuidOf(newParentNoteDiv));
+    //     await renderNote(newParentNoteDiv, await db.get('notes', uuidOf(newParentNoteDiv)), true);
+    //     moveFocus(newParentNoteDiv, 1);
     // }
+    const newParentDiv = event.shiftKey ? parentNoteDiv.parentNode?.closest('.note') : noteDiv.previousSibling;
+    if (!newParentDiv) return console.warn('Could not find new parent note');
+    const newParentData = await db.upsert('notes', { uuid: uuidOf(newParentDiv), style: { expanded: true } });
+    const newIndex = event.shiftKey ? noteIndexOf(parentNoteDiv, newParentDiv) + 1 : newParentData.children.length;
+    const update = {style: { expanded: true }};
+    await db.upsert('notes', { uuid: uuidOf(newParentDiv), ...update });
+    await spliceNote(uuidOf(newParentDiv), newIndex, 0, uuidOf(noteDiv));
 
     const index = noteIndexOf(noteDiv, parentNoteDiv);
     await spliceNote(uuidOf(parentNoteDiv), index, 1);
-    // const newParentNoteDiv = event.shiftKey ? parentNoteDiv.parentNode?.closest('.note') : noteDiv.previousSibling;
-    // if (!newParentNoteDiv) return console.warn('Could not find new parent note');
-    // await spliceNote(uuidOf(newParentNoteDiv), newIndex, 0, uuidOf(noteDiv));
-    if (event.shiftKey) {
-        const grandParentDiv = parentNoteDiv.parentNode?.closest('.note');
-        if (grandParentDiv) {
-            const parentIndex = noteIndexOf(parentNoteDiv, grandParentDiv);
-            await spliceNote(uuidOf(grandParentDiv), parentIndex + 1, 0, uuidOf(noteDiv));
-            await update(uuidOf(grandParentDiv));
-            // moveFocus(noteDiv, 0);
-            moveFocus(parentNoteDiv, 1);
-        }
-    } else {
-        const newParentNoteDiv = noteDiv.previousSibling;
-        if (!newParentNoteDiv) return console.warn('Could not find new parent note');
-        await spliceNote(uuidOf(newParentNoteDiv), 0, 0, uuidOf(noteDiv));
-        // await update(uuidOf(newParentNoteDiv));
-        await update(uuidOf(parentNoteDiv));
-        await update(uuidOf(newParentNoteDiv));
-        await renderNote(newParentNoteDiv, await db.get('notes', uuidOf(newParentNoteDiv)), true);
-        // moveFocus(noteDiv, 0);
-        moveFocus(newParentNoteDiv, 1);
-    }
+    // await update(uuidOf(parentNoteDiv));
+    // await update(uuidOf(newParentDiv));
+    // await renderNote(newParentDiv, await db.get('notes', uuidOf(newParentDiv)), true);
+    // render(newParentDiv, newParentData);
+    moveFocus(newParentDiv, 1);
 }
 
 async function handleBackspace(event) {
@@ -235,19 +255,40 @@ async function handleBackspace(event) {
     }
 }
 
-async function moveFocus(div, direction) {
+function moveFocus(div, direction) {
+    if (!div) return console.error('No div found to move focus');
     console.log('move focus', direction, 'from:', div);
     const parentDiv = div.parentNode?.closest('.note');
-    const childrenDivs = div.querySelector('.children')?.children;
+    // const childrenDivs = div.querySelector('.children')?.children;
+    const childDivs = div.querySelector('.children')?.children;
     if (direction === 0) div.querySelector('.content > span').focus();
-    else if (0 < direction && childrenDivs && direction <= childrenDivs.length) {
-        childrenDivs[direction - 1].querySelector('.content > span').focus();
+    // else if (0 < direction && childrenDivs && direction <= childrenDivs.length) {
+        // childrenDivs[direction - 1].querySelector('.content > span').focus();
+    else if (0 < direction && childDivs && direction <= childDivs.length) {
+        const span = childDivs[direction - 1].querySelector('.content > span');
+        if (span) span.focus();
+        else console.error('No span found to move focus in childDivs:', childDivs, '( index:', direction - 1, ', childDiv:', childDivs[direction - 1], ')');
     } else if (parentDiv) {
         const index = Array.from(parentDiv.querySelector('.children').children).indexOf(div);
-        let newDirection = direction + 1 + (index)
+        // const index = childDivs.indexOf(div);
+        // const grandChildrenLength = parentDiv.querySelector(`.children > .note:nth-child(${index}) .children`)?.children.length || 0;
+        // const grandChildrenLength = childDivs[]?.querySelector('.children')?.children.length || 0;
+        // const newDirection = direction + 1 + index;
+        const adjustedIndex = index - (direction > 0 ? childDivs?.length || 0 : 0);
+        const newDirection = direction + 1 + adjustedIndex;
+        // console.log('Moving focus to parent:', parentDiv, 'with new direction:', newDirection, 'direction:', direction, 'index:', index, 'grandChildrenLength:', grandChildrenLength);
+        console.log('Moving focus to parent:', parentDiv, 'with new direction:', newDirection, 'direction:', direction, 'index:', index, 'childDivs.length:', childDivs?.length || 0);
         moveFocus(parentDiv, newDirection);
+    // } else {
+    //     // console.log('no more parents');
+    //     console.warn('No more parents');
+    // }
+    } else if (direction < 0) {
+        console.warn('direction out of bounds (-)');
+        div.querySelector('.content > span').focus();
     } else {
-        console.log('no more parents');
+        console.warn('direction out of bounds (+)');
+        childDivs[childDivs.length - 1].querySelector('.content > span').focus();
     }
 }
 
@@ -261,6 +302,8 @@ async function spliceNote(uuid, start, deleteCount, ...children) {
         ...noteData.children.slice(start + deleteCount)
     ];
     await db.upsert('notes', { uuid, children: updatedChildren });
+    // moveFocus()
+    await update(uuid);
 }
 
 // IndexedDB wrapper class
@@ -552,7 +595,10 @@ async function init() {
             await db.upsert('notes', {
                 ...noteData,
                 uuid: uuid,
-                content: 'home'
+                content: 'home',
+                style: {
+                    expanded: true
+                }
             });
         }
         url.searchParams.set('uuid', localStorage.getItem('home'));
@@ -561,7 +607,8 @@ async function init() {
     const uuid = url.searchParams.get('uuid');
     main.innerHTML = '';
     // main.append(await createNoteDiv(uuid, customEvents.expand));
-    main.append(await createNoteDiv(uuid, true));
+    // main.append(await createNoteDiv(uuid, true));
+    main.append(await createNoteDiv(uuid));
     document.getElementById('loading').remove();
 }
 
