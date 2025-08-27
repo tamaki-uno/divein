@@ -148,21 +148,22 @@ async function handleEnter(event) {
     const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
     const parentNoteUuid = uuidOf(parentNoteDiv);
     const index = Math.max(Array.from(parentNoteDiv.querySelector('.children').children).indexOf(noteDiv), 0);
-    const parentData = await db.get('notes', parentNoteUuid);
+    // const parentData = await db.get('notes', parentNoteUuid);
     const newNoteData = {
         ...noteData,
         uuid: crypto.randomUUID()
-    }
-    const parentUpdate = {
-        uuid: parentNoteUuid,
-        children: [
-            ...parentData.children.slice(0, index + 1),
-            newNoteData.uuid,
-            ...parentData.children.slice(index + 1)
-        ]
     };
-    console.log('Inserting new note', newNoteData, 'into parent', parentData.content, '(', parentData.uuid.split('-')[0], ') at index', index + 1);
-    await db.upsert('notes', parentUpdate);
+    await spliceNote(parentNoteUuid, index + 1, 0, newNoteData.uuid);
+    // const parentUpdate = {
+    //     uuid: parentNoteUuid,
+    //     children: [
+    //         ...parentData.children.slice(0, index + 1),
+    //         newNoteData.uuid,
+    //         ...parentData.children.slice(index + 1)
+    //     ]
+    // };
+    // console.log('Inserting new note', newNoteData, 'into parent', parentData.content, '(', parentData.uuid.split('-')[0], ') at index', index + 1);
+    // await db.upsert('notes', parentUpdate);
     await db.add('notes', newNoteData);
     await update(parentNoteUuid);
     // parentNoteDiv.querySelector(`.children > .note.${CSS.escape(newNoteData.uuid)} .content > span`).focus();
@@ -171,14 +172,49 @@ async function handleEnter(event) {
 
 async function handleTab(event) {
     event.preventDefault();
+    console.log('Tab key pressed on note:', uuidOf(event.target.closest('.note')), '(', event, ')');
+    // const noteDiv = event.target.closest('.note');
+    // // const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
+    // const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
+    // const grandParentNoteDiv = parentNoteDiv?.parentNode.closest('.note');
+    // if (event.shiftKey && grandParentNoteDiv) {
+    //     grandParentNoteDiv.querySelector('.children').insertBefore(noteDiv, parentNoteDiv.nextSibling);
+    // } else noteDiv.prevSibling?.append(noteDiv);
+    // noteDiv.dispatchEvent(customEvents.expand);
     const noteDiv = event.target.closest('.note');
-    // const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
-    const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
-    const grandParentNoteDiv = parentNoteDiv?.parentNode.closest('.note');
-    if (event.shiftKey && grandParentNoteDiv) {
-        grandParentNoteDiv.querySelector('.children').insertBefore(noteDiv, parentNoteDiv.nextSibling);
-    } else noteDiv.prevSibling?.append(noteDiv);
-    noteDiv.dispatchEvent(customEvents.expand);
+    const parentNoteDiv = noteDiv.parentNode?.closest('.note');
+    if (!parentNoteDiv) return console.warn('Could not move note, due to missing parent');
+    // if (event.shiftKey) {
+    //     const grandParentDiv = parentNoteDiv.parentNode?.closest('.note');
+    //     if (grandParentDiv) {
+    //     }
+    // }
+
+    const index = noteIndexOf(noteDiv, parentNoteDiv);
+    await spliceNote(uuidOf(parentNoteDiv), index, 1);
+    // const newParentNoteDiv = event.shiftKey ? parentNoteDiv.parentNode?.closest('.note') : noteDiv.previousSibling;
+    // if (!newParentNoteDiv) return console.warn('Could not find new parent note');
+    // await spliceNote(uuidOf(newParentNoteDiv), newIndex, 0, uuidOf(noteDiv));
+    if (event.shiftKey) {
+        const grandParentDiv = parentNoteDiv.parentNode?.closest('.note');
+        if (grandParentDiv) {
+            const parentIndex = noteIndexOf(parentNoteDiv, grandParentDiv);
+            await spliceNote(uuidOf(grandParentDiv), parentIndex + 1, 0, uuidOf(noteDiv));
+            await update(uuidOf(grandParentDiv));
+            // moveFocus(noteDiv, 0);
+            moveFocus(parentNoteDiv, 1);
+        }
+    } else {
+        const newParentNoteDiv = noteDiv.previousSibling;
+        if (!newParentNoteDiv) return console.warn('Could not find new parent note');
+        await spliceNote(uuidOf(newParentNoteDiv), 0, 0, uuidOf(noteDiv));
+        // await update(uuidOf(newParentNoteDiv));
+        await update(uuidOf(parentNoteDiv));
+        await update(uuidOf(newParentNoteDiv));
+        await renderNote(newParentNoteDiv, await db.get('notes', uuidOf(newParentNoteDiv)), true);
+        // moveFocus(noteDiv, 0);
+        moveFocus(newParentNoteDiv, 1);
+    }
 }
 
 async function handleBackspace(event) {
@@ -193,12 +229,7 @@ async function handleBackspace(event) {
         const parentNoteDiv = noteDiv.parentNode.closest('.note');
         if (!parentNoteDiv) return; // Do nothing if there's no parent
         const index = Array.from(parentNoteDiv.querySelector('.children').children).indexOf(noteDiv);
-        const parentData = await db.get('notes', uuidOf(parentNoteDiv));
-        const updatedChildren = [
-            ...parentData.children.slice(0, index),
-            ...parentData.children.slice(index + 1)
-        ];
-        await db.upsert('notes', { uuid: uuidOf(parentNoteDiv), children: updatedChildren });
+        await spliceNote(uuidOf(parentNoteDiv), index, 1);
         moveFocus(noteDiv, -1);
         await update(uuidOf(parentNoteDiv));
     }
@@ -220,6 +251,17 @@ async function moveFocus(div, direction) {
     }
 }
 
+async function spliceNote(uuid, start, deleteCount, ...children) {
+    console.log('Splicing note', uuid, 'at', start, 'deleting', deleteCount, 'and inserting', children);
+    const noteData = await db.get('notes', uuid);
+    if (!noteData) throw new Error('Note not found: ' + uuid);
+    const updatedChildren = [
+        ...noteData.children.slice(0, start),
+        ...children,
+        ...noteData.children.slice(start + deleteCount)
+    ];
+    await db.upsert('notes', { uuid, children: updatedChildren });
+}
 
 // IndexedDB wrapper class
 class IDB {
