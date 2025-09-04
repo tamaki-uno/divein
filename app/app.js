@@ -1,1062 +1,658 @@
-"use strict";
-
-
-function setStyles(Element, styles) {
-    Object.entries(styles).forEach(([key, value]) => {
-        Element.style[key] = value;
-    });
-}
-
-function addEventListeners(Element, events) {
-    Object.entries(events).forEach(([event, handler]) => {
-        Element.addEventListener(event, handler);
-    });
-}
-
-function appendChildren(Element, children) {
-    children.forEach(child => {
-        Element.appendChild(child);
-    });
-}
+'use strict';
 
 const customEvents = {
     expand: new CustomEvent('expand', { bubbles: true, cancelable: true }),
-    collapse: new CustomEvent('collapse', { bubbles: true, cancelable: true }),
+    collapse: new CustomEvent('collapse', { bubbles: false, cancelable: true }),
 };
 
+const noteData = {
+    uuid: '',
+    content: '',
+    children: [],
+    style: {
+        expanded: false,
+        done: false,
+        strong: false
+    }
+    // createdAt: new Date().toISOString(),
+    // updatedAt: new Date().toISOString()
+}
+
+function uuidOf(div) {
+    const classNames = div.className.split(' ');
+    return classNames.find(cls => {
+        // return cls !== 'note' && cls !== 'expanded'
+        // return cls.match(/^[0-9a-f]{36}$/);
+        return cls.length === 36;
+    });
+}
+function noteIndexOf(noteDiv, parentNoteDiv) {
+    const children = Array.from(parentNoteDiv.querySelector('.children').children);
+    return children.indexOf(noteDiv);
+}
+// async function createNoteDiv(uuid, expansion = false) {
 async function createNoteDiv(uuid) {
     const div = document.createElement('div');
     div.className = 'note ' + uuid;
-    div.addEventListener('dblclick', (event) => {
-        event.stopPropagation();
-        route(uuid);
+    // div.addEventListener('expand', async (event) => renderNote(event.currentTarget, await db.get('notes', uuidOf(event.currentTarget)), true));
+    // div.addEventListener('collapse', async (event) => renderNote(event.currentTarget, await db.get('notes', uuidOf(event.currentTarget)), false));
+    div.addEventListener('expand', async (event) => {
+        const update = {style: { expanded: true }};
+        // await db.upsert('notes', { uuid: uuidOf(event.currentTarget), ...update });
+        // render(event.currentTarget, await db.get('notes', uuidOf(event.currentTarget)));
+        const noteData = await db.get('notes', uuidOf(event.currentTarget));
+        render(event.currentTarget, noteData);
     });
-    div.addEventListener('expand', (event) => {
-        event.stopPropagation();
-        expand(uuid);
+    div.addEventListener('collapse', async (event) => {
+        const update = {style: { expanded: false }};
+        const noteData = await db.upsert('notes', { uuid: uuidOf(event.currentTarget), ...update });
+        render(event.currentTarget, noteData);
     });
-    div.addEventListener('collapse', (event) => {
-        event.stopPropagation();
-        collapse(uuid);
-    });
-    const noteData = await db.getByKey('notes', uuid);
-    div.append(createContentDiv(noteData.content));
+    const noteData = await db.get('notes', uuid);
+    // await renderNote(div, noteData, expansion);
+    render(div, noteData);
     return div;
 }
-async function createContentDiv(content) {
+// async function renderNote(div, noteData, expansion = false) {
+async function render(div, noteData) {
+    // console.log('rendering', div, 'with noteData:', noteData, 'and expansion:', expansion);
+    console.log('rendering...', uuidOf(div).split('-')[0]);
+    // if (!noteData) return div.remove();
+    if (!noteData) {
+        console.warn('Note data not found for UUID:', uuidOf(div), 'Removing note div.');
+        div.remove();
+        throw new Error('Note data not found for UUID: ' + uuidOf(div));
+    }
+    const contentDiv = div.querySelector('.content') || createContentDiv(div);
+
+    div.append(contentDiv);
+
+    const contentSpan = contentDiv.querySelector('span');
+    if (contentSpan.textContent !== noteData.content) contentSpan.textContent = noteData.content;
+    // if (expansion) {
+    if (noteData.style.expanded) {
+        div.classList.add('expanded');
+        const childrenDiv = div.querySelector('.children') || createChildrenDiv(div);
+
+        div.append(childrenDiv);
+        
+        while (childrenDiv.children.length > noteData.children.length) childrenDiv.lastChild.remove();
+        await Promise.all(noteData.children.map(
+            async (childUuid, index) => {
+                const childDiv = childrenDiv.children[index];
+                if (!childDiv) {
+                    console.log('Creating child note:', childUuid);
+                    childrenDiv.append(await createNoteDiv(childUuid));
+                } else if (!childDiv.classList.contains(childUuid)) {
+                    console.log('Replacing child note:', childDiv.className, 'with:', childUuid);
+                    childDiv.replaceWith(await createNoteDiv(childUuid));
+                }
+            }
+        ));
+    } else {
+        div.classList.remove('expanded');
+        div.querySelector('.children')?.remove();
+    }
+    console.log('rendered    ', uuidOf(div).split('-')[0]);
+    return div;
+}
+
+function createContentDiv(noteDiv) {
     const div = document.createElement('div');
     div.className = 'content';
+    div.addEventListener('contextmenu', handleContextMenu);
+    div.addEventListener('dblclick', handleDoubleClick);
     const img = document.createElement('img');
     img.src = 'icons/toggle.svg';
+    img.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const noteDiv = event.target.closest('.note');
+        const noteData = await db.get('notes', uuidOf(noteDiv));
+        console.log('Toggling note:', noteData);
+        const dataUpdate = { style: { expanded: !noteData.style.expanded } };
+        const newNoteData = await db.upsert('notes', { uuid: uuidOf(noteDiv), ...dataUpdate });
+        await update(uuidOf(noteDiv));
+        // const eventType = noteDiv.classList.contains('expanded') ? 'collapse' : 'expand';
+        // event.target.dispatchEvent(customEvents[eventType]);
+    });
     const span = document.createElement('span');
     span.setAttribute('contenteditable', 'true');
+    span.addEventListener('input', (event) => {
+        event.stopPropagation();
+        const noteDiv = event.target.closest('.note');
+        const uuid = uuidOf(noteDiv);
+        db.upsert('notes', { uuid: uuid, content: event.target.textContent });
+    });
+    span.addEventListener('keydown', handleKeyDown);
+    span.addEventListener('blur', (event) => {
+        const noteDiv = event.target.closest('.note');
+        // update(uuidOf(noteDiv));
+        // renderNote(noteDiv, await db.get('notes', uuidOf(noteDiv)));
+    });
     div.append(img, span);
-    collapse(div);
+    noteDiv.append(div);
     return div;
 }
-async function collapse(uuid) {
-    const noteDiv = document.querySelector(`.note.${uuid}`);
-    noteDiv.classList.remove('expanded');
-    const noteData = await db.getByKey('notes', uuid);
-    noteDiv.querySelector('.content > span').textContent = noteData.content;
-    noteDiv.querySelector('.children')?.remove();
-    return noteData;
-}
-async function expand(uuid) {
-    const noteDiv = document.querySelector(`.note.${uuid}`);
-    const noteData = await collapse(uuid);
-    noteDiv.classList.add('expanded');
-    noteDiv.append(createChildrenDiv(noteData.children));
-}
-async function createChildrenDiv(children) {
+function createChildrenDiv(noteDiv) {
     const div = document.createElement('div');
     div.className = 'children';
-    div.append(
-        ...children.map(async (childUuid) => await createNoteDiv(childUuid))
-    );
+    noteDiv.append(div);
     return div;
 }
+async function update(uuid){
+    const noteData = await db.get('notes', uuid);
+    const noteDivs = document.querySelectorAll('.note.' + CSS.escape(uuid));
+    // console.log('noteData:', noteData, 'noteDivs:', noteDivs);
+    console.log('Updating note:', uuid, 'with data:', noteData, 'and divs:', noteDivs);
+    return await Promise.all(Array.from(noteDivs).map(
+        // async (noteDiv) => renderNote(noteDiv, noteData, noteDiv.classList.contains('expanded'))
+        async (noteDiv) => render(noteDiv, noteData)
+    ));
+}
+function handleContextMenu(event) {
+    event.preventDefault();
+    console.log('Context menu opened for note:', uuidOf(event.target.closest('.note')), '(', event, ')');
+    const div = document.createElement('div');
+    div.className = 'context-menu';
+    div.innerHTML = `
+        <div class="context-menu-item" data-action="edit">Edit</div>
+        <div class="context-menu-item" data-action="delete">Delete</div>
+    `;
+    document.body.appendChild(div);
+}
+function handleDoubleClick(event) {
+    event.stopPropagation();
+    console.log('Double click on note:', uuidOf(event.target.closest('.note')), '(', event, ')');
+    // const span = event.target;
+    // span.focus();
+    // document.execCommand('selectAll', false, null);
+}
+async function handleKeyDown(event) {
+    const noteDiv = event.target.closest('.note');
+    const uuid = noteDiv.className.split(' ').find(cls => cls !== 'note');
+    const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
+    if (event.key === "Enter") handleEnter(event);
+    else if (event.key === "Tab") handleTab(event);
+    else if (event.key === "Backspace") handleBackspace(event);
+    else if (event.key === "Escape") span.blur();
+    else if (event.key === "ArrowUp") moveFocus(noteDiv, -1);
+    else if (event.key === "ArrowDown") moveFocus(noteDiv, 1);
+}
+async function handleEnter(event) {
+    event.preventDefault();
+    const noteDiv = event.target.closest('.note');
+    const parentNoteDiv = noteDiv.parentNode.closest('.note') || noteDiv;
+    const parentNoteUuid = uuidOf(parentNoteDiv);
+    const index = Math.max(Array.from(parentNoteDiv.querySelector('.children').children).indexOf(noteDiv), 0);
+    // const parentData = await db.get('notes', parentNoteUuid);
+    const newNoteData = {
+        ...noteData,
+        uuid: crypto.randomUUID()
+    };
+    await db.add('notes', newNoteData);
+    console.log('Added new note:', newNoteData);
+    await spliceNote(parentNoteUuid, index + 1, 0, newNoteData.uuid);
+    moveFocus(noteDiv, 1);
+}
 
+async function handleTab(event) {
+    event.preventDefault();
+    console.log('Tab key pressed on note:', uuidOf(event.target.closest('.note')), '(', event, ')');
+    const noteDiv = event.target.closest('.note');
+    const parentNoteDiv = noteDiv.parentNode?.closest('.note');
+    if (!parentNoteDiv) return console.warn('Could not move note, due to missing parent');
+    // await update(uuidOf(parentNoteDiv));
+    // if (event.shiftKey) {
+    //     const grandParentDiv = parentNoteDiv.parentNode?.closest('.note');
+    //     if (grandParentDiv) {
+    //         const parentIndex = noteIndexOf(parentNoteDiv, grandParentDiv);
+    //         await spliceNote(uuidOf(grandParentDiv), parentIndex + 1, 0, uuidOf(noteDiv));
+    //         await update(uuidOf(grandParentDiv));
+    //         // moveFocus(noteDiv, 0);
+    //         moveFocus(parentNoteDiv, 1);
+    //     }
+    // } else {
+    //     const newParentNoteDiv = noteDiv.previousSibling;
+    //     if (!newParentNoteDiv) return console.warn('Could not find new parent note');
+    //     await spliceNote(uuidOf(newParentNoteDiv), 0, 0, uuidOf(noteDiv));
+    //     await update(uuidOf(parentNoteDiv));
+    //     await update(uuidOf(newParentNoteDiv));
+    //     await renderNote(newParentNoteDiv, await db.get('notes', uuidOf(newParentNoteDiv)), true);
+    //     moveFocus(newParentNoteDiv, 1);
+    // }
+    const newParentDiv = event.shiftKey ? parentNoteDiv.parentNode?.closest('.note') : noteDiv.previousSibling;
+    if (!newParentDiv) return console.warn('Could not find new parent note');
+    const newParentData = await db.upsert('notes', { uuid: uuidOf(newParentDiv), style: { expanded: true } });
+    const newIndex = event.shiftKey ? noteIndexOf(parentNoteDiv, newParentDiv) + 1 : newParentData.children.length;
+    const update = {style: { expanded: true }};
+    await db.upsert('notes', { uuid: uuidOf(newParentDiv), ...update });
+    await spliceNote(uuidOf(newParentDiv), newIndex, 0, uuidOf(noteDiv));
 
+    const index = noteIndexOf(noteDiv, parentNoteDiv);
+    await spliceNote(uuidOf(parentNoteDiv), index, 1);
+    // await update(uuidOf(parentNoteDiv));
+    // await update(uuidOf(newParentDiv));
+    // await renderNote(newParentDiv, await db.get('notes', uuidOf(newParentDiv)), true);
+    // render(newParentDiv, newParentData);
+    moveFocus(newParentDiv, 1);
+}
 
-class Note {
-    constructor(uuid, parentNote) {
-        this.uuid = uuid;
-        this.parentNote = parentNote;
-        this.children = [];
-        this.childNotes = [];
-    }
-    #createNoteData() {
-        return {
-            uuid: this.uuid,
-            content: this.content || (this.parentNote ? "" : "HOME"),
-            children: this.childNotes.map(childNote => childNote.uuid),
-            createdAt: this.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
-    }
-    async #get() {
-        const noteData = await db.getByKey("notes", this.uuid) || this.#createNoteData();
-        console.log("Fetching note data:", noteData);
-        this.content = noteData.content;
-        this.children = noteData.children;
-        this.createdAt = noteData.createdAt;
-        this.updatedAt = noteData.updatedAt;
-        this.save();
-        return noteData;
-    }
-    async renderExpand() {
-
-    }
-    async save() {
-        if (await this.hasChanged()) {
-            await db.put("notes", this.#createNoteData());
-            return true;
-        }
-        return false;
-    }
-    async hasChanged() {
-        const existingNote = await db.getByKey("notes", this.uuid);
-        if (!existingNote) return true;
-        const noteData = this.createNoteData();
-        const isContentChanged = existingNote.content !== noteData.content;
-        const isChildrenChanged = JSON.stringify(existingNote.children) !== JSON.stringify(noteData.children);
-        if (isContentChanged) {
-            console.log(`Content changed for note ${this.uuid}:`, existingNote.content, "->", noteData.content);
-        }
-        if (isChildrenChanged) {
-            console.log(`Children changed for note ${this.uuid}:`, existingNote.children, "->", noteData.children);
-        }
-        return isContentChanged || isChildrenChanged;
-    }
-    async initContainer() {
-        this.container = document.createElement("div");
-        this.container.id = this.uuid;
-        setStyles(this.container, {
-            display: "flex",
-            flexDirection: "column",
-            fontSize: "max(0.7em, 16px)",
-            position: "relative",
-            backgroundColor: "var(--sub-background)",
-            margin: "0.1rem",
-        });
-        this.container.addEventListener("dblclick", (event) => this.handleDoubleClick(event));
-        this.container.appendChild(this.initContent());
-        // this.childNotes = this.children.map(uuid => new Note(uuid, this, false));
-        await Promise.all(
-            this.childNotes.map(async (childNote) => {
-                const childDiv = await childNote.initContainer();
-                this.container.appendChild(childDiv);
-            })
-        );
-        this.isExpanded ? await this.collapse() : await this.expand();
-        return this.container;
-    }
-    handleDoubleClick(event) {
-        console.log("Note double-clicked:", this.uuid);
-        event.preventDefault();
-        event.stopPropagation();
-        location.search = `?uuid=${this.uuid}`;
-        route();
-    }
-    initContent() {
-        this.contentDiv = document.createElement("div");
-        this.contentDiv.className = "radius";
-        setStyles(this.contentDiv, {
-            display: "flex",
-            flexDirection: "row",
-            flexGrow: "1",
-            position: "relative",
-            fontSize: "inherit",
-            backgroundColor: "var(--main-background)",
-        });
-        this.contentDiv.appendChild(this.initToggleIcon());
-        this.contentDiv.appendChild(this.initContentSpan());
-        this.suggestion = new Suggestion(this);
-        this.menu = new Menu(this);
-        this.contentDiv.appendChild(this.menu.init());
-        this.contentDiv.addEventListener("contextmenu", (event) => this.handleContextMenu(event));
-        return this.contentDiv;
-    }
-    handleContextMenu(event) {
-        event.preventDefault();
-        console.log("Context menu opened for note:", this.uuid);
-        this.menu.style.display = "block";
-    }
-    initToggleIcon() {
-        this.toggleIcon = document.createElement("img");
-        this.toggleIcon.src = "icons/toggle.svg";
-        this.toggleIcon.className = "icon button";
-        this.toggleIcon.style.transition = "transform 0.2s ease";
-        this.toggleIcon.addEventListener("click", (event) => (this.isExpanded ? this.collapse() : this.expand()));
-        this.toggleIcon.addEventListener("dblclick", (event) => event.stopPropagation());
-        return this.toggleIcon;
-    }
-    async expand() {
-        console.log("Expanding note:", this);
-        await this.get();
-        this.renderContent();
-        if (this.isExpanded) return;
-        // if (this.parentNote) this.parentNote.expand();
-        this.isExpanded = true;
-        this.toggleIcon.style.transform = "rotate(90deg)";
-        this.contentSpan.style.height = "auto";
-        this.contentSpan.style.overflow = "auto";
-        // this.renderContent();
-        // this.childNotes = this.children.map(uuid => new Note(uuid, this, false));
-        this.container.appendChild(await this.createChildrenDiv());
-        return console.log("Note expanded:", this.content);
-    }
-    async collapse() {
-        console.log("Collapsing note:", this.content);
-        await this.get();
-        this.renderContent();
-        if (!this.isExpanded) return;
-        this.isExpanded = false;
-        this.toggleIcon.style.transform = "rotate(0deg)";
-        this.contentSpan.style.height = "1.5em";
-        this.contentSpan.style.overflow = "hidden";
-        // this.renderContent();
-        if (this.childrenDiv) this.childrenDiv.remove();
-        return console.log("Note collapsed:", this.content);
-    }
-    initContentSpan() {
-        this.contentSpan = document.createElement("span");
-        this.contentSpan.className = "radius hover";
-        setStyles(this.contentSpan, {
-            padding: "0.2em 0.5em",
-            flexGrow: "1",
-            outline: "none"
-        });
-        this.contentSpan.setAttribute("contenteditable", "true");
-        addEventListeners(this.contentSpan, {
-            focus: (event) => this.handleFocus(event),
-            keydown: (event) => this.handleKeyDown(event),
-            input: (event) => this.handleInput(event),
-            blur: (event) => this.handleBlur(event)
-        });
-        this.renderContent();
-        return this.contentSpan;
-    }
-    async handleFocus(event) {
-
-        console.log("Note focused:", this.content);
-        await this.get();
-        this.contentSpan.innerHTML = this.content;
-        this.renderContent();
-        this.contentSpan.focus();
-        this.suggestion.update(this.content);
-    }
-    handleKeyDown(event) {
-        if (event.key === "Enter") {
-            this.handleEnterKey(event);
-        } else if (event.key === "Tab") {
-            this.handleTabKey(event);
-        } else if (event.key === "ArrowUp") {
-            this.moveFocus(-1);
-        } else if (event.key === "ArrowDown") {
-            this.moveFocus(1);
-        } else if (event.key === "Escape") {
-            this.handleEscapeKey(event);
-        }
-    }
-    handleEnterKey(event) {
-        event.preventDefault();
-        this.contentSpan.blur();
-        if (event.shiftKey) {
-            console.log("Shift + Enter pressed");
-        } else {
-            console.log("Enter pressed without Shift");
-            if (this.parentNote) {
-                const index = this.parentNote.childNotes.indexOf(this);
-                this.parentNote.createChild(index + 1);
-            } else {
-                this.createChild();
-            }
-        }
-    }
-    handleTabKey(event) {
-        event.preventDefault();
-        if (event.shiftKey) {
-            console.log("Shift + Tab pressed");
-            const grandparentNote = this.parentNote.parentNote;
-            if (grandparentNote) {
-                // const index = grandparentNote.children.indexOf(this.parentNote);
-                const index = grandparentNote.childNotes.indexOf(this.parentNote);
-                this.moveTo(grandparentNote, index - 1);
-            }
-        } else {
-            console.log("Tab pressed without Shift");
-            if (this.parentNote) {
-                const index = this.parentNote.childNotes.indexOf(this);
-                this.moveTo(this.parentNote.childNotes[index - 1]);
-            }
-        }
-    }
-    async moveFocus(direction) {
-        this.contentSpan.blur();
-        console.log("Moving focus in direction:", direction, "for note:", this.content);
-        if (direction === 0) {
-            this.contentSpan.focus();
-        } else if (0 < direction && direction <= this.childNotes.length) {
-            // console.log("this(before expansion):", this);
-            await this.expand();
-            console.log("this(after expansion):", this);
-            const index = direction - 1;
-            console.log("Moving focus to child note at index:", index, "of", this.childNotes.length, "(children: ", this.childNotes.map(child => child.content).join(", "), ")");
-            const target = this.childNotes[index];
-            console.log("Moving focus to child note:", target.content);
-            target.contentSpan.focus();
-            await this.collapse();
-            target.expand();
-        } else if (this.parentNote) {
-            const index = this.parentNote.childNotes.indexOf(this);
-            let newDirection = direction + (index + 1);
-            if (0 < direction) newDirection -= this.childNotes.length;
-            await this.parentNote.moveFocus(newDirection);
-        } else {
-            console.warn("Cannot move focus, no note found");
-            this.contentSpan.focus();
-        }
-    }
-    handleEscapeKey(event) {
-        event.preventDefault();
-        this.contentSpan.blur();
-    }
-    async handleInput(event) {
-        this.content = this.contentSpan.textContent.trim();
-        if (await this.save()) {
-            this.suggestion.update(this.content);
-        }
-    }
-    handleBlur(event) {
-        this.content = this.contentSpan.textContent.trim();
-        this.save();
-        this.renderContent();
-        this.suggestion.hide();
-    }
-    renderContent(styles = []) {
-        this.contentSpan.innerHTML = "";
-        if (
-            this.content.startsWith("http://") ||
-            this.content.startsWith("https://")
-        ) {
-            const link = document.createElement("a");
-            link.href = this.content;
-            link.textContent = this.content;
-            link.target = "_blank";
-            this.contentSpan.appendChild(link);
-        } else if (false) {
-            console.log("how did you get here?");
-        } else {
-            this.contentSpan.textContent = this.content;
-        }
-    }
-    async moveTo(newParent, index = 0) {
-        console.log('Moving note:', this, 'from parent:', this.parentNote || 'root', 'to:', newParent);
-        if (!this.parentNote) return console.warn("Cannot move root note");
-        if (!newParent) return console.warn("Cannot move to null parent note");
-        this.parentNote.children = this.parentNote.children.filter((child) => child !== this);
-        this.container.remove();
-        this.parentNote.save();
-        this.parentNote = newParent;
-        this.parentNote.expand();
-        this.parentNote.children.splice(index, 0, this);
-        this.parentNote.save();
-        this.container = await this.initContainer();
-        this.parentNote.childrenDiv.insertBefore(this.container, this.parentNote.childrenDiv.children[index]);
-        this.contentSpan.focus();
-    }
-    async createChildrenDiv() {  
-        this.childrenDiv = document.createElement("div");
-        setStyles(this.childrenDiv, {
-            display: "flex",
-            flexDirection: "column",
-            marginLeft: "1.5em",
-            fontSize: "inherit",
-        });
-        // this.children.forEach(async (childNote) =>
-        //     this.childrenDiv.appendChild(await childNote.init())
-        // );
-        await Promise.all(
-            this.childNotes.map(async (childNote) => {
-                const childDiv = await childNote.initContainer();
-                this.childrenDiv.appendChild(childDiv);
-            })
-        );
-        return this.childrenDiv;
-    }
-    async addChild(childNote, index = 0) {
-        await childNote.get();
-        this.childNotes.splice(index, 0, childNote);
-        const childDiv = await childNote.initContainer();
-        const existingChild = this.childrenDiv.length > index ? this.childrenDiv.children[index] : null;
-        console.log("Adding child note:", childNote.content, "at index:", index, "to parent note:", this.content);
-        this.childrenDiv.insertBefore(
-            childDiv,
-            existingChild
-        );
-        this.save();
-        childNote.contentSpan.focus();
-    }
-    async createChild(index = 0) {
-        const newNoteUuid = crypto.randomUUID();
-        const newNote = new Note(newNoteUuid, this, false);
-        return await this.addChild(newNote, index);
+async function handleBackspace(event) {
+    event.preventDefault();
+    const noteDiv = event.target.closest('.note');
+    const span = noteDiv.querySelector('.content > span');
+    if (span.textContent.trim()) {
+        // If the span is not empty, just remove the last character
+        span.textContent = span.textContent.slice(0, -1);
+    } else {
+        // If the span is empty, remove the note
+        const parentNoteDiv = noteDiv.parentNode.closest('.note');
+        if (!parentNoteDiv) return; // Do nothing if there's no parent
+        const index = Array.from(parentNoteDiv.querySelector('.children').children).indexOf(noteDiv);
+        await spliceNote(uuidOf(parentNoteDiv), index, 1);
+        moveFocus(noteDiv, -1);
+        await update(uuidOf(parentNoteDiv));
     }
 }
 
-class Suggestion {
-    constructor(note) {
-        this.note = note;
-        this.results = [];
-        this.div = this.initDiv();
-        this.renderSuggestion();
-        this.hide();
-    }
-    async update(content) {
-        this.results = await db.search("notes", content.trim());
-        this.results.sort((a, b) => {
-            return a.content.localeCompare(b.content);
-        });
-        this.renderSuggestion();
-    }
-    initDiv() {
-        this.div = document.createElement("div");
-        this.div.className = "radius shadow";
-        setStyles(this.div, {
-            position: "absolute",
-            top: "100%",
-            left: "2em",
-            width: "10rem",
-            maxHeight: "10rem",
-            overflowX: "hidden",
-            overflowY: "auto",
-            backgroundColor: "var(--sub-background)",
-            zIndex: "10",
-        });
-        return this.div;
-    }
-    renderSuggestion() {
-        this.div.innerHTML = "";
-        this.div.style.display = "block";
-        this.results.forEach((note) => this.div.appendChild(this.createResultDiv(note)));
-        this.note.contentDiv.appendChild(this.div);
-    }
-    createResultDiv(note) {
-        const resultDiv = document.createElement("div");
-        resultDiv.textContent = note.content + " (" + note.uuid.slice(0, 8) + ")";
-        resultDiv.className = "hover radius";
-        setStyles(resultDiv, {
-            fontSize: "0.8em",
-            padding: "0.5em 1em",
-            overflow: "hidden",
-            // borderBottom: "1px solid var(--border-color)",
-            cursor: "pointer",
-        });
-        resultDiv.addEventListener("pointerdown", (event) => this.handlePointerDown(event, note));
-        return resultDiv;
-    }
-    async handlePointerDown (event, note) {
-        console.log("Suggestion note clicked:", note);
-        event.preventDefault();
-        event.stopPropagation();
-        this.note.uuid = note.uuid;
-        await this.note.get();
-        const index = this.note.parentNote.children.indexOf(this.note);
-        this.note.parentNote.children.splice(index, 1, this.note);
-        this.note.parentNote.save();
-        this.note.initContainer();
-        this.note.parentNote.childrenDiv.replaceChild(this.note.container, this.note.parentNote.childrenDiv.children[index]);
-        console.log("Note updated with suggestion:", this.note);
-        this.hide();
-    }
-    hide() {
-        this.div.style.display = "none";
+function moveFocus(div, direction) {
+    if (!div) return console.error('No div found to move focus');
+    console.log('move focus', direction, 'from:', div);
+    const parentDiv = div.parentNode?.closest('.note');
+    // const childrenDivs = div.querySelector('.children')?.children;
+    const childDivs = div.querySelector('.children')?.children;
+    if (direction === 0) div.querySelector('.content > span').focus();
+    // else if (0 < direction && childrenDivs && direction <= childrenDivs.length) {
+        // childrenDivs[direction - 1].querySelector('.content > span').focus();
+    else if (0 < direction && childDivs && direction <= childDivs.length) {
+        const span = childDivs[direction - 1].querySelector('.content > span');
+        if (span) span.focus();
+        else console.error('No span found to move focus in childDivs:', childDivs, '( index:', direction - 1, ', childDiv:', childDivs[direction - 1], ')');
+    } else if (parentDiv) {
+        const index = Array.from(parentDiv.querySelector('.children').children).indexOf(div);
+        // const index = childDivs.indexOf(div);
+        // const grandChildrenLength = parentDiv.querySelector(`.children > .note:nth-child(${index}) .children`)?.children.length || 0;
+        // const grandChildrenLength = childDivs[]?.querySelector('.children')?.children.length || 0;
+        // const newDirection = direction + 1 + index;
+        const adjustedIndex = index - (direction > 0 ? childDivs?.length || 0 : 0);
+        const newDirection = direction + 1 + adjustedIndex;
+        // console.log('Moving focus to parent:', parentDiv, 'with new direction:', newDirection, 'direction:', direction, 'index:', index, 'grandChildrenLength:', grandChildrenLength);
+        console.log('Moving focus to parent:', parentDiv, 'with new direction:', newDirection, 'direction:', direction, 'index:', index, 'childDivs.length:', childDivs?.length || 0);
+        moveFocus(parentDiv, newDirection);
+    // } else {
+    //     // console.log('no more parents');
+    //     console.warn('No more parents');
+    // }
+    } else if (direction < 0) {
+        console.warn('direction out of bounds (-)');
+        div.querySelector('.content > span').focus();
+    } else {
+        console.warn('direction out of bounds (+)');
+        childDivs[childDivs.length - 1].querySelector('.content > span').focus();
     }
 }
-class Menu {
-    constructor(note) {
-        this.note = note;
-    }
-    init() {
-        this.div = document.createElement("div");
-        this.div.className = "note-menu radius hover";
-        this.div.style.display = "none";
-        this.div.appendChild(this.initAddChildButton());
-        this.div.appendChild(this.initDeleteButton());
-        this.div.appendChild(this.initSyncButton());
-        this.div.appendChild(this.initDownloadButton());
-        return this.div;
-    }
-    initAddChildButton() {
-        this.addChildButton = document.createElement("img");
-        this.addChildButton.src = "icons/add.svg";
-        this.addChildButton.className = "button hover";
-        this.addChildButton.addEventListener("click", () => {
-            console.log("Add child button clicked for note:", this.note.uuid);
-        });
-        return this.addChildButton;
-    }
-    initDeleteButton() {
-        this.deleteButton = document.createElement("img");
-        this.deleteButton.src = "icons/delete.svg";
-        this.deleteButton.className = "button hover";
-        this.deleteButton.addEventListener("click", () => {
-            console.log("Delete button clicked for note:", this.note.uuid);
-        });
-        return this.deleteButton;
-    }
-    initSyncButton() {
-        this.syncButton = document.createElement("img");
-        this.syncButton.src = "icons/sync.svg";
-        this.syncButton.className = "button hover";
-        this.syncButton.addEventListener("click", () => {
-            console.log("Sync button clicked for note:", this.note.uuid);
-        });
-        return this.syncButton;
-    }
-    initDownloadButton() {
-        this.downloadButton = document.createElement("img");
-        this.downloadButton.src = "icons/download.svg";
-        this.downloadButton.className = "button hover";
-        this.downloadButton.addEventListener("click", () => {
-            console.log("Download button clicked for note:", this.note.uuid);
-        });
-        return this.downloadButton;
-    }
+
+async function spliceNote(uuid, start, deleteCount, ...children) {
+    console.log('Splicing note', uuid, 'at', start, 'deleting', deleteCount, 'and inserting', children);
+    const noteData = await db.get('notes', uuid);
+    if (!noteData) throw new Error('Note not found: ' + uuid);
+    const updatedChildren = [
+        ...noteData.children.slice(0, start),
+        ...children,
+        ...noteData.children.slice(start + deleteCount)
+    ];
+    await db.upsert('notes', { uuid, children: updatedChildren });
+    // moveFocus()
+    await update(uuid);
 }
 
 // IndexedDB wrapper class
 class IDB {
-    static db = null;
+    /**
+     * Create an instance of the IDB class.
+     * @param {string} dbName - The name of the IndexedDB database.
+     * @param {number} version - The version of the IndexedDB database.
+     */
     constructor(dbName, version = 1) {
         this.dbName = dbName;
         this.version = version;
+        this.initialized = new Promise((resolve) => {
+            this.resolveInit = resolve;
+        });
+        this.db = null;
     }
-    async init(schemas) {
-        if (IDB.db) return (this.db = IDB.db);
-        this.schemas = schemas;
-        const request = window.indexedDB.open(this.dbName, this.version);
-        request.onupgradeneeded = (event) => {
-            this.db = event.target.result;
-            Object.entries(this.schemas).forEach(([name, schema]) => {
-                if (!this.db.objectStoreNames.contains(name)) {
-                    console.log(`Creating object store: ${name}`);
-                    const objectStore = this.db.createObjectStore(name, schema.options);
-                    schema.indexes.forEach((index) =>
-                        objectStore.createIndex(index.name, index.name, {
-                            unique: index.unique,
-                        })
-                    );
-                }
-            });
-            console.log("Object stores created:", this.db.objectStoreNames);
-        };
+    /**
+     * Wrap an IndexedDB request in a promise.
+     * @param {IDBRequest} request - The IndexedDB request to wrap.
+     * @param {string} eventType - The event type to listen for (default: 'success').
+     * @returns {Promise} - A promise that resolves with the request result or rejects with an error.
+     */
+    async #eventWrapper(request, eventType = 'success') {
         return new Promise((resolve, reject) => {
-            request.onsuccess = (event) => {
-                this.db = event.target.result;
-                console.log("Database opened successfully:", this.db);
-                resolve(this.db);
-            };
-            request.onerror = (event) => {
-                console.error("Error opening database:", event.target.error);
-                reject(event.target.error);
-            };
+            request.addEventListener(eventType, (event) => resolve(event.target.result));
+            request.addEventListener('error', (event) => reject(event.target.error));
         });
     }
-    createObjectStore(storeName, options) {
-        const transaction = this.db.transaction(
-            this.db.objectStoreNames,
-            "versionchange"
-        );
-        const objectStore = transaction.objectStore(storeName);
-        if (!objectStore) {
-            console.log(`Creating object store: ${storeName}`);
-            const newObjectStore = this.db.createObjectStore(storeName, options);
-        }
-    }
-    getObjectStore(storeName, mode = "readonly") {
-        if (!this.db) throw new Error("Database not initialized");
-        const transaction = this.db.transaction(storeName, mode);
-        return transaction.objectStore(storeName);
-    }
-    async getByKey(storeName, key) {
-        const objectStore = await this.getObjectStore(storeName, "readonly");
-        // return new Promise((resolve, reject) => {
-        //     const request = objectStore.get(key);
-        //     request.onsuccess = (event) => resolve(event.target.result);
-        //     request.onerror = (event) => {
-        //         console.error('Error getting data:', event.target.error);
-        //         reject(event.target.error);
-        //     };
-        // });
-        const request = objectStore.get(key);
-        return new Promise((resolve, reject) => {
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error getting data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-    async search(storeName, query) {
-        const objectStore = await this.getObjectStore(storeName, "readonly");
-        return new Promise((resolve, reject) => {
-            const results = [];
-            const request = objectStore.openCursor();
-            request.onsuccess = (event) => {
-                const cursor = event.target.result;
-                if (cursor) {
-                    if (cursor.value.content.includes(query)) {
-                        results.push(cursor.value);
-                    }
-                    cursor.continue();
-                } else {
-                    resolve(results);
-                }
-            };
-            request.onerror = (event) => {
-                console.error("Error searching data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-    async getAll(storeName) {
-        const objectStore = await this.getObjectStore(storeName, "readonly");
-        return new Promise((resolve, reject) => {
-            const request = objectStore.getAll();
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error getting all data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-    async add(storeName, data) {
-        const objectStore = await this.getObjectStore(storeName, "readwrite");
-        return new Promise((resolve, reject) => {
-            const request = objectStore.add(data);
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error adding data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-    async put(storeName, data) {
-        const objectStore = await this.getObjectStore(storeName, "readwrite");
-        return new Promise((resolve, reject) => {
-            const request = objectStore.put(data);
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error putting data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-    async delete(storeName, key) {
-        const objectStore = await this.getObjectStore(storeName, "readwrite");
-        return new Promise((resolve, reject) => {
-            const request = objectStore.delete(key);
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error deleting data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-    async clear(storeName) {
-        const objectStore = await this.getObjectStore(storeName, "readwrite");
-        return new Promise((resolve, reject) => {
-            const request = objectStore.clear();
-            request.onsuccess = (event) => resolve(event.target.result);
-            request.onerror = (event) => {
-                console.error("Error clearing data:", event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-}
-
-// button handlers
-function home() {
-    console.log("Home button clicked");
-    const homeUuid = localStorage.getItem("homeUuid");
-    if (homeUuid) {
-        console.log("Navigating to home UUID:", homeUuid);
-        location.search = `?uuid=${homeUuid}`;
-        route();
-    } else {
-        location.search = "";
-        route();
-    }
-}
-class Settings {
-    static instance = null;
-    constructor(isShowing = false) {
-        if (Settings.instance) {
-            console.warn(
-                "Settings instance already exists, returning existing instance"
+    /**
+     * Handle the database upgrade event.
+     * @param {Event} event - The upgrade event.
+     */
+    #handleUpgrade(event) {
+        const db = event.target.result;
+        console.log("Database upgrade needed:", db);
+        this.schemas.forEach((schema) => {
+            if (db.objectStoreNames.contains(schema.name)) return;
+            console.log(`Creating object store: ${schema.name}`);
+            const objectStore = db.createObjectStore(schema.name, schema.options);
+            schema.indexes.forEach((index) =>
+                objectStore.createIndex(index.name, index.name, { unique: index.unique })
             );
-            return Settings.instance;
-        }
-        Settings.instance = this;
-        this.isShowing = isShowing;
-        this.initDiv();
-    }
-    async initDiv() {
-        this.div = this.createDiv();
-        this.isShowing ? this.show() : this.hide();
-        this.div.appendChild(document.createElement("h2")).textContent = "Settings";
-        this.div.appendChild(this.initCloseButton());
-        this.div.appendChild(await this.initUrlList());
-        this.div.appendChild(this.initThemeButton());
-        document.body.appendChild(this.div);
-    }
-    createDiv() {
-        this.div = document.createElement("div");
-        this.div.id = "settingsDiv";
-        this.div.className = "radius shadow";
-        setStyles(this.div, {
-            display: "none",
-            flexDirection: "column",
-            position: "fixed",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            fontSize: "0.4em",
-            padding: "1em",
-            zIndex: "1000",
-            width: "min(30em, 90vw)",
-            backgroundColor: "var(--sub-background)",
         });
-        return this.div;
+        console.log("Object stores created:", db.objectStoreNames);
     }
-    initCloseButton() {
-        this.closeButton = document.createElement("img");
-        this.closeButton.src = "icons/cancel.svg";
-        this.closeButton.className = "icon button";
-        setStyles(this.closeButton, {
-            fontSize: "30px",
-            position: "absolute",
-            top: "1em",
-            right: "1em",
-        });
-        this.closeButton.addEventListener("click", () => this.hide());
-        return this.closeButton;
-    }
-    show() {
-        this.isShowing = true;
-        this.div.style.display = "flex";
-        const url = new URL(window.location);
-        url.hash = "#settings";
-        window.history.replaceState({}, "", url.toString());
-    }
-    hide() {
-        this.isShowing = false;
-        this.div.style.display = "none";
-        const url = new URL(window.location);
-        url.hash = "";
-        window.history.replaceState({}, "", url.toString());
-    }
-    async initUrlList() {
-        this.urlList = document.createElement("div");
-        this.urlList.style.margin = "1em";
-        const urlListTitle = document.createElement("h3");
-        urlListTitle.textContent = "API URLs";
-        urlListTitle.style.margin = "0.5em 0";
-        this.urlList.appendChild(urlListTitle);
-        this.apiUrls = await db.getAll("apiUrls");
-        this.apiUrls.forEach((apiUrl) => {
-            this.urlList.appendChild(this.initUrl(apiUrl));
-        });
-        this.urlList.appendChild(this.initAddButton());
-        return this.urlList;
-    }
-    initUrl(apiUrl) {
-        const urlDiv = document.createElement("div");
-        urlDiv.className = "hover radius";
-        setStyles(urlDiv, {
-            position: "relative",
-            margin: "0.5em 0",
-            padding: "0.2em 0.5em",
-            backgroundColor: "var(--main-background)",
-        });
-        const urlSpan = document.createElement("span");
-        urlSpan.textContent = apiUrl.url;
-        urlDiv.appendChild(urlSpan);
-        const removeButton = document.createElement("img");
-        removeButton.src = "icons/cancel.svg";
-        removeButton.className = "icon button";
-        setStyles(removeButton, {
-            position: "absolute",
-            right: "0",
-            top: "50%",
-            transform: "translateY(-50%)",
-        });
-        removeButton.addEventListener("click", () => {
-            db.delete("apiUrls", apiUrl.url);
-            urlDiv.remove();
-        });
-        urlDiv.appendChild(removeButton);
-        return urlDiv;
-    }
-    initAddButton() {
-        const addUrl = document.createElement("img");
-        addUrl.src = "icons/add.svg";
-        addUrl.className = "icon button";
-        addUrl.addEventListener("click", () => {
-            const url = prompt("Enter API URL:");
-            const validatedUrl = this.validateAndSaveUrl(url);
-            if (validatedUrl) this.urlList.insertBefore(this.initUrl(validatedUrl), addUrl);
-        });
-        return addUrl;
-    }
-    validateAndSaveUrl(url) {
+    /**
+     * Initialize the database and create object stores.
+     * @param {Array} schemas - An array of schema objects defining the object stores.
+     * @returns {Promise} - A promise that resolves when the database is initialized.
+     */
+    async init(schemas) {
+        this.schemas = schemas;
         try {
-            const apiUrl = {
-                url: new URL(url).toString(),
-                addedAt: new Date().toISOString(),
-            }
-            db.add("apiUrls", apiUrl);
-            return apiUrl;
-        } catch (e) {
-            return false;
+            const request = window.indexedDB.open(this.dbName, this.version);
+            request.addEventListener('upgradeneeded', (event) => this.#handleUpgrade(event));
+            this.db = await this.#eventWrapper(request, "success");
+            console.log("Database opened:", this.db);
+            this.resolveInit(this.db);
+            return this.db;
+        } catch (error) {
+            console.error("Error opening database:", error);
         }
     }
-    initThemeButton() {
-        const themeTitle = document.createElement("h3");
-        themeTitle.textContent = "Theme";
-        themeTitle.style.margin = "0.5em 0";
-        this.div.appendChild(themeTitle);
-        this.themeButton = document.createElement("img");
-        this.themeButton.src = `icons/${localStorage.getItem("theme") === "dark" ? "light" : "dark"}.svg`;
-        this.themeButton.className = "icon button";
-        setStyles(this.themeButton, {
-            fontSize: "1.5em",
-            margin: "0em 0.5em",
-        });
-        this.themeButton.addEventListener("click", () => this.toggleTheme());
-        return this.themeButton;
-    }
-    toggleTheme() {
-        this.themeButton.src = `icons/${localStorage.getItem("theme")}.svg`;
-        localStorage.setItem("theme", localStorage.getItem("theme") === "dark" ? "light" : "dark");
-        document.documentElement.classList = localStorage.getItem("theme");
-    }
-}
-async function syncWithApis() {
-    const urls = await db
-        .getAll("apiUrls")
-        .then((urls) => urls.map((urlObj) => urlObj.url));
-    if (urls.length === 0)
-        return alert("No API URLs configured. Please add an API URL in settings.");
-    console.log(`Syncing with API at ${urls}`);
-    const localNotes = await db.getAll("notes");
-    try {
-        const remoteNotesArray = await Promise.all(
-            urls.map(async (url) => {
-                const response = await fetch(`${url}/sync`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(localNotes),
-                });
-                if (!response.ok) {
-                    throw new Error(`Failed to sync with ${url}: ${response.statusText}`);
-                }
-                const remoteNotes = JSON.parse(await response.text());
-                return remoteNotes;
-            })
-        );
-        const remoteNotes = remoteNotesArray.flat();
-        await Promise.all(
-            remoteNotes.map(async (remoteNote) => {
-                const localNote = localNotes.find(
-                    (note) => note.uuid === remoteNote.uuid
-                );
-                if (
-                    !localNote ||
-                    new Date(localNote.updatedAt) < new Date(remoteNote.updatedAt)
-                ) {
-                    await db.put("notes", remoteNote);
-                }
-            })
-        );
-    } catch (error) {
-        console.error(error);
-    } finally {
-        console.log("Sync completed");
-    }
-}
-async function download() {
-    console.log("Downloading notes...");
-    const notes = await db.getAll("notes");
-    if (notes.length === 0) return alert("No notes to download.");
-    const blob = new Blob([JSON.stringify(notes, null, 2)], {
-        type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `notes-${new Date().toISOString()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
-async function upload() {
-    console.log("Uploading notes...");
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.addEventListener("change", async (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        if (file.type !== "application/json") {
-            return alert("Please upload a valid JSON file.");
+    /**
+     * Add data to the specified object store.
+     * @param {string} storeName - The name of the object store to add data to.
+     * @param {*} data - The data to add to the object store.
+     * @returns {Promise} - A promise that resolves when the data is added.
+     */
+    async add(storeName, data) {
+        try {
+            const request = this.db.transaction(storeName, "readwrite")
+                .objectStore(storeName)
+                .add(data);
+            await this.#eventWrapper(request, "success");
+            return data;
+        } catch (error) {
+            console.error("Error adding data:", error);
+            throw error;
         }
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const notes = JSON.parse(e.target.result);
-                if (!Array.isArray(notes)) {
-                    return alert(
-                        "Invalid file format. Please upload a valid JSON file containing an array of notes."
-                    );
-                }
-                await Promise.all(
-                    notes.map(async (note) => {
-                        if (
-                            !note.uuid ||
-                            !note.content ||
-                            !note.createdAt ||
-                            !note.updatedAt
-                        ) {
-                            return alert("Invalid note format in uploaded file.");
-                        }
-                        const existingNote = await db.getByKey("notes", note.uuid);
-                        if (existingNote) {
-                            if (new Date(existingNote.updatedAt) < new Date(note.updatedAt)) {
-                                await db.put("notes", note);
-                            }
-                        } else {
-                            await db.add("notes", note);
-                        }
-                    })
-                );
-                alert("Notes uploaded successfully.");
-                location.reload();
-            } catch (error) {
-                console.error("Error uploading notes:", error);
-                alert(
-                    "Failed to upload notes. Please ensure the file is a valid JSON file."
-                );
+    }
+    /**
+     * Update data in the specified object store.
+     * @param {string} storeName - The name of the object store to update data in.
+     * @param {*} data - The data to update in the object store.
+     * @returns {Promise} - A promise that resolves when the data is updated.
+     */
+    async put(storeName, data) {
+        try {
+            const request = this.db.transaction(storeName, "readwrite")
+                .objectStore(storeName)
+                .put(data);
+            await this.#eventWrapper(request, "success");
+            return data;
+        } catch (error) {
+            console.error("Error putting data:", error);
+            throw error;
+        }
+    }
+    /**
+     * Upsert data in the specified object store.
+     * @param {string} storeName - The name of the object store to upsert data in.
+     * @param {*} data - The data to upsert in the object store.
+     * @returns {Promise} - A promise that resolves when the data is upserted.
+     */
+    async upsert(storeName, data) {
+        try {
+            const objectStore = this.db.transaction(storeName, "readwrite")
+                .objectStore(storeName);
+            const request = objectStore.get(data[objectStore.keyPath]);
+            const existingData = await this.#eventWrapper(request, "success");
+            if (existingData) {
+                const updatedData = { ...existingData, ...data };
+                if (JSON.stringify(existingData) === JSON.stringify(updatedData)) return existingData;
+                const request = objectStore.put(updatedData);
+                await this.#eventWrapper(request, "success");
+                return updatedData;
+            } else {
+                const request = objectStore.add(data);
+                await this.#eventWrapper(request, "success");
+                return data;
             }
-        };
-        reader.onerror = (error) => {
-            console.error("Error reading file:", error);
-            alert("Failed to read file. Please try again.");
-        };
-        reader.readAsText(file);
-    });
-    input.click();
+        } catch (error) {
+            console.error("Error upserting data:", error);
+            throw error;
+        }
+    }
+    /**
+     * Get data from the specified object store by key.
+     * @param {string} storeName - The name of the object store to retrieve data from.
+     * @param {*} key - The key of the data to retrieve.
+     * @returns {Promise} - A promise that resolves to the retrieved data.
+     */
+    async get(storeName, key) {
+        try {
+            const request = this.db.transaction(storeName, "readonly")
+                .objectStore(storeName)
+                .get(key);
+            return await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error getting data:", error);
+            throw error;
+        }
+    }
+    /**
+     * Get all data from the specified object store.
+     * @param {string} storeName - The name of the object store to retrieve data from.
+     * @returns {Promise<Array>} - A promise that resolves to an array of all data objects in the store.
+     */
+    async getAll(storeName) {
+        try {
+            const transaction = this.db.transaction(storeName, "readonly");
+            const objectStore = transaction.objectStore(storeName);
+            const request = objectStore.getAll();
+            return await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error getting all data:", error);
+            throw error;
+        }
+    }
+    /**
+     * Find data in the specified object store based on the provided queries.
+     * @param {string} storeName - The name of the object store to search.
+     * @param {Array} queries - An array of query objects, each containing a key and value to match.
+     * @param {string} queries[].key - The key to search for in the data objects.
+     * @param {string} queries[].value - The value to match against the key.
+     * @returns A promise that resolves to an array of matching data objects.
+     * @example
+     * const results = await db.find('notes', { key: 'content', value: 'example' }, { key: 'title', value: 'test' });
+     */
+    async find(storeName, ...queries) {
+        console.log("Finding data in store:", storeName, "with queries:", queries);
+        try {
+            const results = [];
+            const request = this.db.transaction(storeName, "readonly")
+                .objectStore(storeName)
+                .openCursor();
+            return new Promise((resolve, reject) => {
+                request.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (!cursor) return resolve(results);
+                    // if (cursor.value[key].includes(query)) results.push(cursor.value);
+                    if (queries.every(query => cursor.value[query.key]?.includes(query.value))) results.push(cursor.value); // use some instead of every for OR of query
+                    cursor.continue();
+                };
+                request.onerror = (event) => {
+                    console.error("Error searching data:", event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        } catch (error) {
+            console.error("Error searching data:", error);
+            throw error;
+        }
+    }
+    /**
+     * Delete data from the specified object store by key.
+     * @param {string} storeName - The name of the object store to delete data from.
+     * @param {*} key - The key of the data to delete.
+     * @returns {Promise} - A promise that resolves when the data is deleted.
+     */
+    async delete(storeName, key) {
+        try {
+            const request = this.db.transaction(storeName, "readwrite")
+                .objectStore(storeName)
+                .delete(key);
+            return await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error deleting data:", error);
+            throw error;
+        }
+    }
+    /**
+     * Clear all data from the specified object store.
+     * @param {string} storeName - The name of the object store to clear data from.
+     * @returns {Promise} - A promise that resolves when the data is cleared.
+     */
+    async clear(storeName) {
+        try {
+            const request = this.db.transaction(storeName, "readwrite")
+                .objectStore(storeName)
+                .clear();
+            return await this.#eventWrapper(request, "success");
+        } catch (error) {
+            console.error("Error clearing data:", error);
+            throw error;
+        }
+    }
 }
 
-// Main initialization function
-async function init() {
-    console.log("Initializing application...");
-    await Promise.all([
-        new Promise((resolve) => addEventListener("DOMContentLoaded", resolve)),
-        initDB(),
-    ]);
-    await route();
-}
-const dbSchemas = {
-    notes: {
-        options: {
-            keyPath: "uuid",
-            autoIncrement: false,
-        },
+const db = new IDB('divein', 1);
+const schemas = [
+    {
+        name: 'notes',
+        options: { keyPath: 'uuid' },
         indexes: [
-            { name: "uuid", unique: true },
-            { name: "content", unique: false },
-            { name: "createdAt", unique: false },
-            { name: "updatedAt", unique: false },
+            { name: 'content', unique: false },
+            { name: 'children', unique: false },
         ],
     },
-    apiUrls: {
-        options: {
-            keyPath: "url",
-        },
-        indexes: [{ name: "url", unique: true }],
-    },
-};
-const defaultApiUrls = [
     {
-        url: "https://api.example.com/sync",
-        name: "Example API",
-        addedAt: new Date().toISOString(),
-    },
-    {
-        url: "https://api.anotherexample.com/sync",
-        name: "Another Example API",
-        addedAt: new Date().toISOString(),
-    },
+        name: 'apiUrls',
+        options: { keyPath: 'url' },
+        indexes: [
+            { name: 'url', unique: true },
+            { name: 'data', unique: false },
+        ],
+    }
 ];
-async function initDB() {
-    await db.init(dbSchemas);
-    await Promise.all(
-        defaultApiUrls.map(async (apiUrl) => {
-            const existingUrl = await db.getByKey("apiUrls", apiUrl.url);
-            if (!existingUrl) await db.add("apiUrls", apiUrl);
-            return;
-        })
-    );
-}
-async function route() {
-    document.documentElement.classList = localStorage.getItem("theme");
-    const url = new URL(window.location);
-    if (!localStorage.getItem("theme")) {
-        if (matchMedia("(prefers-color-scheme: dark)").matches) {
-            localStorage.setItem("theme", "dark");
-            document.documentElement.classList = "dark";
-        } else {
-            localStorage.setItem("theme", "light");
-            document.documentElement.classList = "light";
+const defaultNoteData = {
+    uuid: '',
+    content: '',
+    children: [],
+    style: {
+        expanded: true,
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+};
+async function init() {
+    localStorage.setItem('theme', localStorage.getItem('theme') || matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    body.className = localStorage.getItem('theme');
+    await Promise.all([
+        db.init(schemas),
+        new Promise((resolve) => addEventListener('DOMContentLoaded', resolve))
+    ]);
+    document.getElementById('home').addEventListener('click', home);
+    document.getElementById('settings').addEventListener('click', showSettings);
+    document.getElementById('sync').addEventListener('click', sync);
+    document.getElementById('download').addEventListener('click', download);
+    document.getElementById('upload').addEventListener('click', upload);
+    document.getElementById('reload').addEventListener('click', reload);
+    // document.getElementById('search').addEventListener('click', search);
+    const url = new URL(location.href);
+    if (!url.searchParams.has('uuid')) {
+        console.log('No UUID found in URL. Redirecting to home...');
+        if (!localStorage.getItem('home')) {
+            console.log('No home UUID found in localStorage. Creating a new one...');
+            const uuid = crypto.randomUUID();
+            localStorage.setItem('home', uuid);
+            // await db.add('notes', {
+            //     ...defaultNoteData,
+            //     uuid: uuid,
+            //     content: 'home',
+            //     createdAt: new Date().toISOString(),
+            //     updatedAt: new Date().toISOString()
+            // });
+            await db.upsert('notes', {
+                ...noteData,
+                uuid: uuid,
+                content: 'home',
+                style: {
+                    expanded: true
+                }
+            });
         }
+        url.searchParams.set('uuid', localStorage.getItem('home'));
+        history.replaceState({}, '', url.toString());
     }
-    initEventListeners(url.hash === "#settings");
-    let uuid;
-    if (url.searchParams.has("uuid")) {
-        uuid = url.searchParams.get("uuid");
-    } else {
-        uuid = localStorage.getItem("homeUuid") || crypto.randomUUID();
-        if (!localStorage.getItem("homeUuid"))
-            localStorage.setItem("homeUuid", uuid);
-        url.searchParams.set("uuid", uuid);
-        window.history.replaceState({}, "", url.toString());
-    }
-    const note = new Note(uuid, null, true);
-    await note.get();
-    document.querySelector("main").appendChild(await note.initContainer());
-    document.getElementById("loading").style.display = "none";
-    return;
-}
-function initEventListeners(isSettings) {
-    console.log("Initializing event listeners... (isSettings:", isSettings, ")");
-    addEventListener("hashchange", route);
-    addEventListener("popstate", route);
-    addEventListener("DOMContentLoaded", route);
-    const settings = new Settings(isSettings);
-    document.getElementById("home").addEventListener("click", home);
-    document.getElementById("settings").addEventListener("click", () => settings.show());
-    document.getElementById("sync").addEventListener("click", syncWithApis);
-    document.getElementById("download").addEventListener("click", download);
-    document.getElementById("upload").addEventListener("click", upload);
-    return;
+    const uuid = url.searchParams.get('uuid');
+    main.innerHTML = '';
+    // main.append(await createNoteDiv(uuid, customEvents.expand));
+    // main.append(await createNoteDiv(uuid, true));
+    main.append(await createNoteDiv(uuid));
+    document.getElementById('loading').remove();
 }
 
-const db = new IDB("divein", 1);
 init();
+
+function showMenu() {
+    // const menu = document.getElementById('menu') || document.createElement('div');
+}
+function home() {
+    const url = new URL(location.href);
+    url.searchParams.set('uuid', localStorage.getItem('home'));
+    history.replaceState({}, '', url.toString());
+    init();
+}
+function showSettings() {
+    const settings = document.getElementById('settings') || document.createElement('div');
+    settings.classList.toggle('hidden');
+}
+function sync() {
+    console.log('Syncing...');
+    // Implement sync logic here
+}
+function download() {
+    console.log('Downloading...');
+    // Implement download logic here
+}
+function upload() {
+    console.log('Uploading...');
+    // Implement upload logic here
+}
+function reload() {
+    console.log('Reloading...');
+    location.reload();
+}
+function search() {
+    console.log('Searching...');
+    // Implement search logic here
+}
+
+function resetAllAndImSureToDeleteEverything() {
+    // db.clear('notes');
+    // db.clear('apiUrls');
+    indexedDB.deleteDatabase('divein'); // Clear IndexedDB
+    localStorage.clear(); // Clear localStorage
+    history.replaceState({}, '', location.href.split('?')[0]); // Clear URL parameters
+    location.reload(); // Reload the page
+}
