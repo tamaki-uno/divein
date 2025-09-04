@@ -13,12 +13,6 @@ function addEventListeners(Element, events) {
     });
 }
 
-function appendChildren(Element, children) {
-    children.forEach(child => {
-        Element.appendChild(child);
-    });
-}
-
 class Note {
     constructor(uuid, parentNote, expand = false) {
         this.uuid = uuid;
@@ -99,7 +93,7 @@ class Note {
         return this.initContainer();
     }
     async get() {
-        const noteData = await db.getByKey("notes", this.uuid) || this.createNoteData();
+        const noteData = await db.get("notes", this.uuid) || this.createNoteData();
         this.content = noteData.content;
         this.children = noteData.children.map((childUuid) => new Note(childUuid, this, false));
         this.createdAt = noteData.createdAt;
@@ -124,7 +118,7 @@ class Note {
         };
     }
     async hasChanged() {
-        const existingNote = await db.getByKey("notes", this.uuid);
+        const existingNote = await db.get("notes", this.uuid);
         if (!existingNote) return true;
         const noteData = this.createNoteData();
         const isContentChanged = existingNote.content !== noteData.content;
@@ -385,7 +379,7 @@ class Suggestion {
         this.hide();
     }
     async update(content) {
-        this.results = await db.search("notes", content.trim());
+        this.results = await db.find("notes", content.trim());
         this.results.sort((a, b) => {
             return a.content.localeCompare(b.content);
         });
@@ -755,7 +749,7 @@ async function upload() {
                         ) {
                             return alert("Invalid note format in uploaded file.");
                         }
-                        const existingNote = await db.getByKey("notes", note.uuid);
+                        const existingNote = await db.get("notes", note.uuid);
                         if (existingNote) {
                             if (new Date(existingNote.updatedAt) < new Date(note.updatedAt)) {
                                 await db.put("notes", note);
@@ -828,7 +822,7 @@ async function initDB() {
     await db.init(dbSchemas);
     await Promise.all(
         defaultApiUrls.map(async (apiUrl) => {
-            const existingUrl = await db.getByKey("apiUrls", apiUrl.url);
+            const existingUrl = await db.get("apiUrls", apiUrl.url);
             if (!existingUrl) await db.add("apiUrls", apiUrl);
             return;
         })
