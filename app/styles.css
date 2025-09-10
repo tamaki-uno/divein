@@ -70,8 +70,8 @@ body > main {
 .note {
     display: flex;
     flex-direction: column;
-    /* position: relative; */
-    position: sticky;
+    position: relative;
+    /* position: sticky; */
     top: 0;
     font-size: max(0.75em, 16px);
     margin: 0.2em;

@@ -1,5 +1,44 @@
 # memo
 
+## DOM-First Event-Driven
+
+1. Create noteDiv (createDiv(uuid))
+   1. Create noteDiv
+   2. className
+   3. add event-listner: expand, collapse
+   4. Create contentDiv
+      1. create toggleButton
+         1. create img
+         2. src
+         3. addEventListeners: click, dblclick, drag, contextmenu
+      2. create contentSpan
+         1. create span
+         2. contentEditable
+         3. add event-listener: keydown, input
+   5. Create childrenDiv
+      1. create div
+2. Event occurs on DOM element
+   1. Edit noteDiv > contentDiv > contentSpan
+      1. (on focus: )
+      2. keydown: handleKeyDown(event)
+      3. on input: update IDB
+      4. (on change: update IDB)
+      5. (on blur: update and apply style)
+      6. on drag:  
+   2. Collapse: change visibility of noteDiv > childrenDiv (handleCollapse)
+   3. Expand: change visibility of noteDiv > childrenDiv (handleExpand)
+   4. drag
+   5. contextmenu
+3. On updating IDB (async update(noteData))
+   1. (Update IDB: db.upsert)
+   2. upsert to API DB: api.upsert
+   3. Update DOM:
+      1. for each noteDiv.{uuid}
+      2. If content changed: update contentSpan
+      3. If children changed: update childrenDiv
+
+render(noteData) -> 
+
 ## Github Pagesなどの静的ホスティングで動作するように
 
 * 基本的にすべての機能をブラウザで動作

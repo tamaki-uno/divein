@@ -1,0 +1,84 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <main>
+        <p>default paragraph</p>
+        <div>some div</div>
+        <div>another div</div>
+        <button>Let's Go!</button>
+        <div>
+            <button>Shuffle!</button>
+            <button>Shuffle without clearing ul.innerHtml!</button>
+            <p></p>
+            <ul>
+                <!-- <li>Item 1</li>
+                <li>Item 2</li>
+                <li>Item 3</li>
+                <li>Item 4</li>
+                <li>Item 5</li> -->
+            </ul>
+        </div>
+    </main>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("Document is ready");
+            const main = document.querySelector("main");
+            const div = document.querySelector("div");
+            // document.addEventListener("click", () => {
+            //     console.log("Div clicked");
+            document.querySelector("button").addEventListener("click", () => {
+                const anotherDiv = document.querySelector("div:nth-of-type(2)");
+                main.innerHTML = "<p>New content</p>";
+                main.append(anotherDiv);
+                main.append(div);
+                const newButton = document.createElement("button");
+                newButton.textContent = "Reload";
+                newButton.onclick = () => location.reload();
+                main.append(newButton);
+            });
+            document.querySelectorAll("div > button")
+                .forEach(button => button.addEventListener("click", () => {
+                    const ul = document.querySelector("ul");
+                    // const newUl = document.createElement("ul");
+                    // const newUl = ul.cloneNode(false);
+                    const newUl = ul.cloneNode(true);
+                    console.log(`button clicked (${event.target.textContent})`);
+                    const start = performance.now();
+                    // const items = Array.from(ul.children);
+                    const items = Array.from(newUl.children);
+                    // const items = Array.from(document.querySelector('div > ul').children);
+                    // console.log(`[${(performance.now()-start).toFixed(2)}ms] got items`);
+                    items.sort(() => Math.random() - 0.5);
+                    // console.log(`[${(performance.now()-start).toFixed(2)}ms] shuffled items`);
+                    // ul.innerHTML = "";
+                    if (event.target.textContent === "Shuffle!") {
+                        ul.innerHTML = "";
+                        // console.log(`[${(performance.now()-start).toFixed(2)}ms] ul contents cleared`);
+                    } else {
+                        // console.log(`[${(performance.now()-start).toFixed(2)}ms] ul contents not cleared`);
+                    }
+                    // items.forEach(item => ul.append(item));
+                    items.forEach(item => newUl.append(item));
+                    console.log(`[${(performance.now()-start).toFixed(2)}ms] ul contents re-added`);
+                    // document.querySelector('div > ul').replaceWith(ul);
+                    ul.replaceWith(newUl);
+                    console.log(`[total ${(performance.now()-start).toFixed(2)}ms] shuffle done`);
+                }));
+            const itemNum = 100000;
+            document.querySelector("div > p").textContent = `Total items: ${itemNum}`;
+            // const ul = document.querySelector("ul");
+            const ul = document.createElement("ul");
+            for (let i = 1; i <= itemNum; i++) {
+                const li = document.createElement("li");
+                li.textContent = `Item ${i}`;
+                ul.append(li);
+            }
+            document.querySelector("div > ul").replaceWith(ul);
+        });
+    </script>
+</body>
+</html>
