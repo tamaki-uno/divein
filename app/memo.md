@@ -192,3 +192,43 @@ render(noteData) ->
 
 * UUID-content: kontent
 * UUID-children: children
+
+
+## 2025-10
+
+data-first event-driven
+
+{
+  'uuid':'',
+  'type':'',
+  'content':'',
+  'pubkey':'',
+  'sign':''
+}
+
+types
+
+* note 'text'
+  * '{'content':'', 'style':''}'
+* link 'uuid'
+  * '{'uuid':'', 'style':''}'
+* embed 'url'
+  * ''(url)
+<!-- * image
+  * ''
+* video
+* music -->
+
+uuid, type, content, style, pubkey, sign
+
+types: text, container, url
+
+uuid, type, contents[], style{}, pubkey, sign
+
+onserver: + createdAt, updatedAt, visibleFor, editableFor
+
+uuid, type, contents[], style{}, from, to, sign
+
+uuid, style{}, contents[], from, to, sign, parent
+
+uuid, style{}, contents{}, from, to, sign, parent
