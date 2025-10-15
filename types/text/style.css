@@ -1,0 +1,10 @@
+div.text {
+    font-family: Arial, sans-serif;
+    font-size: 1rem;
+    color: var(--text-color);
+    line-height: 1.6;
+    margin: 0.25rem;
+    padding: 0.25rem;
+    background-color: var(--background-color);
+    border-radius: 0.25rem;
+}

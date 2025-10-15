@@ -232,3 +232,79 @@ uuid, type, contents[], style{}, from, to, sign
 uuid, style{}, contents[], from, to, sign, parent
 
 uuid, style{}, contents{}, from, to, sign, parent
+
+ex)
+
+```js
+{
+  'uuid': '550e8400-e29b-41d4-a716-446655440000',
+  'style': {
+    'url': 'https://github.com/tamaki-uno/divein/styles/text.submarine',
+  },
+  'content': {
+    'text': 'hello, world',
+  },
+  'from': 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAsotK4PbdadfhbXbTPIsxvwKFIg+8Lmp0pXKckAOuSnoaaT516ddj9rnIJlE/JaJf0cltp+087R6Ov8LPY+QeQvzzUfGiAQQVdwBiMrVQVqXylIoidU86uz/w8GITXltu1m+fXO+O26dEESQWsAgiNfVOzB57OCadGX1iCy6/2CxvNEB3mnHkvmC+H3azP27tTARHXqTBThuxjwR9iZBkx2iYSW3tVg0cDdzuLP3ULVrJXHrrLCr1HGaAzQEs0M+vtrV+G8gLlkeqbKy4YKWKUY/xkM8c/20jnSKP36SeU4fezbRQREkYqRjx4a3kx97K1sfch/WKwzuHWqhYYMtvEw== taro@test.kyoto-u.ac.jp',
+  'to': 'ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAsotK4PbdadfhbXbTPIsxvwKFIg+8Lmp0pXKckAOuSnoaaT516ddj9rnIJlE/JaJf0cltp+087R6Ov8LPY+QeQvzzUfGiAQQVdwBiMrVQVqXylIoidU86uz/w8GITXltu1m+fXO+O26dEESQWsAgiNfVOzB57OCadGX1iCy6/2CxvNEB3mnHkvmC+H3azP27tTARHXqTBThuxjwR9iZBkx2iYSW3tVg0cDdzuLP3ULVrJXHrrLCr1HGaAzQEs0M+vtrV+G8gLlkeqbKy4YKWKUY/xkM8c/20jnSKP36SeU4fezbRQREkYqRjx4a3kx97K1sfch/WKwzuHWqhYYMtvEw== taro@test.kyoto-u.ac.jp',
+  'sign': 'asdlfkjaeionlasdkjoaiemlkmcdslafel23948hg9842jwe0923h',
+  'parents': [
+    'anoeilsdkjfanoviasdlkj',
+    'asnnlisvksdjlielndskfa'
+  ]
+}
+```
+
+styles/text.submarine
+
+```html
+<div>
+  <p>
+
+  </p>
+</div>
+```
+
+```js
+{
+  'payload': {
+    'uuid': '',
+    'content': {
+      '': '',
+    },
+    'dhtml': 'https://',
+    'dstyle': 'https://',
+    'parents': [
+      'lfjie',
+      'asofije',
+      'ajlsife'
+    ]
+  },
+  'from': 'ssh-rsa',
+  'sign': 'asieji',
+  'to': 'ssh-rsa',
+}
+```
+
+```js
+'payload': {
+  'uuid': '',
+  'content': {
+    'text':'ahodsfiel',
+  },
+  // 'type': '/types/',
+  // 'css': 'div {background-color: }',
+  'style': {
+    'type': '',
+    'css': ''
+  }
+  'parents':
+}
+```
+
+```html
+<div>
+  <p>
+    #text
+  </p>
+</div>
+```

@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@300;400;500;600;700;900&display=swap');
+
+.light {
+    --main-text: #333;
+    --accent-text: #24b;
+    --icon-filter: invert(0.15);
+    --icon-hover-filter: invert(0.25);
+    --main-background: #eee;
+    --sub-background: #fff;
+    --hover-background: #ddd;
+    /* --accent-background: #24b; */
+    --hover-shadow: rgba(0, 0, 0, 0.3);
+    --shadow: 0.1em 0.1em 0.5em -0.1em rgba(0, 0, 0, 0.3);
+    --radius: 0.5rem;
+
+    --transition-time: 0.2s;
+    --transition-ease: ease-in-out;
+}
+
+.dark {
+    --main-text: #eee;
+    --accent-text: #24b;
+    --icon-filter: invert(0.85);
+    --icon-hover-filter: invert(0.75);
+    --main-background: #222;
+    --sub-background: #333;
+    --hover-background: #444;
+    /* --accent-background: #24b; */
+    --hover-shadow: rgba(0, 0, 0, 0.6);
+    --shadow: 0.1em 0.1em 0.5em -0.1em rgba(255, 255, 255, 0.6);
+}
+
+html,
+body {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-weight: 500;
+    font-size: 50px;
+    margin: 0;
+    padding: 0;
+    background-color: var(--main-background);
+    color: var(--main-text);
+}
+
+body>.control {
+    font-size: 0.75em;
+    display: inline-block;
+    position: fixed;
+    top: 1em;
+    z-index: 500;
+    /* box-shadow: 0.1em 0.1em 0.5em -0.1em var(--hover-shadow); */
+    cursor: pointer;
+    width: 1em;
+    height: 1em;
+    padding: 0.5em;
+    border-radius: 50%;
+    filter: var(--icon-filter);
+    background-color: white;
+    box-shadow: var(--shadow);
+    transition: filter 0.1s ease-in-out;
+}
+
+body>.control:hover {
+    filter: var(--icon-hover-filter);
+}
+
+body>main {
+    display: flex;
+    flex-direction: column;
+    /* position: relative; */
+    position: sticky;
+}
