@@ -1,0 +1,37 @@
+
+services:
+  divein-api:
+    container_name: divein-api
+    build: .api
+    volumes:
+      - .:/api
+      - ./app:.api/app
+      - .env:/api/.env
+      - ./api/node_modules:/api/node_modules
+    networks:
+      - shared-network # for development
+      - default
+    # ports:
+      # - "8000:8000"
+    depends_on:
+      - db
+
+  db:
+    container_name: divein-db
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - default
+
+volumes:
+  db_data:
+
+networks:
+  shared-network:
+    external: true
+  default:
