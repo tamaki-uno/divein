@@ -1,0 +1,12 @@
+{
+    "level": 50,
+    "time": 1760665995611,
+    "pid": 872292,
+    "hostname": "TRIGKEY-G4",
+    "err": {
+        "type": "Error",
+        "message": "\"root\" option must be an absolute path",
+        "stack": "Error: \"root\" option must be an absolute path\n    at checkPath (/home/suito/Projects/divein/api/node_modules/@fastify/static/index.js:453:11)\n    at checkRootPathForErrors (/home/suito/Projects/divein/api/node_modules/@fastify/static/index.js:442:12)\n    at fastifyStatic (/home/suito/Projects/divein/api/node_modules/@fastify/static/index.js:22:3)\n    at Plugin.exec (/home/suito/Projects/divein/api/node_modules/avvio/lib/plugin.js:125:28)\n    at Boot._loadPlugin (/home/suito/Projects/divein/api/node_modules/avvio/boot.js:432:10)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)"
+    },
+    "msg": "\"root\" option must be an absolute path"
+}

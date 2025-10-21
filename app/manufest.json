@@ -1,0 +1,10 @@
+{
+    "name": "DIVEIN",
+    "display": "standalone",
+    "icons": [
+        {
+            "src": "icons/divein.svg",
+            "type": "image/svg+xml"
+        }
+    ]
+}
